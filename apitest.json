@@ -1,0 +1,708 @@
+{
+  "info": {
+    "name": "Absensi System API",
+    "description": "Complete API collection for testing Absensi System mobile app endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.data.token);",
+                  "        console.log('Token saved:', response.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"current_password\": \"password123\",\n    \"new_password\": \"newpassword123\",\n    \"new_password_confirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["change-password"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": ["{{base_url}}"],
+              "path": ["logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.updated@example.com\",\n    \"phone\": \"081234567890\",\n    \"address\": \"Jl. Contoh No. 123, Jakarta\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            }
+          }
+        },
+        {
+          "name": "Upload Profile Photo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": "/path/to/your/photo.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/photo",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "photo"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile/stats",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Jadwal",
+      "item": [
+        {
+          "name": "Get Monthly Jadwal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jadwal?month=12&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["jadwal"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "12"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Weekly Jadwal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jadwal/weekly?start_date=2024-12-01",
+              "host": ["{{base_url}}"],
+              "path": ["jadwal", "weekly"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2024-12-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Today's Jadwal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jadwal/today",
+              "host": ["{{base_url}}"],
+              "path": ["jadwal", "today"]
+            }
+          }
+        },
+        {
+          "name": "Get Tomorrow's Jadwal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jadwal/tomorrow",
+              "host": ["{{base_url}}"],
+              "path": ["jadwal", "tomorrow"]
+            }
+          }
+        },
+        {
+          "name": "Get Jadwal by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/jadwal/range?start_date=2024-12-01&end_date=2024-12-07",
+              "host": ["{{base_url}}"],
+              "path": ["jadwal", "range"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2024-12-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-12-07"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "✅ Absensi",
+      "item": [
+        {
+          "name": "Get Today's Absen Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/absen/today",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "today"]
+            }
+          }
+        },
+        {
+          "name": "Clock In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitude",
+                  "value": "-6.200000",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "106.816666",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "Jl. Sudirman No. 1, Jakarta Pusat",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": "/path/to/clock-in-photo.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/absen/clock-in",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "clock-in"]
+            }
+          }
+        },
+        {
+          "name": "Clock Out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitude",
+                  "value": "-6.200000",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "106.816666",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "Jl. Sudirman No. 1, Jakarta Pusat",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": "/path/to/clock-out-photo.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/absen/clock-out",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "clock-out"]
+            }
+          }
+        },
+        {
+          "name": "Get Absen History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/absen/history?month=12&year=2024&per_page=10&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "history"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "12"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Riwayat",
+      "item": [
+        {
+          "name": "Get Riwayat Absen (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/riwayat/absen?month=12&year=2024&per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["riwayat", "absen"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "12"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Riwayat Jadwal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/riwayat/jadwal?month=12&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["riwayat", "jadwal"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "12"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Detail Harian",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/riwayat/detail/2024-12-01",
+              "host": ["{{base_url}}"],
+              "path": ["riwayat", "detail", "2024-12-01"]
+            }
+          }
+        },
+        {
+          "name": "Get Yearly Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/riwayat/yearly?year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["riwayat", "yearly"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Photos Gallery",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/riwayat/photos?month=12&year=2024&per_page=20&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["riwayat", "photos"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "12"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Test Endpoints",
+      "item": [
+        {
+          "name": "API Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test",
+              "host": ["{{base_url}}"],
+              "path": ["test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "❌ Error Test Cases",
+      "item": [
+        {
+          "name": "Login with Invalid NIP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nip\": \"INVALID123\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Login with Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Clock In without Auth",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitude",
+                  "value": "-6.200000",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "106.816666",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "Test Address",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/absen/clock-in",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "clock-in"]
+            }
+          }
+        },
+        {
+          "name": "Clock In with Invalid Data",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitude",
+                  "value": "invalid_latitude",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "invalid_longitude",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/absen/clock-in",
+              "host": ["{{base_url}}"],
+              "path": ["absen", "clock-in"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('Making request to:', pm.request.url);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test('Response should be valid JSON', function () {",
+          "    pm.response.to.be.json;",
+          "});",
+          "",
+          "pm.test('Response should have success field', function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('success');",
+          "});",
+          "",
+          "pm.test('Response should have message field', function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('message');",
+          "});"
+        ]
+      }
+    }
+  ]
+}
