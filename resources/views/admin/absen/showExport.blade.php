@@ -449,7 +449,7 @@ function initMap(lat, lng) {
 
     // Simple map implementation using Google Maps or OpenStreetMap
     // For this example, we'll use a simple iframe with Google Maps
-    const mapUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${lat},${lng}&zoom=15`;
+    // const mapUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${lat},${lng}&zoom=15`;
 
     // Alternative: OpenStreetMap iframe
     const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lng}`;
