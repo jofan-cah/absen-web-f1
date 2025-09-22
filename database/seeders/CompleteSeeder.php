@@ -14,14 +14,16 @@ class CompleteSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Create Departments
+        // 1. Create Departments based on actual data from Excel
         $departments = [
-            ['name' => 'IT Department', 'code' => 'IT'],
-            ['name' => 'Technician', 'code' => 'TECH'],
-            ['name' => 'Network Operations Center', 'code' => 'NOC'],
-            ['name' => 'Administration', 'code' => 'ADM'],
-            ['name' => 'Pre Sales', 'code' => 'PRESALES'],
-            ['name' => 'Customer Service', 'code' => 'CS'],
+            ['name' => 'Programmer', 'code' => 'PROG'],
+            ['name' => 'Technical Support', 'code' => 'TECH'],
+            ['name' => 'Project Management Fiber Optic', 'code' => 'PMO'],
+            ['name' => 'Network Operation Center', 'code' => 'NOC'],
+            ['name' => 'Logistic Warehouse', 'code' => 'LOG'],
+            ['name' => 'Administrasi', 'code' => 'ADM'],
+            ['name' => 'Presales Officer', 'code' => 'PRESALES'],
+            ['name' => 'Customer Support', 'code' => 'CS'],
         ];
 
         $departmentIds = [];
@@ -85,29 +87,30 @@ class CompleteSeeder extends Seeder
             ]);
         }
 
-        // 3. Create Users & Karyawans from Excel data
+        // 3. Create Users & Karyawans from actual Excel data (sorted by hire date from oldest to newest)
         $karyawanData = [
-            ['nama' => 'JOFAN FATHURAHMAN', 'posisi' => 'ADMIN', 'departements' => 'IT', 'alamat' => 'Jl. Admin No. 1, Klaten', 'tanggal_masuk' => '2024-12-12'],
-            ['nama' => 'Agus Prabowo', 'posisi' => 'COORDINATOR', 'departements' => 'TECHNICIAN', 'alamat' => 'Gantiwarno, Klaten'],
-            ['nama' => 'Irfan Ardiansyah', 'posisi' => 'COORDINATOR WAKIL', 'departements' => 'TECHNICIAN', 'alamat' => 'Watu Kelir, Klaten'],
-            ['nama' => 'Agus Darmawan', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Watu Kelir, Klaten'],
-            ['nama' => 'Ahmad Fauzi', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Watu Kelir, Klaten'],
-            ['nama' => 'Rangga Widodo', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Jl. Widodo No. 15, Klaten', 'tanggal_masuk' => '2025-01-17'],
-            ['nama' => 'Rayhan Nursahin', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Jogonalan, Klaten', 'tanggal_masuk' => '2025-01-17'],
-            ['nama' => 'Said Alidrus', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Jogonalan, Klaten'],
-            ['nama' => 'Basuki Danar Tomo', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Watu Kelir, Klaten'],
-            ['nama' => 'Ridho Kurniawan', 'posisi' => 'STAFF', 'departements' => 'TECHNICIAN', 'alamat' => 'Jl. Kurniawan No. 8, Klaten'],
-            ['nama' => 'Kayis Fadillah', 'posisi' => 'STAFF', 'departements' => 'NOC', 'alamat' => 'Prambanan, Klaten', 'tanggal_masuk' => '2025-02-20'],
-            ['nama' => 'Rizky Agung Saputra', 'posisi' => 'STAFF', 'departements' => 'NOC', 'alamat' => 'Watu Kelir, Klaten'],
-            ['nama' => 'Regal Fairuz Albar', 'posisi' => 'COORDINATOR', 'departements' => 'NOC', 'alamat' => 'Prambanan, Klaten', 'tanggal_masuk' => '2025-01-17'],
-            ['nama' => 'Ayu Mutiara', 'posisi' => 'STAFF', 'departements' => 'ADM', 'alamat' => 'Jl. Mutiara No. 12, Klaten'],
-            ['nama' => 'Vinanda Salma', 'posisi' => 'STAFF', 'departements' => 'ADM', 'alamat' => 'Jl. Salma No. 5, Klaten'],
-            ['nama' => 'Anisa Novita Salma', 'posisi' => 'COORDINATOR', 'departements' => 'PRESALES', 'alamat' => 'Jimbung, Klaten'],
-            ['nama' => 'Sri Niyati', 'posisi' => 'STAFF', 'departements' => 'PRESALES', 'alamat' => 'Deles, Klaten'],
-            ['nama' => 'Ernida Kumala', 'posisi' => 'STAFF', 'departements' => 'PRESALES', 'alamat' => 'Jogonalan, Klaten'],
-            ['nama' => 'Kharisma Yogi', 'posisi' => 'STAFF', 'departements' => 'PRESALES', 'alamat' => 'Ceper, Klaten'],
-            ['nama' => 'Novi Astuti', 'posisi' => 'STAFF', 'departements' => 'CS', 'alamat' => 'Manisrenggo, Klaten'],
-            ['nama' => 'Dwita', 'posisi' => 'COORDINATOR', 'departements' => 'CS', 'alamat' => 'Trucuk, Klaten'],
+            ['nama' => 'Sonya', 'posisi' => 'COORDINATOR', 'departements' => 'Technical Support', 'alamat' => 'Klaten Utara', 'tanggal_masuk' => '2020-01-12'],
+            ['nama' => 'Agus Prabowo', 'posisi' => 'COORDINATOR', 'departements' => 'Technical Support', 'alamat' => 'Gantiwarno', 'tanggal_masuk' => '2021-09-04'],
+            ['nama' => 'Kharisma Yogi A', 'posisi' => 'STAFF', 'departements' => 'Presales Officer', 'alamat' => 'Ceper, Klaten', 'tanggal_masuk' => '2022-07-16'],
+            ['nama' => 'Anisa Novita Salma', 'posisi' => 'COORDINATOR', 'departements' => 'Presales Officer', 'alamat' => 'Jimbung, Klaten', 'tanggal_masuk' => '2023-06-04'],
+            ['nama' => 'Sri Niyati', 'posisi' => 'STAFF', 'departements' => 'Presales Officer', 'alamat' => 'Deles, Klaten', 'tanggal_masuk' => '2023-10-29'],
+            ['nama' => 'Dwita Putri R', 'posisi' => 'COORDINATOR', 'departements' => 'Customer Support', 'alamat' => 'Trucuk, Klaten', 'tanggal_masuk' => '2023-10-29'],
+            ['nama' => 'Irfan Ardiansyah', 'posisi' => 'COORDINATOR', 'departements' => 'Project Management Fiber Optic', 'alamat' => 'Watu Kelir', 'tanggal_masuk' => '2024-05-16'],
+            ['nama' => 'Agus Darmawan', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Watu Kelir', 'tanggal_masuk' => '2024-05-16'],
+            ['nama' => 'Basuki Danar Tomo', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Watu Kelir', 'tanggal_masuk' => '2024-05-16'],
+            ['nama' => 'JOFAN FATHURAHMAN', 'posisi' => 'COORDINATOR', 'departements' => 'PROGRAMMER', 'alamat' => 'isi sesuai ktp', 'tanggal_masuk' => '2024-12-12'],
+            ['nama' => 'Ernida Kumalasari', 'posisi' => 'STAFF', 'departements' => 'Presales Officer', 'alamat' => 'Jogonalan, Klaten', 'tanggal_masuk' => '2025-04-16'],
+            ['nama' => 'Novi Astuti', 'posisi' => 'STAFF', 'departements' => 'Customer Support', 'alamat' => 'Manisrenggo, Klaten', 'tanggal_masuk' => '2025-04-16'],
+            ['nama' => 'Rangga Widodo S', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Jogonalan', 'tanggal_masuk' => '2025-04-27'],
+            ['nama' => 'Rayhan Nursahin', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Jogonalan', 'tanggal_masuk' => '2025-04-27'],
+            ['nama' => 'Regal Fairuz Albar', 'posisi' => 'COORDINATOR', 'departements' => 'Network Operation Center', 'alamat' => 'Prambanan, Klaten', 'tanggal_masuk' => '2025-04-27'],
+            ['nama' => 'Ahmad Fauzi', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Watu Kelir', 'tanggal_masuk' => '2025-05-12'],
+            ['nama' => 'Said Aldi Al Idrus', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Jogonalan', 'tanggal_masuk' => '2025-05-12'],
+            ['nama' => 'Rizky Agung Saputra', 'posisi' => 'COORDINATOR', 'departements' => 'Logistic Warehouse', 'alamat' => 'Watu Kelir', 'tanggal_masuk' => '2025-05-12'],
+            ['nama' => 'Vinanda Salma A', 'posisi' => 'STAFF', 'departements' => 'Administrasi', 'alamat' => 'Jl. Salma No. 5, Klaten', 'tanggal_masuk' => '2025-06-30'],
+            ['nama' => 'Ayu Mutiara A', 'posisi' => 'COORDINATOR', 'departements' => 'Administrasi', 'alamat' => 'Jl. Mutiara No. 12, Klaten', 'tanggal_masuk' => '2025-08-03'],
+            ['nama' => 'Ridho Kurniawan', 'posisi' => 'STAFF', 'departements' => 'Technical Support', 'alamat' => 'Jl. Kurniawan No. 8, Klaten', 'tanggal_masuk' => '2025-08-04'],
+            ['nama' => 'Kayis Fadillah', 'posisi' => 'STAFF', 'departements' => 'Network Operation Center', 'alamat' => 'Prambanan, Klaten', 'tanggal_masuk' => '2025-09-08'],
         ];
 
         // Phone numbers for random generation
@@ -116,27 +119,38 @@ class CompleteSeeder extends Seeder
         // Birth years for random generation
         $birthYears = range(1985, 2000);
 
+        // Map department names to codes
+        $deptMapping = [
+            'PROGRAMMER' => 'PROG',
+            'Programmer' => 'PROG',
+            'Technical Support' => 'TECH',
+            'Project Management Fiber Optic' => 'PMO',
+            'Network Operation Center' => 'NOC',
+            'Logistic Warehouse' => 'LOG',
+            'Administrasi' => 'ADM',
+            'Presales Officer' => 'PRESALES',
+            'Customer Support' => 'CS',
+        ];
+
+        // Map position to staff_status
+        $staffStatusMapping = [
+            'COORDINATOR' => 'koordinator',
+            'STAFF' => 'staff',
+        ];
+
         $userCounter = 1;
         $karyawanCounter = 1;
 
         foreach ($karyawanData as $data) {
-            // Map department
-            $deptMapping = [
-                'IT' => 'IT',
-                'TECHNICIAN' => 'TECH',
-                'NOC' => 'NOC',
-                'ADM' => 'ADM',
-                'PRESALES' => 'PRESALES',
-                'CS' => 'CS',
-            ];
+            // Parse hire date
+            $hireDate = Carbon::parse($data['tanggal_masuk']);
 
-            // Map position to staff_status
-            $staffStatusMapping = [
-                'ADMIN' => 'koordinator',
-                'COORDINATOR' => 'koordinator',
-                'COORDINATOR WAKIL' => 'wakil_koordinator',
-                'STAFF' => 'staff',
-            ];
+            // Generate NIP with format: 01 (company code) + YYMM + urut 3 digit
+            $companyCode = '01';
+            $year = $hireDate->format('y');  // 2 digit year (20, 21, etc)
+            $month = $hireDate->format('m'); // 2 digit month (01, 02, etc)
+            $urut = str_pad($userCounter, 3, '0', STR_PAD_LEFT); // 3 digit counter
+            $nip = $companyCode . $year . $month . $urut;
 
             // Generate random data
             $phonePrefix = $phoneNumbers[array_rand($phoneNumbers)];
@@ -147,20 +161,12 @@ class CompleteSeeder extends Seeder
             $birthDay = rand(1, 28);
             $birthDate = Carbon::createFromDate($birthYear, $birthMonth, $birthDay);
 
-            // Generate hire date
-            $hireDate = isset($data['tanggal_masuk'])
-                ? Carbon::parse($data['tanggal_masuk'])
-                : Carbon::createFromDate(rand(2020, 2024), rand(1, 12), rand(1, 28));
-
-            // Generate email
+            // Generate email from name
             $emailName = strtolower(str_replace(' ', '.', $data['nama']));
+            $emailName = preg_replace('/[^a-z0-9.]/', '', $emailName); // Remove special characters
             $email = $emailName . '@company.com';
 
-            // Generate NIP
-            $nipNumber = str_pad($userCounter, 3, '0', STR_PAD_LEFT);
-            $nip = 'NIP' . $nipNumber;
-
-            // Determine role (first person is admin, rest are karyawan)
+            // Determine role (first person in sorted list is admin - Sonya as the oldest/most senior employee)
             $role = $userCounter === 1 ? 'admin' : 'karyawan';
 
             // Create User
@@ -179,11 +185,15 @@ class CompleteSeeder extends Seeder
             $firstName = strtolower(explode(' ', $data['nama'])[0]);
             $gender = in_array($firstName, $femaleNames) ? 'P' : 'L';
 
+            // Get department code
+            $deptCode = $deptMapping[$data['departements']] ?? 'TECH';
+            $departmentId = $departmentIds[$deptCode];
+
             // Create Karyawan
             Karyawan::create([
                 'karyawan_id' => 'KAR' . str_pad($karyawanCounter, 3, '0', STR_PAD_LEFT),
                 'user_id' => $user->user_id,
-                'department_id' => $departmentIds[$deptMapping[$data['departements']]],
+                'department_id' => $departmentId,
                 'nip' => $nip, // Same NIP as user
                 'full_name' => $data['nama'],
                 'position' => $data['posisi'],
@@ -209,9 +219,17 @@ class CompleteSeeder extends Seeder
         $this->command->info('   • ' . count($shifts) . ' shifts');
         $this->command->info('   • ' . count($karyawanData) . ' users & karyawans');
         $this->command->info('');
-        $this->command->info('🔐 Login credentials:');
-        $this->command->info('   Admin: NIP001 / password123');
-        $this->command->info('   Karyawan: NIP002, NIP003, ... / password123');
+        $this->command->info('🔐 Login credentials (using NIP):');
+        $this->command->info('   Admin: 012001001 / password123 (Sonya - Most Senior Employee)');
+        $this->command->info('   Karyawan: 012109002 / password123 (Agus Prabowo)');
+        $this->command->info('   Karyawan: 012207003 / password123 (Kharisma Yogi A)');
+        $this->command->info('   ... dan seterusnya');
+        $this->command->info('');
+        $this->command->info('📝 NIP Format Examples (01 = Company Code):');
+        $this->command->info('   • 012001001 = 01(company) + 20(year) + 01(month) + 001(sequence)');
+        $this->command->info('   • 012109002 = 01(company) + 21(year) + 09(month) + 002(sequence)');
+        $this->command->info('   • 012207003 = 01(company) + 22(year) + 07(month) + 003(sequence)');
+        $this->command->info('   Format: 01 + YY + MM + 001-999 (based on hire date from oldest)');
     }
 
     private function updateDepartmentManagers($departmentIds)
