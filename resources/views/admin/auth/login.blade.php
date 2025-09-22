@@ -136,17 +136,7 @@
                 </form>
 
                 <!-- Demo Credentials (Only for development) -->
-                @if (app()->environment('local'))
-                <div class="mt-6 p-4 bg-yellow-100/20 border border-yellow-300/30 rounded-lg">
-                    <p class="text-xs text-yellow-100 mb-2">
-                        <i class="fas fa-info-circle mr-1"></i>Demo Credentials:
-                    </p>
-                    <div class="text-xs text-yellow-100 space-y-1">
-                        <p><strong>NIP:</strong> NIP001</p>
-                        <p><strong>Password:</strong> password123</p>
-                    </div>
-                </div>
-                @endif
+
 
             </div>
 
