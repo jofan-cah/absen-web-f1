@@ -24,7 +24,7 @@ class Jadwal extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'datetime:Y-m-d',
         'is_active' => 'boolean',
     ];
 
