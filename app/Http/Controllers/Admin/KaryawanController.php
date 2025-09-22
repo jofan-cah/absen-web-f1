@@ -61,7 +61,7 @@ class KaryawanController extends Controller
         }
 
         // Paginate results
-        $karyawans = $query->paginate(15)->withQueryString();
+        $karyawans = $query->paginate(30)->withQueryString();
 
         // Statistics untuk dashboard cards
         $totalKaryawan = Karyawan::count();
