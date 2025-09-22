@@ -37,7 +37,7 @@ class Absen extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'datetime:Y-m-d',
         'clock_in_latitude' => 'decimal:8',
         'clock_in_longitude' => 'decimal:8',
         'clock_out_latitude' => 'decimal:8',
