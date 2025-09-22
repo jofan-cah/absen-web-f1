@@ -21,7 +21,7 @@
     </button>
 
     @if($absen->clock_in_photo || $absen->clock_out_photo)
-        <button onclick="showPhotosModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+        <button onclick="AttendanceDetail.showPhotosModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
@@ -165,7 +165,7 @@
                                         <img src="{{ asset('storage/' . $absen->clock_in_photo) }}"
                                              alt="Clock In Photo"
                                              class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                             onclick="showImageModal('{{ asset('storage/' . $absen->clock_in_photo) }}', 'Foto Clock In')">
+                                             onclick="AttendanceDetail.showImageModal('{{ asset('storage/' . $absen->clock_in_photo) }}', 'Foto Clock In')">
                                     </div>
                                 @endif
                             </div>
@@ -213,7 +213,7 @@
                                         <img src="{{ asset('storage/' . $absen->clock_out_photo) }}"
                                              alt="Clock Out Photo"
                                              class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                             onclick="showImageModal('{{ asset('storage/' . $absen->clock_out_photo) }}', 'Foto Clock Out')">
+                                             onclick="AttendanceDetail.showImageModal('{{ asset('storage/' . $absen->clock_out_photo) }}', 'Foto Clock Out')">
                                     </div>
                                 @endif
                             </div>
@@ -319,7 +319,7 @@
             </div>
             <div class="p-6 space-y-3">
                 @if($absen->clock_in_latitude && $absen->clock_in_longitude)
-                    <button onclick="showLocationModal('{{ $absen->clock_in_latitude }}', '{{ $absen->clock_in_longitude }}', 'Clock In Location')"
+                    <button onclick="AttendanceDetail.showLocationModal('{{ $absen->clock_in_latitude }}', '{{ $absen->clock_in_longitude }}', 'Clock In Location')"
                             class="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -330,7 +330,7 @@
                 @endif
 
                 @if($absen->clock_out_latitude && $absen->clock_out_longitude)
-                    <button onclick="showLocationModal('{{ $absen->clock_out_latitude }}', '{{ $absen->clock_out_longitude }}', 'Clock Out Location')"
+                    <button onclick="AttendanceDetail.showLocationModal('{{ $absen->clock_out_latitude }}', '{{ $absen->clock_out_longitude }}', 'Clock Out Location')"
                             class="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -340,7 +340,7 @@
                     </button>
                 @endif
 
-                <button onclick="exportPDF()"
+                <button onclick="AttendanceDetail.exportPDF()"
                         class="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -382,13 +382,13 @@
     </div>
 </div>
 
-<!-- Image Modal -->
+<!-- Modals -->
 <div id="imageModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+    <div class="relative top-20 mx-auto p-5 border w-96 max-w-md shadow-lg rounded-lg bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <h3 id="imageModalTitle" class="text-lg font-medium text-gray-900">Foto</h3>
-                <button onclick="closeImageModal()" class="text-gray-400 hover:text-gray-600">
+                <button onclick="AttendanceDetail.closeImageModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -399,176 +399,39 @@
     </div>
 </div>
 
-<!-- Location Modal -->
 <div id="locationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-lg bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <h3 id="locationModalTitle" class="text-lg font-medium text-gray-900">Lokasi</h3>
-                <button onclick="closeLocationModal()" class="text-gray-400 hover:text-gray-600">
+                <button onclick="AttendanceDetail.closeLocationModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <div id="mapContainer" class="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
-                <p class="text-gray-500">Loading map...</p>
-            </div>
+            <div id="mapContainer" class="w-full h-96 bg-gray-200 rounded-lg"></div>
         </div>
     </div>
 </div>
 
 @endsection
 
-@push('scripts')
-<script>
-function showImageModal(imageSrc, title) {
-    document.getElementById('imageModalImg').src = imageSrc;
-    document.getElementById('imageModalTitle').textContent = title;
-    document.getElementById('imageModal').classList.remove('hidden');
-}
-
-function closeImageModal() {
-    document.getElementById('imageModal').classList.add('hidden');
-}
-
-function showLocationModal(lat, lng, title) {
-    document.getElementById('locationModalTitle').textContent = title;
-    document.getElementById('locationModal').classList.remove('hidden');
-
-    // Initialize map
-    initMap(lat, lng);
-}
-
-function closeLocationModal() {
-    document.getElementById('locationModal').classList.add('hidden');
-}
-
-function initMap(lat, lng) {
-    const mapContainer = document.getElementById('mapContainer');
-
-    // Simple map implementation using Google Maps or OpenStreetMap
-    // For this example, we'll use a simple iframe with Google Maps
-    // const mapUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${lat},${lng}&zoom=15`;
-
-    // Alternative: OpenStreetMap iframe
-    const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lng}`;
-
-    mapContainer.innerHTML = `
-        <iframe
-            width="100%"
-            height="100%"
-            frameborder="0"
-            scrolling="no"
-            marginheight="0"
-            marginwidth="0"
-            src="${osmUrl}"
-            style="border-radius: 8px;">
-        </iframe>
-    `;
-}
-
-function showPhotosModal() {
-    // Create a modal to show both photos side by side
-    const modal = document.createElement('div');
-    modal.id = 'photosModal';
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
-
-    const clockInPhoto = '{{ $absen->clock_in_photo ? asset("storage/" . $absen->clock_in_photo) : "" }}';
-    const clockOutPhoto = '{{ $absen->clock_out_photo ? asset("storage/" . $absen->clock_out_photo) : "" }}';
-
-    modal.innerHTML = `
-        <div class="relative top-10 mx-auto p-5 border max-w-6xl shadow-lg rounded-lg bg-white">
-            <div class="mt-3">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Foto Absensi</h3>
-                    <button onclick="closePhotosModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    ${clockInPhoto ? `
-                        <div>
-                            <h4 class="text-md font-semibold text-gray-800 mb-2">Clock In</h4>
-                            <img src="${clockInPhoto}" alt="Clock In Photo" class="w-full h-auto rounded-lg shadow-md">
-                        </div>
-                    ` : ''}
-                    ${clockOutPhoto ? `
-                        <div>
-                            <h4 class="text-md font-semibold text-gray-800 mb-2">Clock Out</h4>
-                            <img src="${clockOutPhoto}" alt="Clock Out Photo" class="w-full h-auto rounded-lg shadow-md">
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-}
-
-function closePhotosModal() {
-    const modal = document.getElementById('photosModal');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-function exportPDF() {
-    // Hide non-printable elements
-    const actionButtons = document.querySelector('.page-actions');
-    const quickActions = document.querySelector('.quick-actions');
-
-    if (actionButtons) actionButtons.style.display = 'none';
-    if (quickActions) quickActions.style.display = 'none';
-
-    // Print the page
-    window.print();
-
-    // Restore elements
-    setTimeout(() => {
-        if (actionButtons) actionButtons.style.display = '';
-        if (quickActions) quickActions.style.display = '';
-    }, 1000);
-}
-
-// Close modals when clicking outside
-window.onclick = function(event) {
-    const imageModal = document.getElementById('imageModal');
-    const locationModal = document.getElementById('locationModal');
-    const photosModal = document.getElementById('photosModal');
-
-    if (event.target === imageModal) {
-        closeImageModal();
-    }
-    if (event.target === locationModal) {
-        closeLocationModal();
-    }
-    if (event.target === photosModal) {
-        closePhotosModal();
-    }
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeImageModal();
-        closeLocationModal();
-        closePhotosModal();
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        exportPDF();
-    }
-});
-</script>
-@endpush
-
 @push('styles')
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
 <style>
+/* Map Container */
+#mapContainer {
+    height: 400px !important;
+    width: 100% !important;
+    border-radius: 8px;
+    z-index: 1;
+}
+
 /* Print styles */
 @media print {
     .no-print {
@@ -633,22 +496,6 @@ document.addEventListener('keydown', function(e) {
     }
 }
 
-/* Loading animation for map */
-.map-loading {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
-
 /* Custom scrollbar */
 .custom-scroll::-webkit-scrollbar {
     width: 6px;
@@ -693,76 +540,394 @@ document.addEventListener('keydown', function(e) {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
-
-/* Button loading state */
-.btn-loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.btn-loading::after {
-    content: '';
-    width: 16px;
-    height: 16px;
-    margin-left: 8px;
-    border: 2px solid transparent;
-    border-top-color: currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    display: inline-block;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Success/Error states */
-.success-state {
-    border-left: 4px solid #10b981;
-    background-color: #f0fdf4;
-}
-
-.error-state {
-    border-left: 4px solid #ef4444;
-    background-color: #fef2f2;
-}
-
-.warning-state {
-    border-left: 4px solid #f59e0b;
-    background-color: #fffbeb;
-}
-
-/* Timeline styles for attendance flow */
-.timeline-item {
-    position: relative;
-    padding-left: 2rem;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 0.5rem;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: #e5e7eb;
-}
-
-.timeline-item::after {
-    content: '';
-    position: absolute;
-    left: 0.25rem;
-    top: 0.5rem;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background-color: #3b82f6;
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
 </style>
+@endpush
+
+@push('scripts')
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+<script>
+// Attendance Detail Manager
+const AttendanceDetail = {
+    map: null,
+
+    // Initialize
+    init() {
+        console.log('AttendanceDetail initialized');
+        this.bindEvents();
+    },
+
+    // Bind Events
+    bindEvents() {
+        // Close modals when clicking outside
+        window.addEventListener('click', (event) => {
+            const imageModal = document.getElementById('imageModal');
+            const locationModal = document.getElementById('locationModal');
+
+            if (event.target === imageModal) {
+                this.closeImageModal();
+            }
+            if (event.target === locationModal) {
+                this.closeLocationModal();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeImageModal();
+                this.closeLocationModal();
+                this.closePhotosModal();
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                this.exportPDF();
+            }
+        });
+    },
+
+    // Image Modal Functions
+    showImageModal(imageSrc, title) {
+        console.log('Opening image modal:', title);
+
+        const modal = document.getElementById('imageModal');
+        const img = document.getElementById('imageModalImg');
+        const titleEl = document.getElementById('imageModalTitle');
+
+        if (!modal || !img || !titleEl) {
+            console.error('Image modal elements not found');
+            return;
+        }
+
+        img.src = imageSrc;
+        titleEl.textContent = title;
+        modal.classList.remove('hidden');
+        modal.classList.add('modal-enter');
+    },
+
+    closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('modal-enter');
+        }
+    },
+
+    // Location Modal Functions
+    showLocationModal(lat, lng, title) {
+        console.log('Opening location modal:', lat, lng, title);
+
+        const modal = document.getElementById('locationModal');
+        const titleEl = document.getElementById('locationModalTitle');
+
+        if (!modal || !titleEl) {
+            console.error('Location modal elements not found');
+            return;
+        }
+
+        // Validate coordinates
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lng);
+
+        if (isNaN(latitude) || isNaN(longitude)) {
+            console.error('Invalid coordinates:', lat, lng);
+            alert('Koordinat lokasi tidak valid');
+            return;
+        }
+
+        titleEl.textContent = title;
+        modal.classList.remove('hidden');
+        modal.classList.add('modal-enter');
+
+        // Initialize map after modal is shown
+        setTimeout(() => {
+            this.initMap(latitude, longitude);
+        }, 300);
+    },
+
+    closeLocationModal() {
+        const modal = document.getElementById('locationModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('modal-enter');
+        }
+
+        // Cleanup map
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+            console.log('Map cleaned up');
+        }
+    },
+
+    // Initialize Leaflet Map
+    initMap(lat, lng) {
+        console.log('Initializing map with coordinates:', lat, lng);
+
+        const mapContainer = document.getElementById('mapContainer');
+
+        if (!mapContainer) {
+            console.error('Map container not found!');
+            return;
+        }
+
+        // Clean up existing map
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+
+        // Clear container
+        mapContainer.innerHTML = '';
+
+        try {
+            // Show loading indicator
+            mapContainer.innerHTML = `
+                <div class="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-600 mt-2">Memuat peta...</p>
+                    </div>
+                </div>
+            `;
+
+            // Initialize map after a short delay
+            setTimeout(() => {
+                // Create map
+                this.map = L.map(mapContainer, {
+                    center: [lat, lng],
+                    zoom: 16,
+                    zoomControl: true,
+                    scrollWheelZoom: true,
+                    dragging: true
+                });
+
+                // Add OpenStreetMap tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                }).addTo(this.map);
+
+                // Custom marker icon
+                const customIcon = L.divIcon({
+                    html: `<div class="bg-red-500 w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                             <div class="bg-white w-2 h-2 rounded-full"></div>
+                           </div>`,
+                    className: 'custom-marker',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                // Add marker
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
+
+                // Add popup
+                marker.bindPopup(`
+                    <div class="text-center p-2">
+                        <div class="font-semibold text-gray-800 mb-1">📍 Lokasi Absensi</div>
+                        <div class="text-sm text-gray-600">
+                            <div>Lat: ${lat}</div>
+                            <div>Lng: ${lng}</div>
+                        </div>
+                        <button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}', '_blank')"
+                                class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
+                            Buka di Google Maps
+                        </button>
+                    </div>
+                `).openPopup();
+
+                // Add accuracy circle
+                L.circle([lat, lng], {
+                    color: '#3b82f6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.1,
+                    radius: 50,
+                    weight: 2
+                }).addTo(this.map);
+
+                console.log('Map created successfully');
+
+                // Force map to resize
+                setTimeout(() => {
+                    if (this.map) {
+                        this.map.invalidateSize();
+                        console.log('Map resized');
+                    }
+                }, 100);
+
+            }, 200);
+
+        } catch (error) {
+            console.error('Error creating map:', error);
+            mapContainer.innerHTML = `
+                <div class="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                    <div class="text-center p-6">
+                        <svg class="w-16 h-16 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        <p class="text-red-600 font-medium mb-2">Gagal memuat peta</p>
+                        <p class="text-sm text-gray-500 mb-3">Error: ${error.message}</p>
+                        <div class="space-y-2">
+                            <p class="text-sm text-gray-600">Koordinat: ${lat}, ${lng}</p>
+                            <button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}', '_blank')"
+                                    class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+                                🗺️ Buka di Google Maps
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    },
+
+    // Photos Modal Functions
+    showPhotosModal() {
+        console.log('Opening photos modal');
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('photosModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'photosModal';
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+
+        const clockInPhoto = '{{ $absen->clock_in_photo ? asset("storage/" . $absen->clock_in_photo) : "" }}';
+        const clockOutPhoto = '{{ $absen->clock_out_photo ? asset("storage/" . $absen->clock_out_photo) : "" }}';
+
+        modal.innerHTML = `
+            <div class="relative top-10 mx-auto p-6 border max-w-6xl shadow-lg rounded-lg bg-white modal-enter">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900">📸 Foto Absensi</h3>
+                    <button onclick="AttendanceDetail.closePhotosModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    ${clockInPhoto ? `
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                <span class="text-green-600 mr-2">🟢</span>
+                                Clock In
+                            </h4>
+                            <img src="${clockInPhoto}" alt="Clock In Photo" class="w-full h-auto rounded-lg shadow-md max-h-96 object-cover border">
+                        </div>
+                    ` : `
+                        <div class="bg-gray-50 rounded-lg p-8 flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-gray-500 font-medium">Tidak ada foto Clock In</p>
+                            </div>
+                        </div>
+                    `}
+                    ${clockOutPhoto ? `
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                <span class="text-red-600 mr-2">🔴</span>
+                                Clock Out
+                            </h4>
+                            <img src="${clockOutPhoto}" alt="Clock Out Photo" class="w-full h-auto rounded-lg shadow-md max-h-96 object-cover border">
+                        </div>
+                    ` : `
+                        <div class="bg-gray-50 rounded-lg p-8 flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-gray-500 font-medium">Tidak ada foto Clock Out</p>
+                            </div>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Add click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closePhotosModal();
+            }
+        });
+    },
+
+    closePhotosModal() {
+        const modal = document.getElementById('photosModal');
+        if (modal) {
+            modal.remove();
+        }
+    },
+
+    // Export PDF
+    exportPDF() {
+        console.log('Exporting to PDF...');
+
+        // Hide non-printable elements
+        const elements = document.querySelectorAll('.no-print, button, .modal');
+        elements.forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Print the page
+        window.print();
+
+        // Restore elements after print
+        setTimeout(() => {
+            elements.forEach(el => {
+                el.style.display = '';
+            });
+        }, 1000);
+    },
+
+    // Debug function
+    debug() {
+        console.log('AttendanceDetail Debug Info:', {
+            map: this.map,
+            leafletLoaded: typeof L !== 'undefined',
+            leafletVersion: typeof L !== 'undefined' ? L.version : 'Not loaded',
+            coordinates: {
+                clockIn: '{{ $absen->clock_in_latitude ?? "null" }}, {{ $absen->clock_in_longitude ?? "null" }}',
+                clockOut: '{{ $absen->clock_out_latitude ?? "null" }}, {{ $absen->clock_out_longitude ?? "null" }}'
+            }
+        });
+    }
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    AttendanceDetail.init();
+    console.log('Attendance detail page loaded');
+
+    // Debug info
+    console.log('Available coordinates:', {
+        clockIn: '{{ $absen->clock_in_latitude ?? "null" }}, {{ $absen->clock_in_longitude ?? "null" }}',
+        clockOut: '{{ $absen->clock_out_latitude ?? "null" }}, {{ $absen->clock_out_longitude ?? "null" }}'
+    });
+
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet library not loaded!');
+    } else {
+        console.log('✅ Leaflet loaded successfully, version:', L.version);
+    }
+});
+
+// Global functions for backward compatibility (if needed)
+window.showImageModal = (src, title) => AttendanceDetail.showImageModal(src, title);
+window.showLocationModal = (lat, lng, title) => AttendanceDetail.showLocationModal(lat, lng, title);
+window.showPhotosModal = () => AttendanceDetail.showPhotosModal();
+
+</script>
 @endpush
