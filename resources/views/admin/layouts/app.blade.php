@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Logistik Murni') }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -44,13 +46,16 @@
         .sidebar-scroll::-webkit-scrollbar {
             width: 4px;
         }
+
         .sidebar-scroll::-webkit-scrollbar-track {
             background: transparent;
         }
+
         .sidebar-scroll::-webkit-scrollbar-thumb {
             background: rgba(156, 163, 175, 0.3);
             border-radius: 4px;
         }
+
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
             background: rgba(156, 163, 175, 0.5);
         }
@@ -60,16 +65,19 @@
             color: #6b7280;
             position: relative;
         }
+
         .nav-item:hover {
             color: #374151;
             background-color: #f3f4f6;
             transform: translateX(2px);
         }
+
         .nav-item.active {
             color: #1d4ed8;
             background-color: #dbeafe;
             font-weight: 600;
         }
+
         .nav-item.active::before {
             content: '';
             position: absolute;
@@ -86,9 +94,11 @@
             background-color: #f3f4f6;
             transition: all 0.2s ease;
         }
+
         .nav-item:hover .nav-icon {
             background-color: #e5e7eb;
         }
+
         .nav-item.active .nav-icon {
             background-color: #1d4ed8;
             color: white;
@@ -118,14 +128,16 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0; /* Prevent overflow */
+            min-width: 0;
+            /* Prevent overflow */
             transition: margin-left 0.3s ease-in-out;
         }
 
         .main-content {
             flex: 1;
             overflow-y: auto;
-            overflow-x: hidden; /* Prevent horizontal overflow */
+            overflow-x: hidden;
+            /* Prevent horizontal overflow */
             background-color: #f9fafb;
             position: relative;
         }
@@ -168,7 +180,8 @@
             }
 
             .content-wrapper {
-                margin-left: 16rem; /* 64 * 0.25rem = 16rem */
+                margin-left: 16rem;
+                /* 64 * 0.25rem = 16rem */
             }
         }
 
@@ -189,8 +202,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         /* Focus styles for accessibility */
@@ -228,14 +246,12 @@
 </head>
 
 <body class="bg-gray-50 font-sans antialiased">
-    <div class="main-container" x-data="{ sidebarOpen: false }" x-init="
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 1024) {
-                sidebarOpen = false;
-            }
-        });
-    ">
+    <div class="main-container" x-data="{ sidebarOpen: false }" x-init="// Handle window resize
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) {
+            sidebarOpen = false;
+        }
+    });">
 
         <!-- SIDEBAR -->
         @include('admin.layouts.partials.sidebar')
@@ -260,17 +276,11 @@
         </div>
 
         <!-- Mobile Sidebar Overlay -->
-        <div
-            x-show="sidebarOpen"
-            @click="sidebarOpen = false"
-            x-transition:enter="transition-opacity ease-linear duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition-opacity ease-linear duration-300"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            class="fixed inset-0 z-40 bg-black bg-opacity-50 sidebar-overlay lg:hidden"
-            style="display: none;">
+        <div x-show="sidebarOpen" @click="sidebarOpen = false"
+            x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-40 bg-black bg-opacity-50 sidebar-overlay lg:hidden" style="display: none;">
         </div>
 
     </div>
@@ -304,7 +314,7 @@
 
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = '{{ route("admin.logout") }}';
+                form.action = '{{ route('admin.logout') }}';
 
                 const token = document.createElement('input');
                 token.type = 'hidden';
@@ -420,4 +430,5 @@
 
     @stack('scripts')
 </body>
+
 </html>
