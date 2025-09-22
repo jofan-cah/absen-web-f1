@@ -40,6 +40,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(['auth', 'admin'])->group(function () {
 
         // Logout
+        Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile');
+        Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
         // Dashboard
@@ -78,7 +80,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('shift/export', [ShiftController::class, 'export'])->name('shift.export');
 
         // Jadwal Management
-        Route::resource('jadwal', JadwalController::class)->except(['create', 'edit','show']);
+        Route::resource('jadwal', JadwalController::class)->except(['create', 'edit', 'show']);
         Route::get('/jadwal/calendar', [JadwalController::class, 'calendar'])->name('jadwal.calendar');
         Route::post('/jadwal/bulk-store', [JadwalController::class, 'bulkStore'])->name('jadwal.bulk-store');
         Route::get('/jadwal/{jadwal}/check-editable', [JadwalController::class, 'checkEditable'])->name('jadwal.check-editable');
@@ -88,7 +90,5 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/absen/daily-report', [AbsenController::class, 'dailyReport'])->name('absen.daily-report');
         Route::get('/absen/export-report', [AbsenController::class, 'exportReport'])->name('absen.export-report');
         Route::resource('absen', AbsenController::class)->only(['index', 'show']);
-
     });
 });
-

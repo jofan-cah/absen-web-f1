@@ -30,16 +30,31 @@ class JadwalController extends Controller
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
+        $departmentId = $request->get('department_id'); // Tambah filter departemen
 
-        // Get jadwals for calendar view
-        $jadwals = Jadwal::with(['karyawan', 'shift', 'absen'])
+        // Get jadwals dengan filter departemen
+        $jadwalsQuery = Jadwal::with(['karyawan', 'shift', 'absen'])
             ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->get();
+            ->whereMonth('date', $month);
 
-        $karyawans = Karyawan::where('employment_status', 'active')
-            ->with('department')
-            ->get();
+        // Filter berdasarkan departemen jika ada
+        if ($departmentId) {
+            $jadwalsQuery->whereHas('karyawan', function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            });
+        }
+
+        $jadwals = $jadwalsQuery->get();
+
+        // Filter karyawan juga berdasarkan departemen
+        $karyawansQuery = Karyawan::where('employment_status', 'active')
+            ->with('department');
+
+        if ($departmentId) {
+            $karyawansQuery->where('department_id', $departmentId);
+        }
+
+        $karyawans = $karyawansQuery->get();
 
         $shifts = Shift::where('is_active', true)->get();
 
@@ -68,7 +83,8 @@ class JadwalController extends Controller
             'karyawans',
             'shifts',
             'month',
-            'year'
+            'year',
+            'departmentId' // Pass ke view
         ));
     }
 

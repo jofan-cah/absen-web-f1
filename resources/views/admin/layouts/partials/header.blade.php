@@ -89,7 +89,7 @@
 
                     <!-- Menu Items -->
                     <div class="py-2">
-                        <a href="#"
+                        <a href="{{ route('admin.profile') }}"
                             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                             <svg class="w-4 h-4 mr-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
