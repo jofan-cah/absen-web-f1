@@ -8,7 +8,8 @@
 
     <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Logistik Murni') }}</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+<!-- favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('F1LOG1.png') }}">
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />

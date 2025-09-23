@@ -117,6 +117,21 @@
                         <span
                             class="nav-badge bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full shadow-sm">4</span>
                     </a>
+                    <!-- Tambahkan ini ke dalam Master Data Section di admin sidebar yang sudah ada -->
+                    <a href="{{ route('admin.user.index') }}"
+                        class="nav-item {{ request()->routeIs('admin.user.*') ? 'active' : '' }} flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 group hover:scale-105"
+                        @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                        <div
+                            class="flex items-center justify-center w-8 h-8 mr-3 rounded-lg nav-icon bg-gradient-to-br from-indigo-400 to-blue-500 text-white shadow-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                            </svg>
+                        </div>
+                        <span class="flex-1 truncate text-gray-700 group-hover:text-indigo-700">User Login</span>
+                        <span
+                            class="nav-badge bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full shadow-sm">{{ App\Models\User::count() }}</span>
+                    </a>
                 </div>
             </div>
 

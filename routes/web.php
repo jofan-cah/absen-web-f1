@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -90,5 +91,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/absen/daily-report', [AbsenController::class, 'dailyReport'])->name('absen.daily-report');
         Route::get('/absen/export-report', [AbsenController::class, 'exportReport'])->name('absen.export-report');
         Route::resource('absen', AbsenController::class)->only(['index', 'show']);
+
+        Route::resource('user', UserController::class);
+        Route::post('user/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('user.toggle-status');
+        Route::post('user/{user}/reset-password', [UserController::class, 'resetPassword'])->name('user.reset-password');
+        Route::post('user/bulk-delete', [UserController::class, 'bulkDelete'])->name('user.bulk-delete');
+        Route::post('user/bulk-toggle-status', [UserController::class, 'bulkToggleStatus'])->name('user.bulk-toggle-status');
+        Route::get('user/export', [UserController::class, 'export'])->name('user.export');
     });
 });
