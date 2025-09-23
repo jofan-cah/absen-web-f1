@@ -43,7 +43,7 @@
                 Hari Ini
             </button>
 
-            
+
         </div>
 
         <!-- Actions -->
@@ -1702,31 +1702,31 @@
                     <div class="space-y-2">
                         <label class="flex items-center">
                             <input type="checkbox" value="1" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Senin</span>
+                            <span class="ml-2 text-sm">Minggu</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="2" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Selasa</span>
+                            <span class="ml-2 text-sm">Senin</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="3" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Rabu</span>
+                            <span class="ml-2 text-sm">Selasa</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="4" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Kamis</span>
+                            <span class="ml-2 text-sm">Rabu</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="5" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Jumat</span>
+                            <span class="ml-2 text-sm">Kamis</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="6" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Sabtu</span>
+                            <span class="ml-2 text-sm">Jumat</span>
                         </label>
                         <label class="flex items-center">
                             <input type="checkbox" value="0" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                            <span class="ml-2 text-sm">Minggu</span>
+                            <span class="ml-2 text-sm">Sabtu</span>
                         </label>
                     </div>
                 </div>
