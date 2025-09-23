@@ -22,25 +22,25 @@ class DashboardController extends Controller
         $stats = [
             'total_karyawan' => Karyawan::where('employment_status', 'active')
                 ->whereHas('department', function($query) use ($excludedDeptCode) {
-                    $query->where('code', '!=', $excludedDeptCode);
+                    $query->where('department_id', '!=', $excludedDeptCode);
                 })
                 ->count(),
 
             'total_department' => Department::where('is_active', true)
-                ->where('code', '!=', $excludedDeptCode)
+                ->where('department_id', '!=', $excludedDeptCode)
                 ->count(),
 
             'today_present' => Absen::whereDate('date', $today)
                 ->whereIn('status', ['present', 'late'])
                 ->whereHas('karyawan.department', function($query) use ($excludedDeptCode) {
-                    $query->where('code', '!=', $excludedDeptCode);
+                    $query->where('department_id', '!=', $excludedDeptCode);
                 })
                 ->count(),
 
             'today_absent' => Absen::whereDate('date', $today)
                 ->where('status', 'absent')
                 ->whereHas('karyawan.department', function($query) use ($excludedDeptCode) {
-                    $query->where('code', '!=', $excludedDeptCode);
+                    $query->where('department_id', '!=', $excludedDeptCode);
                 })
                 ->count(),
         ];
@@ -54,13 +54,13 @@ class DashboardController extends Controller
                 'present' => Absen::whereDate('date', $date)
                     ->whereIn('status', ['present', 'late'])
                     ->whereHas('karyawan.department', function($query) use ($excludedDeptCode) {
-                        $query->where('code', '!=', $excludedDeptCode);
+                        $query->where('department_id', '!=', $excludedDeptCode);
                     })
                     ->count(),
                 'absent' => Absen::whereDate('date', $date)
                     ->where('status', 'absent')
                     ->whereHas('karyawan.department', function($query) use ($excludedDeptCode) {
-                        $query->where('code', '!=', $excludedDeptCode);
+                        $query->where('department_id', '!=', $excludedDeptCode);
                     })
                     ->count(),
             ];
@@ -69,12 +69,12 @@ class DashboardController extends Controller
         // Recent absens - exclude DEPT001
         $recentAbsens = Absen::with([
                 'karyawan:karyawan_id,full_name,position,department_id',
-                'karyawan.department:department_id,code',
+                'karyawan.department:department_id,department_id',
                 'jadwal.shift:shift_id,name'
             ])
             ->whereDate('date', $today)
             ->whereHas('karyawan.department', function($query) use ($excludedDeptCode) {
-                $query->where('code', '!=', $excludedDeptCode);
+                $query->where('department_id', '!=', $excludedDeptCode);
             })
             ->orderBy('clock_in', 'desc')
             ->take(10)
@@ -94,7 +94,7 @@ class DashboardController extends Controller
             }
         ])
         ->where('is_active', true)
-        ->where('code', '!=', $excludedDeptCode)
+        ->where('department_id', '!=', $excludedDeptCode)
         ->get();
 
         return view('admin.dashboard', compact(
