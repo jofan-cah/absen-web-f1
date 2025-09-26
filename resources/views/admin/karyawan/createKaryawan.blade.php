@@ -269,8 +269,8 @@
                                 </option>
                                 <option value="koordinator" {{ old('staff_status') == 'koordinator' ? 'selected' : '' }}>
                                     Koordinator</option>
-                                <option value="wakil_koordinator"
-                                    {{ old('staff_status') == 'wakil_koordinator' ? 'selected' : '' }}>Wakil Koordinator
+                                <option value="pkwtt"
+                                    {{ old('staff_status') == 'pkwtt' ? 'selected' : '' }}>PKWTT
                                 </option>
                             </select>
                             @error('staff_status')

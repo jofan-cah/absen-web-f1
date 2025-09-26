@@ -1,0 +1,403 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
+class TunjanganF1Seeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // 1. INSERT TUNJANGAN TYPE DULU
+        DB::table('tunjangan_types')->insert([
+            [
+                'tunjangan_type_id' => 'TJT001',
+                'name' => 'UANG MAKAN',
+                'code' => 'UANG_MAKAN',
+                'category' => 'mingguan',
+                'base_amount' => 20000.00,
+                'description' => 'UANG MAKAN',
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:21:26',
+                'updated_at' => '2025-09-25 05:21:26',
+            ],
+            [
+                'tunjangan_type_id' => 'TJT002',
+                'name' => 'UANG KUOTA',
+                'code' => 'UANG_KUOTA',
+                'category' => 'bulanan',
+                'base_amount' => 30000.00,
+                'description' => 'OKE',
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:21:55',
+                'updated_at' => '2025-09-25 05:21:55',
+            ],
+            [
+                'tunjangan_type_id' => 'TJT003',
+                'name' => 'UANG LEMBUR',
+                'code' => 'UANG_LEMBUR',
+                'category' => 'mingguan',
+                'base_amount' => 20000.00,
+                'description' => 'OKE',
+                'is_active' => 1,
+                'created_at' => '2025-09-25 10:05:49',
+                'updated_at' => '2025-09-25 10:05:49',
+            ],
+        ]);
+
+        // 2. INSERT TUNJANGAN DETAIL
+        DB::table('tunjangan_details')->insert([
+            // Uang Makan
+            [
+                'tunjangan_detail_id' => 'TJD001',
+                'tunjangan_type_id' => 'TJT001',
+                'staff_status' => 'pkwtt',
+                'amount' => 15000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:22:16',
+                'updated_at' => '2025-09-25 05:22:16',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD002',
+                'tunjangan_type_id' => 'TJT001',
+                'staff_status' => 'staff',
+                'amount' => 20000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:22:51',
+                'updated_at' => '2025-09-25 05:22:51',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD003',
+                'tunjangan_type_id' => 'TJT001',
+                'staff_status' => 'koordinator',
+                'amount' => 20000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:23:10',
+                'updated_at' => '2025-09-25 05:23:10',
+            ],
+            // Uang Kuota
+            [
+                'tunjangan_detail_id' => 'TJD004',
+                'tunjangan_type_id' => 'TJT002',
+                'staff_status' => 'pkwtt',
+                'amount' => 30000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:23:33',
+                'updated_at' => '2025-09-25 05:23:33',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD005',
+                'tunjangan_type_id' => 'TJT002',
+                'staff_status' => 'staff',
+                'amount' => 30000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:23:48',
+                'updated_at' => '2025-09-25 05:23:48',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD006',
+                'tunjangan_type_id' => 'TJT002',
+                'staff_status' => 'koordinator',
+                'amount' => 30000.00,
+                'effective_date' => '2025-09-25',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-25 05:24:02',
+                'updated_at' => '2025-09-25 05:24:02',
+            ],
+            // Uang Lembur
+            [
+                'tunjangan_detail_id' => 'TJD007',
+                'tunjangan_type_id' => 'TJT003',
+                'staff_status' => 'pkwtt',
+                'amount' => 20000.00,
+                'effective_date' => '2025-08-01',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-26 03:38:11',
+                'updated_at' => '2025-09-26 03:38:11',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD008',
+                'tunjangan_type_id' => 'TJT003',
+                'staff_status' => 'staff',
+                'amount' => 20000.00,
+                'effective_date' => '2025-09-26',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-26 03:38:28',
+                'updated_at' => '2025-09-26 03:38:28',
+            ],
+            [
+                'tunjangan_detail_id' => 'TJD009',
+                'tunjangan_type_id' => 'TJT003',
+                'staff_status' => 'koordinator',
+                'amount' => 20000.00,
+                'effective_date' => '2025-09-26',
+                'end_date' => null,
+                'is_active' => 1,
+                'created_at' => '2025-09-26 03:38:40',
+                'updated_at' => '2025-09-26 03:38:40',
+            ],
+        ]);
+
+        // 3. INSERT TUNJANGAN KARYAWAN (untuk lembur yang sudah processed)
+        DB::table('tunjangan_karyawan')->insert([
+            'tunjangan_karyawan_id' => 'TJK001',
+            'karyawan_id' => 'KAR002',
+            'tunjangan_type_id' => 'TJT003',
+            'absen_id' => null,
+            'period_start' => '2025-09-16',
+            'period_end' => '2025-09-22',
+            'amount' => 20000.00,
+            'quantity' => 6,
+            'total_amount' => 180000.00,
+            'status' => 'pending',
+            'notes' => 'Lembur mingguan (16/09 - 22/09): reguler: 6.0 jam @ 1.5x',
+            'requested_at' => null,
+            'requested_via' => null,
+            'approved_by_user_id' => null,
+            'approved_at' => null,
+            'received_at' => null,
+            'received_confirmation_photo' => null,
+            'penalti_id' => null,
+            'hari_kerja_asli' => null,
+            'hari_potong_penalti' => null,
+            'hari_kerja_final' => null,
+            'history' => json_encode([
+                [
+                    'status' => 'pending',
+                    'notes' => 'Tunjangan dibuat otomatis oleh sistem',
+                    'user_id' => null,
+                    'timestamp' => '2025-09-20T10:00:00.000000Z',
+                    'created_at' => '2025-09-20 10:00:00',
+                ]
+            ]),
+            'created_at' => '2025-09-20 10:00:00',
+            'updated_at' => '2025-09-20 10:00:00',
+        ]);
+
+        // 4. INSERT DATA LEMBUR
+        $lemburData = [
+            // Senin 23 Sept - Reguler
+            [
+                'lembur_id' => 'LBR001',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-09-23',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '20:00:00',
+                'total_jam' => 3.0,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Menyelesaikan instalasi jaringan untuk klien baru di area Sukoharjo',
+                'bukti_foto' => null,
+                'status' => 'approved',
+                'submitted_at' => '2025-09-23 20:15:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => 'USR001',
+                'approved_at' => '2025-09-24 08:30:00',
+                'approval_notes' => 'Lembur disetujui untuk penyelesaian project urgent',
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => null,
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-09-23 20:10:00',
+                'updated_at' => '2025-09-24 08:30:00',
+            ],
+
+            // Rabu 25 Sept - Reguler
+            [
+                'lembur_id' => 'LBR002',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-09-25',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '21:00:00',
+                'total_jam' => 4.0,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Troubleshooting jaringan di kantor cabang Solo, ada gangguan koneksi internet',
+                'bukti_foto' => null,
+                'status' => 'approved',
+                'submitted_at' => '2025-09-25 21:20:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => 'USR001',
+                'approved_at' => '2025-09-26 09:00:00',
+                'approval_notes' => 'Approved',
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => null,
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-09-25 21:15:00',
+                'updated_at' => '2025-09-26 09:00:00',
+            ],
+
+            // Sabtu 28 Sept - Hari Libur
+            [
+                'lembur_id' => 'LBR003',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-09-28',
+                'jam_mulai' => '08:00:00',
+                'jam_selesai' => '14:00:00',
+                'total_jam' => 6.0,
+                'kategori_lembur' => 'hari_libur',
+                'multiplier' => 2.0,
+                'deskripsi_pekerjaan' => 'Maintenance server dan backup data weekend di data center',
+                'bukti_foto' => null,
+                'status' => 'approved',
+                'submitted_at' => '2025-09-28 14:30:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => 'USR001',
+                'approved_at' => '2025-09-30 08:00:00',
+                'approval_notes' => 'Weekend maintenance approved',
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => null,
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-09-28 14:25:00',
+                'updated_at' => '2025-09-30 08:00:00',
+            ],
+
+            // Minggu 2: 30 Sept - 6 Okt (Submitted tapi belum approved)
+            [
+                'lembur_id' => 'LBR004',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-10-01',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '19:30:00',
+                'total_jam' => 2.5,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Setup router baru untuk klien korporat',
+                'bukti_foto' => null,
+                'status' => 'submitted',
+                'submitted_at' => '2025-10-01 19:45:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => null,
+                'approved_at' => null,
+                'approval_notes' => null,
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => null,
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-10-01 19:40:00',
+                'updated_at' => '2025-10-01 19:45:00',
+            ],
+
+            [
+                'lembur_id' => 'LBR005',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-10-03',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '20:00:00',
+                'total_jam' => 3.0,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Update firmware perangkat jaringan di 5 lokasi',
+                'bukti_foto' => null,
+                'status' => 'submitted',
+                'submitted_at' => '2025-10-03 20:15:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => null,
+                'approved_at' => null,
+                'approval_notes' => null,
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => null,
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-10-03 20:10:00',
+                'updated_at' => '2025-10-03 20:15:00',
+            ],
+
+            // Minggu Lalu (16-22 Sept) - Sudah diproses
+            [
+                'lembur_id' => 'LBR006',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-09-16',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '19:00:00',
+                'total_jam' => 2.0,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Install CCTV di kantor cabang',
+                'bukti_foto' => null,
+                'status' => 'processed',
+                'submitted_at' => '2025-09-16 19:15:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => 'USR001',
+                'approved_at' => '2025-09-17 08:00:00',
+                'approval_notes' => 'Approved',
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => 'TJK001',
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-09-16 19:10:00',
+                'updated_at' => '2025-09-20 10:00:00',
+            ],
+
+            [
+                'lembur_id' => 'LBR007',
+                'karyawan_id' => 'KAR002',
+                'absen_id' => null,
+                'tanggal_lembur' => '2025-09-19',
+                'jam_mulai' => '17:00:00',
+                'jam_selesai' => '21:00:00',
+                'total_jam' => 4.0,
+                'kategori_lembur' => 'reguler',
+                'multiplier' => 1.5,
+                'deskripsi_pekerjaan' => 'Konfigurasi server email baru',
+                'bukti_foto' => null,
+                'status' => 'processed',
+                'submitted_at' => '2025-09-19 21:15:00',
+                'submitted_via' => 'mobile',
+                'approved_by_user_id' => 'USR001',
+                'approved_at' => '2025-09-20 08:00:00',
+                'approval_notes' => 'Approved',
+                'rejected_by_user_id' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'tunjangan_karyawan_id' => 'TJK001',
+                'created_by_user_id' => 'USR003',
+                'created_at' => '2025-09-19 21:10:00',
+                'updated_at' => '2025-09-20 10:00:00',
+            ],
+        ];
+
+        // Insert data lembur (SETELAH tunjangan_karyawan dibuat)
+        DB::table('lemburs')->insert($lemburData);
+
+        $this->command->info('Seeder TunjanganF1 berhasil dijalankan!');
+        $this->command->info('Data yang dibuat:');
+        $this->command->info('   - 7 data lembur untuk karyawan KAR002');
+        $this->command->info('   - 3 lembur approved (23-28 Sept) - siap generate');
+        $this->command->info('   - 2 lembur submitted (1-3 Okt) - perlu approval');
+        $this->command->info('   - 2 lembur processed (16-19 Sept) - sudah jadi tunjangan');
+        $this->command->info('   - 1 tunjangan karyawan minggu 16-22 Sept');
+    }
+}

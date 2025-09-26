@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\PenaltiController;
+use App\Http\Controllers\Admin\TunjanganDetailController;
+use App\Http\Controllers\Admin\TunjanganKaryawanController;
+use App\Http\Controllers\Admin\TunjanganTypeController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
@@ -9,6 +13,7 @@ use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\AbsenController;
+use App\Http\Controllers\Admin\LemburController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,5 +103,80 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('user/bulk-delete', [UserController::class, 'bulkDelete'])->name('user.bulk-delete');
         Route::post('user/bulk-toggle-status', [UserController::class, 'bulkToggleStatus'])->name('user.bulk-toggle-status');
         Route::get('user/export', [UserController::class, 'export'])->name('user.export');
+
+        Route::resource('tunjangan-type', TunjanganTypeController::class);
+        Route::post('tunjangan-type/{tunjanganType}/toggle-status', [TunjanganTypeController::class, 'toggleStatus'])->name('tunjangan-type.toggle-status');
+        Route::post('tunjangan-type/bulk-delete', [TunjanganTypeController::class, 'bulkDelete'])->name('tunjangan-type.bulk-delete');
+        Route::post('tunjangan-type/bulk-toggle-status', [TunjanganTypeController::class, 'bulkToggleStatus'])->name('tunjangan-type.bulk-toggle-status');
+        Route::get('tunjangan-type/export', [TunjanganTypeController::class, 'export'])->name('tunjangan-type.export');
+
+
+        Route::resource('tunjangan-detail', TunjanganDetailController::class);
+        Route::post('tunjangan-detail/{tunjanganDetail}/toggle-status', [TunjanganDetailController::class, 'toggleStatus'])->name('tunjangan-detail.toggle-status');
+        Route::post('tunjangan-detail/bulk-delete', [TunjanganDetailController::class, 'bulkDelete'])->name('tunjangan-detail.bulk-delete');
+        Route::get('tunjangan-detail/get-amount', [TunjanganDetailController::class, 'getAmountByStaffStatus'])->name('tunjangan-detail.get-amount');
+        Route::post('tunjangan-detail/bulk-toggle-status', [TunjanganDetailController::class, 'bulkToggleStatus'])->name('tunjangan-detail.bulk-toggle-status');
+        Route::post('tunjangan-detail/export', [TunjanganDetailController::class, 'export'])->name('tunjangan-detail.export');
+
+        Route::resource('penalti', PenaltiController::class);
+        Route::post('penalti/{penalti}/approve', [PenaltiController::class, 'approve'])->name('penalti.approve');
+        Route::post('penalti/{penalti}/change-status', [PenaltiController::class, 'changeStatus'])->name('penalti.change-status');
+        Route::post('penalti/bulk-delete', [PenaltiController::class, 'bulkDelete'])->name('penalti.bulk-delete');
+        Route::get('penalti/total-potongan', [PenaltiController::class, 'getTotalHariPotongan'])->name('penalti.total-potongan');
+        Route::post('penalti/bulk-change-status', [PenaltiController::class, 'changeStatus'])->name('penalti.bulk-change-status');
+        Route::post('penalti/export', [PenaltiController::class, 'export'])->name('penalti.export');
+
+
+        Route::prefix('tunjangan-karyawan')->name('tunjangan-karyawan.')->group(function () {
+            Route::get('/', [TunjanganKaryawanController::class, 'index'])->name('index');
+
+            // Route khusus harus di atas route parameter
+            Route::get('/generate/form', [TunjanganKaryawanController::class, 'generateForm'])->name('generate.form');
+            Route::get('/report-form', [TunjanganKaryawanController::class, 'reportForm'])->name('report-form');
+            Route::get('/single-week-form', [TunjanganKaryawanController::class, 'singleWeekReportForm'])
+                ->name('single-week-form');
+
+            Route::post('/single-week-report', [TunjanganKaryawanController::class, 'generateSingleWeekReport'])
+                ->name('single-week-report');
+            Route::get('/report/analytics', [TunjanganKaryawanController::class, 'report'])->name('report');
+            Route::get('/export/data', [TunjanganKaryawanController::class, 'export'])->name('export');
+
+            // Route POST
+            Route::post('/generate', [TunjanganKaryawanController::class, 'generateTunjangan'])->name('generate');
+            Route::post('/all-employee-report', [TunjanganKaryawanController::class, 'allEmployeeReport'])->name('all-employee-report');
+            Route::post('/bulk-delete', [TunjanganKaryawanController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/bulk-approve', [TunjanganKaryawanController::class, 'bulkApprove'])->name('bulk-approve');
+
+            // Route dengan parameter harus di bawah
+            Route::get('/{tunjanganKaryawan}', [TunjanganKaryawanController::class, 'show'])->name('show');
+            Route::post('/{tunjanganKaryawan}/request', [TunjanganKaryawanController::class, 'requestTunjangan'])->name('request');
+            Route::post('/{tunjanganKaryawan}/approve', [TunjanganKaryawanController::class, 'approveTunjangan'])->name('approve');
+            Route::post('/{tunjanganKaryawan}/confirm', [TunjanganKaryawanController::class, 'confirmReceived'])->name('confirm');
+            Route::post('/{tunjanganKaryawan}/apply-penalti', [TunjanganKaryawanController::class, 'applyPenalti'])->name('apply-penalti');
+            Route::delete('/{tunjanganKaryawan}', [TunjanganKaryawanController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('lembur')->name('lembur.')->group(function () {
+            // Listing & View
+            Route::get('/', [LemburController::class, 'index'])->name('index');
+            Route::get('/{lembur}', [LemburController::class, 'show'])->name('show');
+
+            // Approval Actions (Admin only)
+            Route::post('/{lembur}/approve', [LemburController::class, 'approve'])->name('approve');
+            Route::post('/{lembur}/reject', [LemburController::class, 'reject'])->name('reject');
+
+            // Bulk Actions
+            Route::post('/bulk-approve', [LemburController::class, 'bulkApprove'])->name('bulk-approve');
+            Route::post('/bulk-delete', [LemburController::class, 'bulkDelete'])->name('bulk-delete');
+
+            // Generate Tunjangan Mingguan
+            Route::get('/generate-tunjangan/form', [LemburController::class, 'generateTunjanganForm'])->name('generate-tunjangan.form');
+            Route::post('/generate-tunjangan/mingguan', [LemburController::class, 'generateTunjanganMingguan'])->name('generate-tunjangan.mingguan');
+
+            // Reports & Export
+            Route::get('/report/analytics', [LemburController::class, 'report'])->name('report');
+            Route::get('/export/data', [LemburController::class, 'export'])->name('export');
+        });
+        
     });
 });

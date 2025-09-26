@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\TunjanganController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\AbsenController;
+use App\Http\Controllers\Api\LemburController;
 use App\Http\Controllers\Api\RiwayatController;
 
 /*
@@ -41,7 +43,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // PROTECTED ROUTES (Authentication Required)
 // ============================================
 
-Route::middleware(['auth:sanctum','throttle:500,1'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
 
     // ========================================
     // AUTH & USER MANAGEMENT
@@ -96,6 +98,34 @@ Route::middleware(['auth:sanctum','throttle:500,1'])->group(function () {
         Route::get('/photos', [RiwayatController::class, 'photos']); // Galeri foto absen
     });
 
+    Route::prefix('lembur')->group(function () {
+        Route::get('/my-list', [LemburController::class, 'myList']); // List lembur karyawan
+        Route::get('/summary', [LemburController::class, 'summary']); // Summary lembur
+        Route::get('/{id}', [LemburController::class, 'show']); // Detail lembur
+        Route::post('/submit', [LemburController::class, 'store']); // Submit lembur baru
+        Route::put('/{id}', [LemburController::class, 'update']); // Update lembur
+        Route::delete('/{id}', [LemburController::class, 'destroy']); // Delete lembur
+        Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']); // Submit untuk approval
+    });
+
+    // ========================================
+    // TUNJANGAN MANAGEMENT (NEW - BELUM ADA)
+    // ========================================
+    Route::prefix('tunjangan')->group(function () {
+        // Report by Type
+        Route::get('/uang-makan/report', [TunjanganController::class, 'uangMakanReport']);
+        Route::get('/uang-kuota/report', [TunjanganController::class, 'uangKuotaReport']);
+        Route::get('/uang-lembur/report', [TunjanganController::class, 'uangLemburReport']);
+
+        // All Tunjangan
+        Route::get('/my-list', [TunjanganController::class, 'myList']); // List semua tunjangan
+        Route::get('/summary', [TunjanganController::class, 'summary']); // Summary tunjangan
+        Route::get('/{id}', [TunjanganController::class, 'show']); // Detail tunjangan
+
+        // Workflow Actions
+        Route::post('/{id}/request', [TunjanganController::class, 'requestTunjangan']); // Request pencairan
+        Route::post('/{id}/confirm-received', [TunjanganController::class, 'confirmReceived']); // Konfirmasi terima
+    });
 });
 
 // ============================================

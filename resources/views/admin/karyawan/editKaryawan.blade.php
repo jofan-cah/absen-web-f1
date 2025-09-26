@@ -290,7 +290,7 @@
                             <option value="">Pilih Status Staff</option>
                             <option value="staff" {{ old('staff_status', $karyawan->staff_status) == 'staff' ? 'selected' : '' }}>Staff</option>
                             <option value="koordinator" {{ old('staff_status', $karyawan->staff_status) == 'koordinator' ? 'selected' : '' }}>Koordinator</option>
-                            <option value="wakil_koordinator" {{ old('staff_status', $karyawan->staff_status) == 'wakil_koordinator' ? 'selected' : '' }}>Wakil Koordinator</option>
+                            <option value="pkwtt" {{ old('staff_status', $karyawan->staff_status) == 'pkwtt' ? 'selected' : '' }}>PKWTT</option>
                         </select>
                         @error('staff_status')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

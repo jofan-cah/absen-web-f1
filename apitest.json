@@ -1,708 +1,1862 @@
 {
-  "info": {
-    "name": "Absensi System API",
-    "description": "Complete API collection for testing Absensi System mobile app endpoints",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000/api",
-      "type": "string"
+    "info": {
+        "name": "Absensi System API",
+        "description": "Complete API collection for testing Absensi System mobile app endpoints",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    {
-      "key": "auth_token",
-      "value": "",
-      "type": "string"
-    }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{auth_token}}",
-        "type": "string"
-      }
-    ]
-  },
-  "item": [
-    {
-      "name": "🔐 Authentication",
-      "item": [
+    "variable": [
         {
-          "name": "Login",
-          "event": [
+            "key": "base_url",
+            "value": "http://localhost:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
             {
-              "listen": "test",
-              "script": {
+                "key": "token",
+                "value": "{{auth_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "🔐 Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    if (response.success && response.data.token) {",
+                                    "        pm.collectionVariables.set('auth_token', response.data.token);",
+                                    "        console.log('Token saved:', response.data.token);",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Current User",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"current_password\": \"password123\",\n    \"new_password\": \"newpassword123\",\n    \"new_password_confirmation\": \"newpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/change-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "change-password"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "logout"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "📊 Dashboard",
+            "item": [
+                {
+                    "name": "Get Dashboard Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/dashboard",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "dashboard"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/notifications",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "notifications"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "👤 Profile",
+            "item": [
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "profile"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.updated@example.com\",\n    \"phone\": \"081234567890\",\n    \"address\": \"Jl. Contoh No. 123, Jakarta\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "profile"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Upload Profile Photo",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "/path/to/your/photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/profile/photo",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "profile",
+                                "photo"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Profile Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/profile/stats",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "profile",
+                                "stats"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "📅 Jadwal",
+            "item": [
+                {
+                    "name": "Get Monthly Jadwal",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/jadwal?month=12&year=2024",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "jadwal"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Weekly Jadwal",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/jadwal/weekly?start_date=2024-12-01",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "jadwal",
+                                "weekly"
+                            ],
+                            "query": [
+                                {
+                                    "key": "start_date",
+                                    "value": "2024-12-01"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Today's Jadwal",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/jadwal/today",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "jadwal",
+                                "today"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Tomorrow's Jadwal",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/jadwal/tomorrow",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "jadwal",
+                                "tomorrow"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Jadwal by Date Range",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/jadwal/range?start_date=2024-12-01&end_date=2024-12-07",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "jadwal",
+                                "range"
+                            ],
+                            "query": [
+                                {
+                                    "key": "start_date",
+                                    "value": "2024-12-01"
+                                },
+                                {
+                                    "key": "end_date",
+                                    "value": "2024-12-07"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "✅ Absensi",
+            "item": [
+                {
+                    "name": "Get Today's Absen Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/absen/today",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "today"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Clock In",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "latitude",
+                                    "value": "-6.200000",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "longitude",
+                                    "value": "106.816666",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "address",
+                                    "value": "Jl. Sudirman No. 1, Jakarta Pusat",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "/path/to/clock-in-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/absen/clock-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "clock-in"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Clock Out",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "latitude",
+                                    "value": "-6.200000",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "longitude",
+                                    "value": "106.816666",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "address",
+                                    "value": "Jl. Sudirman No. 1, Jakarta Pusat",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "/path/to/clock-out-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/absen/clock-out",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "clock-out"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Absen History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/absen/history?month=12&year=2024&per_page=10&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "📋 Riwayat",
+            "item": [
+                {
+                    "name": "Get Riwayat Absen (Paginated)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/riwayat/absen?month=12&year=2024&per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "riwayat",
+                                "absen"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Riwayat Jadwal",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/riwayat/jadwal?month=12&year=2024",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "riwayat",
+                                "jadwal"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Detail Harian",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/riwayat/detail/2024-12-01",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "riwayat",
+                                "detail",
+                                "2024-12-01"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Yearly Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/riwayat/yearly?year=2024",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "riwayat",
+                                "yearly"
+                            ],
+                            "query": [
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Photos Gallery",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/riwayat/photos?month=12&year=2024&per_page=20&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "riwayat",
+                                "photos"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "🧪 Test Endpoints",
+            "item": [
+                {
+                    "name": "API Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/test",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "test"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "❌ Error Test Cases",
+            "item": [
+                {
+                    "name": "Login with Invalid NIP",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nip\": \"INVALID123\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login with Wrong Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"wrongpassword\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Clock In without Auth",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "latitude",
+                                    "value": "-6.200000",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "longitude",
+                                    "value": "106.816666",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "address",
+                                    "value": "Test Address",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/absen/clock-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "clock-in"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Clock In with Invalid Data",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "latitude",
+                                    "value": "invalid_latitude",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "longitude",
+                                    "value": "invalid_longitude",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/absen/clock-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "absen",
+                                "clock-in"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "⏰ Lembur Management (v1.1.0)",
+            "item": [
+                {
+                    "name": "Get My Lembur List",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/lembur/my-list?month=1&year=2025&status=&per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "my-list"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "1",
+                                    "description": "Month (1-12)"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025",
+                                    "description": "Year"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter: draft|submitted|approved|rejected|processed (optional)"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number"
+                                }
+                            ]
+                        },
+                        "description": "Get list of lembur for logged in karyawan with filters and pagination"
+                    }
+                },
+                {
+                    "name": "Get Lembur Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/lembur/summary?month=1&year=2025",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "summary"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025"
+                                }
+                            ]
+                        },
+                        "description": "Get summary statistics of lembur (total, by status, total jam, by kategori)"
+                    }
+                },
+                {
+                    "name": "Submit New Lembur",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "tanggal_lembur",
+                                    "value": "2025-01-15",
+                                    "type": "text",
+                                    "description": "Required - Format: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "jam_mulai",
+                                    "value": "18:00",
+                                    "type": "text",
+                                    "description": "Required - Format: HH:mm"
+                                },
+                                {
+                                    "key": "jam_selesai",
+                                    "value": "21:00",
+                                    "type": "text",
+                                    "description": "Required - Format: HH:mm"
+                                },
+                                {
+                                    "key": "kategori_lembur",
+                                    "value": "reguler",
+                                    "type": "text",
+                                    "description": "Required - reguler|hari_libur|hari_besar"
+                                },
+                                {
+                                    "key": "deskripsi_pekerjaan",
+                                    "value": "Menyelesaikan laporan bulanan dan presentasi untuk meeting esok hari",
+                                    "type": "text",
+                                    "description": "Required - Max 500 chars"
+                                },
+                                {
+                                    "key": "bukti_foto",
+                                    "type": "file",
+                                    "src": "/path/to/lembur-photo.jpg",
+                                    "description": "Optional - jpg,jpeg,png, max 2MB"
+                                },
+                                {
+                                    "key": "absen_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional - Link to specific absen"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "submit"
+                            ]
+                        },
+                        "description": "Submit new lembur (will be created as draft status)"
+                    }
+                },
+                {
+                    "name": "Get Lembur Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR001",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR001"
+                            ]
+                        },
+                        "description": "Get detail of specific lembur including permissions (can_edit, can_submit, can_delete)"
+                    }
+                },
+                {
+                    "name": "Update Lembur (Draft/Rejected only)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "tanggal_lembur",
+                                    "value": "2025-01-15",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_mulai",
+                                    "value": "18:30",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_selesai",
+                                    "value": "22:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "kategori_lembur",
+                                    "value": "hari_libur",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "deskripsi_pekerjaan",
+                                    "value": "Updated: Menyelesaikan urgent project",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "bukti_foto",
+                                    "type": "file",
+                                    "src": "/path/to/updated-photo.jpg",
+                                    "description": "Optional - akan replace foto lama"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR001",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR001"
+                            ]
+                        },
+                        "description": "Update lembur - only allowed for draft or rejected status"
+                    }
+                },
+                {
+                    "name": "Submit Lembur for Approval",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR001/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR001",
+                                "submit"
+                            ]
+                        },
+                        "description": "Submit lembur to admin for approval (draft -> submitted)"
+                    }
+                },
+                {
+                    "name": "Delete Lembur (Draft only)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR001",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR001"
+                            ]
+                        },
+                        "description": "Delete lembur - only allowed for draft status"
+                    }
+                },
+                {
+                    "name": "❌ Error: Submit Lembur Invalid Date Format",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "tanggal_lembur",
+                                    "value": "15-01-2025",
+                                    "type": "text",
+                                    "description": "Wrong format - should be YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "jam_mulai",
+                                    "value": "18:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_selesai",
+                                    "value": "21:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "kategori_lembur",
+                                    "value": "reguler",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "deskripsi_pekerjaan",
+                                    "value": "Test error",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "submit"
+                            ]
+                        },
+                        "description": "Test validation error - invalid date format"
+                    }
+                },
+                {
+                    "name": "❌ Error: Submit with Invalid Kategori",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "tanggal_lembur",
+                                    "value": "2025-01-15",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_mulai",
+                                    "value": "18:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_selesai",
+                                    "value": "21:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "kategori_lembur",
+                                    "value": "invalid_kategori",
+                                    "type": "text",
+                                    "description": "Invalid - should be: reguler|hari_libur|hari_besar"
+                                },
+                                {
+                                    "key": "deskripsi_pekerjaan",
+                                    "value": "Test error",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "submit"
+                            ]
+                        },
+                        "description": "Test validation error - invalid kategori_lembur value"
+                    }
+                },
+                {
+                    "name": "❌ Error: Update Submitted Lembur",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "tanggal_lembur",
+                                    "value": "2025-01-15",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_mulai",
+                                    "value": "18:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "jam_selesai",
+                                    "value": "21:00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "kategori_lembur",
+                                    "value": "reguler",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "deskripsi_pekerjaan",
+                                    "value": "Try update submitted lembur",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR002",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR002"
+                            ]
+                        },
+                        "description": "Test error - cannot update lembur with status submitted/approved"
+                    }
+                },
+                {
+                    "name": "❌ Error: Delete Approved Lembur",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/lembur/LBR003",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "lembur",
+                                "LBR003"
+                            ]
+                        },
+                        "description": "Test error - cannot delete lembur that's not draft"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "💰 Tunjangan Management (v1.1.0)",
+            "item": [
+                {
+                    "name": "📊 Reports by Type",
+                    "item": [
+                        {
+                            "name": "Get Uang Makan Report",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/uang-makan/report?month=1&year=2025&per_page=15&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "uang-makan",
+                                        "report"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1",
+                                            "description": "Month (1-12)"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025",
+                                            "description": "Year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15",
+                                            "description": "Items per page"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number"
+                                        }
+                                    ]
+                                },
+                                "description": "Get uang makan report with penalti calculation"
+                            }
+                        },
+                        {
+                            "name": "Get Uang Kuota Report",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/uang-kuota/report?month=1&year=2025&per_page=15&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "uang-kuota",
+                                        "report"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Get monthly uang kuota/pulsa report"
+                            }
+                        },
+                        {
+                            "name": "Get Uang Lembur Report",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/uang-lembur/report?month=1&year=2025&per_page=15&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "uang-lembur",
+                                        "report"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Get uang lembur report with jam calculation"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "📋 All Tunjangan",
+                    "item": [
+                        {
+                            "name": "Get My Tunjangan List (All Types)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/my-list?month=1&year=2025&status=&type=&per_page=15&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "my-list"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1",
+                                            "description": "Month filter"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025",
+                                            "description": "Year filter"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional: pending|requested|approved|received"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "",
+                                            "description": "Optional: UANG_MAKAN|UANG_KUOTA|UANG_LEMBUR"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Get all tunjangan with optional filters"
+                            }
+                        },
+                        {
+                            "name": "Get My Tunjangan List - Filter by Status",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/my-list?month=1&year=2025&status=pending",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "my-list"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "pending",
+                                            "description": "Filter by status"
+                                        }
+                                    ]
+                                },
+                                "description": "Example: Get only pending tunjangan"
+                            }
+                        },
+                        {
+                            "name": "Get My Tunjangan List - Filter by Type",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/my-list?month=1&year=2025&type=UANG_MAKAN",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "my-list"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "UANG_MAKAN",
+                                            "description": "Filter by type"
+                                        }
+                                    ]
+                                },
+                                "description": "Example: Get only uang makan tunjangan"
+                            }
+                        },
+                        {
+                            "name": "Get Tunjangan Summary",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/summary?month=1&year=2025",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "summary"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2025"
+                                        }
+                                    ]
+                                },
+                                "description": "Get summary of all tunjangan (by type, by status, total nominal)"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "📄 Detail & Actions",
+                    "item": [
+                        {
+                            "name": "Get Tunjangan Detail",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001"
+                                    ]
+                                },
+                                "description": "Get detail tunjangan including history and permissions"
+                            }
+                        },
+                        {
+                            "name": "Request Pencairan Tunjangan",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001/request",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001",
+                                        "request"
+                                    ]
+                                },
+                                "description": "Request pencairan tunjangan (pending -> requested)"
+                            }
+                        },
+                        {
+                            "name": "Konfirmasi Tunjangan Diterima",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001/confirm-received",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001",
+                                        "confirm-received"
+                                    ]
+                                },
+                                "description": "Confirm tunjangan sudah diterima (approved -> received)"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "❌ Error Test Cases",
+                    "item": [
+                        {
+                            "name": "❌ Request Tunjangan with Wrong Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK002/request",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK002",
+                                        "request"
+                                    ]
+                                },
+                                "description": "Test error - try request tunjangan yang statusnya bukan pending"
+                            }
+                        },
+                        {
+                            "name": "❌ Confirm without Approval",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK003/confirm-received",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK003",
+                                        "confirm-received"
+                                    ]
+                                },
+                                "description": "Test error - try confirm tunjangan yang belum approved"
+                            }
+                        },
+                        {
+                            "name": "❌ Get Non-existent Tunjangan",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK999",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK999"
+                                    ]
+                                },
+                                "description": "Test 404 - tunjangan not found"
+                            }
+                        },
+                        {
+                            "name": "❌ Get Other Karyawan's Tunjangan",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK050",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK050"
+                                    ]
+                                },
+                                "description": "Test 404 - cannot access other karyawan's tunjangan"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "🔄 Workflow Test Scenarios",
+                    "item": [
+                        {
+                            "name": "Scenario 1: Get Pending Tunjangan",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/my-list?status=pending",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "my-list"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        }
+                                    ]
+                                },
+                                "description": "Step 1: Get list of pending tunjangan"
+                            }
+                        },
+                        {
+                            "name": "Scenario 2: Request Pencairan",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001/request",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001",
+                                        "request"
+                                    ]
+                                },
+                                "description": "Step 2: Request pencairan"
+                            }
+                        },
+                        {
+                            "name": "Scenario 3: Check Status after Request",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001"
+                                    ]
+                                },
+                                "description": "Step 3: Verify status changed to requested"
+                            }
+                        },
+                        {
+                            "name": "Scenario 4: Get Approved Tunjangan",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/my-list?status=approved",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "my-list"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "approved"
+                                        }
+                                    ]
+                                },
+                                "description": "Step 4: Get approved tunjangan (after admin approval)"
+                            }
+                        },
+                        {
+                            "name": "Scenario 5: Confirm Received",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tunjangan/TJK001/confirm-received",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tunjangan",
+                                        "TJK001",
+                                        "confirm-received"
+                                    ]
+                                },
+                                "description": "Step 5: Confirm tunjangan received"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.success && response.data.token) {",
-                  "        pm.collectionVariables.set('auth_token', response.data.token);",
-                  "        console.log('Token saved:', response.data.token);",
-                  "    }",
-                  "}"
+                    "// Global pre-request script",
+                    "console.log('Making request to:', pm.request.url);"
                 ]
-              }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/login",
-              "host": ["{{base_url}}"],
-              "path": ["login"]
-            }
-          }
         },
         {
-          "name": "Get Current User",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/me",
-              "host": ["{{base_url}}"],
-              "path": ["me"]
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Global test script",
+                    "pm.test('Response should be valid JSON', function () {",
+                    "    pm.response.to.be.json;",
+                    "});",
+                    "",
+                    "pm.test('Response should have success field', function () {",
+                    "    const jsonData = pm.response.json();",
+                    "    pm.expect(jsonData).to.have.property('success');",
+                    "});",
+                    "",
+                    "pm.test('Response should have message field', function () {",
+                    "    const jsonData = pm.response.json();",
+                    "    pm.expect(jsonData).to.have.property('message');",
+                    "});"
+                ]
             }
-          }
-        },
-        {
-          "name": "Change Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"current_password\": \"password123\",\n    \"new_password\": \"newpassword123\",\n    \"new_password_confirmation\": \"newpassword123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/change-password",
-              "host": ["{{base_url}}"],
-              "path": ["change-password"]
-            }
-          }
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/logout",
-              "host": ["{{base_url}}"],
-              "path": ["logout"]
-            }
-          }
         }
-      ]
-    },
-    {
-      "name": "📊 Dashboard",
-      "item": [
-        {
-          "name": "Get Dashboard Data",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/dashboard",
-              "host": ["{{base_url}}"],
-              "path": ["dashboard"]
-            }
-          }
-        },
-        {
-          "name": "Get Notifications",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/notifications",
-              "host": ["{{base_url}}"],
-              "path": ["notifications"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "👤 Profile",
-      "item": [
-        {
-          "name": "Get Profile",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profile",
-              "host": ["{{base_url}}"],
-              "path": ["profile"]
-            }
-          }
-        },
-        {
-          "name": "Update Profile",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.updated@example.com\",\n    \"phone\": \"081234567890\",\n    \"address\": \"Jl. Contoh No. 123, Jakarta\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/profile",
-              "host": ["{{base_url}}"],
-              "path": ["profile"]
-            }
-          }
-        },
-        {
-          "name": "Upload Profile Photo",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "photo",
-                  "type": "file",
-                  "src": "/path/to/your/photo.jpg"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/profile/photo",
-              "host": ["{{base_url}}"],
-              "path": ["profile", "photo"]
-            }
-          }
-        },
-        {
-          "name": "Get Profile Stats",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profile/stats",
-              "host": ["{{base_url}}"],
-              "path": ["profile", "stats"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📅 Jadwal",
-      "item": [
-        {
-          "name": "Get Monthly Jadwal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/jadwal?month=12&year=2024",
-              "host": ["{{base_url}}"],
-              "path": ["jadwal"],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "12"
-                },
-                {
-                  "key": "year",
-                  "value": "2024"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Weekly Jadwal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/jadwal/weekly?start_date=2024-12-01",
-              "host": ["{{base_url}}"],
-              "path": ["jadwal", "weekly"],
-              "query": [
-                {
-                  "key": "start_date",
-                  "value": "2024-12-01"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Today's Jadwal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/jadwal/today",
-              "host": ["{{base_url}}"],
-              "path": ["jadwal", "today"]
-            }
-          }
-        },
-        {
-          "name": "Get Tomorrow's Jadwal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/jadwal/tomorrow",
-              "host": ["{{base_url}}"],
-              "path": ["jadwal", "tomorrow"]
-            }
-          }
-        },
-        {
-          "name": "Get Jadwal by Date Range",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/jadwal/range?start_date=2024-12-01&end_date=2024-12-07",
-              "host": ["{{base_url}}"],
-              "path": ["jadwal", "range"],
-              "query": [
-                {
-                  "key": "start_date",
-                  "value": "2024-12-01"
-                },
-                {
-                  "key": "end_date",
-                  "value": "2024-12-07"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "✅ Absensi",
-      "item": [
-        {
-          "name": "Get Today's Absen Status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/absen/today",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "today"]
-            }
-          }
-        },
-        {
-          "name": "Clock In",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "latitude",
-                  "value": "-6.200000",
-                  "type": "text"
-                },
-                {
-                  "key": "longitude",
-                  "value": "106.816666",
-                  "type": "text"
-                },
-                {
-                  "key": "address",
-                  "value": "Jl. Sudirman No. 1, Jakarta Pusat",
-                  "type": "text"
-                },
-                {
-                  "key": "photo",
-                  "type": "file",
-                  "src": "/path/to/clock-in-photo.jpg"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/absen/clock-in",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "clock-in"]
-            }
-          }
-        },
-        {
-          "name": "Clock Out",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "latitude",
-                  "value": "-6.200000",
-                  "type": "text"
-                },
-                {
-                  "key": "longitude",
-                  "value": "106.816666",
-                  "type": "text"
-                },
-                {
-                  "key": "address",
-                  "value": "Jl. Sudirman No. 1, Jakarta Pusat",
-                  "type": "text"
-                },
-                {
-                  "key": "photo",
-                  "type": "file",
-                  "src": "/path/to/clock-out-photo.jpg"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/absen/clock-out",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "clock-out"]
-            }
-          }
-        },
-        {
-          "name": "Get Absen History",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/absen/history?month=12&year=2024&per_page=10&page=1",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "history"],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "12"
-                },
-                {
-                  "key": "year",
-                  "value": "2024"
-                },
-                {
-                  "key": "per_page",
-                  "value": "10"
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📋 Riwayat",
-      "item": [
-        {
-          "name": "Get Riwayat Absen (Paginated)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/riwayat/absen?month=12&year=2024&per_page=15&page=1",
-              "host": ["{{base_url}}"],
-              "path": ["riwayat", "absen"],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "12"
-                },
-                {
-                  "key": "year",
-                  "value": "2024"
-                },
-                {
-                  "key": "per_page",
-                  "value": "15"
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Riwayat Jadwal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/riwayat/jadwal?month=12&year=2024",
-              "host": ["{{base_url}}"],
-              "path": ["riwayat", "jadwal"],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "12"
-                },
-                {
-                  "key": "year",
-                  "value": "2024"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Detail Harian",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/riwayat/detail/2024-12-01",
-              "host": ["{{base_url}}"],
-              "path": ["riwayat", "detail", "2024-12-01"]
-            }
-          }
-        },
-        {
-          "name": "Get Yearly Summary",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/riwayat/yearly?year=2024",
-              "host": ["{{base_url}}"],
-              "path": ["riwayat", "yearly"],
-              "query": [
-                {
-                  "key": "year",
-                  "value": "2024"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Photos Gallery",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/riwayat/photos?month=12&year=2024&per_page=20&page=1",
-              "host": ["{{base_url}}"],
-              "path": ["riwayat", "photos"],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "12"
-                },
-                {
-                  "key": "year",
-                  "value": "2024"
-                },
-                {
-                  "key": "per_page",
-                  "value": "20"
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🧪 Test Endpoints",
-      "item": [
-        {
-          "name": "API Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/test",
-              "host": ["{{base_url}}"],
-              "path": ["test"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "❌ Error Test Cases",
-      "item": [
-        {
-          "name": "Login with Invalid NIP",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"nip\": \"INVALID123\",\n    \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/login",
-              "host": ["{{base_url}}"],
-              "path": ["login"]
-            }
-          }
-        },
-        {
-          "name": "Login with Wrong Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"nip\": \"EMP001\",\n    \"password\": \"wrongpassword\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/login",
-              "host": ["{{base_url}}"],
-              "path": ["login"]
-            }
-          }
-        },
-        {
-          "name": "Clock In without Auth",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "latitude",
-                  "value": "-6.200000",
-                  "type": "text"
-                },
-                {
-                  "key": "longitude",
-                  "value": "106.816666",
-                  "type": "text"
-                },
-                {
-                  "key": "address",
-                  "value": "Test Address",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/absen/clock-in",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "clock-in"]
-            }
-          }
-        },
-        {
-          "name": "Clock In with Invalid Data",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "latitude",
-                  "value": "invalid_latitude",
-                  "type": "text"
-                },
-                {
-                  "key": "longitude",
-                  "value": "invalid_longitude",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/absen/clock-in",
-              "host": ["{{base_url}}"],
-              "path": ["absen", "clock-in"]
-            }
-          }
-        }
-      ]
-    }
-  ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Global pre-request script",
-          "console.log('Making request to:', pm.request.url);"
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Global test script",
-          "pm.test('Response should be valid JSON', function () {",
-          "    pm.response.to.be.json;",
-          "});",
-          "",
-          "pm.test('Response should have success field', function () {",
-          "    const jsonData = pm.response.json();",
-          "    pm.expect(jsonData).to.have.property('success');",
-          "});",
-          "",
-          "pm.test('Response should have message field', function () {",
-          "    const jsonData = pm.response.json();",
-          "    pm.expect(jsonData).to.have.property('message');",
-          "});"
-        ]
-      }
-    }
-  ]
+    ]
 }
