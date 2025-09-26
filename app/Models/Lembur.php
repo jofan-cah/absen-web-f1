@@ -41,7 +41,7 @@ class Lembur extends Model
     ];
 
     protected $casts = [
-        'tanggal_lembur' => 'date',
+        'tanggal_lembur' => 'datetime:Y-m-d',
         'total_jam' => 'decimal:2',
         'multiplier' => 'decimal:2',
         'submitted_at' => 'datetime',
