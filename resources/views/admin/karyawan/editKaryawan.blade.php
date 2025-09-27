@@ -47,7 +47,7 @@
             <div class="flex items-center space-x-4">
                 <div class="flex-shrink-0">
                     @if($karyawan->photo)
-                        <img src="{{ asset('storage/' . $karyawan->photo) }}"
+                        <img src="{{ Storage::disk('s3')->url($karyawan->photo) }}"
                              alt="{{ $karyawan->full_name }}"
                              class="h-16 w-16 rounded-full object-cover border-4 border-white shadow-lg">
                     @else

@@ -146,7 +146,8 @@
                 @if($lembur->bukti_foto)
                 <div class="border-t pt-4">
                     <p class="text-sm text-gray-500 mb-2">Bukti Foto</p>
-                    <img src="{{ Storage::url($lembur->bukti_foto) }}" alt="Bukti Lembur" class="w-full max-w-md rounded-lg border border-gray-200">
+                     <img src="{{ Storage::disk('s3')->url($lembur->bukti_foto) }}"
+                     alt="Bukti Lembur" class="w-full max-w-md rounded-lg border border-gray-200">
                 </div>
                 @endif
             </div>

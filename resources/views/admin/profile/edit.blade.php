@@ -247,7 +247,8 @@
 
                     @if($karyawan && $karyawan->photo)
                         <div class="mb-4">
-                            <img src="{{ asset('storage/' . $karyawan->photo) }}"
+
+                            <img src="{{ Storage::disk('s3')->url($karyawan->photo) }}"
                                  alt="Current Photo"
                                  class="w-24 h-24 rounded-full object-cover border-2 border-gray-200">
                         </div>

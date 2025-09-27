@@ -39,7 +39,8 @@
                     <div class="relative -mt-16">
                         <div class="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-white">
                             @if($karyawan->photo)
-                                <img src="{{ asset('storage/' . $karyawan->photo) }}"
+
+                                 <img src="{{ Storage::disk('s3')->url($karyawan->photo) }}"
                                      alt="{{ $karyawan->full_name }}"
                                      class="w-full h-full object-cover">
                             @else
