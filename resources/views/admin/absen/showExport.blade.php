@@ -40,7 +40,8 @@
             <!-- Avatar -->
             <div class="h-16 w-16 bg-gray-300 rounded-full flex items-center justify-center">
                 @if($absen->karyawan->photo)
-                    <img src="{{ asset('storage/' . $absen->karyawan->photo) }}" alt="{{ $absen->karyawan->full_name }}" class="h-16 w-16 rounded-full object-cover">
+                    <img src="{{ Storage::disk('s3')->url($absen->karyawan->photo) }}"
+                     alt="{{ $absen->karyawan->full_name }}" class="h-16 w-16 rounded-full object-cover">
                 @else
                     <span class="text-xl font-bold text-gray-700">
                         {{ substr($absen->karyawan->full_name, 0, 2) }}
@@ -162,7 +163,8 @@
                                 @if($absen->clock_in_photo)
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Foto</label>
-                                        <img src="{{ asset('storage/' . $absen->clock_in_photo) }}"
+
+                                        <img src="{{ Storage::disk('s3')->url($absen->clock_in_photo) }}"
                                              alt="Clock In Photo"
                                              class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                                              onclick="AttendanceDetail.showImageModal('{{ asset('storage/' . $absen->clock_in_photo) }}', 'Foto Clock In')">
@@ -210,7 +212,7 @@
                                 @if($absen->clock_out_photo)
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Foto</label>
-                                        <img src="{{ asset('storage/' . $absen->clock_out_photo) }}"
+                                        <img src="{{ Storage::disk('s3')->url($absen->clock_out_photo) }}"
                                              alt="Clock Out Photo"
                                              class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                                              onclick="AttendanceDetail.showImageModal('{{ asset('storage/' . $absen->clock_out_photo) }}', 'Foto Clock Out')">
