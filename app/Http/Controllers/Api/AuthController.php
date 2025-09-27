@@ -34,9 +34,9 @@ class AuthController extends BaseApiController
         $user = $karyawan->user;
 
         // Check user role
-        if ($user->role !== 'karyawan') {
-            return $this->forbiddenResponse('Akun admin tidak bisa login via mobile');
-        }
+        // if ($user->role !== 'karyawan') {
+        //     return $this->forbiddenResponse('Akun admin tidak bisa login via mobile');
+        // }
 
         // Check karyawan status
         if ($karyawan->employment_status !== 'active') {
