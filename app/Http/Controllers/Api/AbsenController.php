@@ -6,6 +6,7 @@ use App\Models\Absen;
 use App\Models\Jadwal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class AbsenController extends BaseApiController
@@ -78,12 +79,14 @@ class AbsenController extends BaseApiController
             return $this->errorResponse('Sudah melakukan clock in hari ini', 400);
         }
 
-        // Upload photo
+        // Upload photo to S3
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             $filename = 'clock_in_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d_H-i-s') . '.' . $photo->getClientOriginalExtension();
-            $photoPath = $photo->storeAs('absen_photos', $filename, 'public');
+
+            // Upload ke S3 dengan path yang sama
+            $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
         // Calculate late minutes
@@ -154,12 +157,14 @@ class AbsenController extends BaseApiController
             return $this->errorResponse('Sudah melakukan clock out hari ini', 400);
         }
 
-        // Upload photo
+        // Upload photo to S3
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d_H-i-s') . '.' . $photo->getClientOriginalExtension();
-            $photoPath = $photo->storeAs('absen_photos', $filename, 'public');
+
+            // Upload ke S3 dengan path yang sama
+            $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
         // Calculate work hours
