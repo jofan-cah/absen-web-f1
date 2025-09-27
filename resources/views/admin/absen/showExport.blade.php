@@ -842,9 +842,9 @@
                 modal.id = 'photosModal';
                 modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
 
-                const clockInPhoto = '{{ $absen->clock_in_photo ? asset('storage/' . $absen->clock_in_photo) : '' }}';
+                const clockInPhoto = "{{ $absen->clock_in_photo ?  Storage::disk('s3')->url($absen->clock_in_photo)  : '' }}";
                 const clockOutPhoto =
-                    '{{ $absen->clock_out_photo ? asset('storage/' . $absen->clock_out_photo) : '' }}';
+                    "{{ $absen->clock_out_photo ? Storage::disk('s3')->url($absen->clock_out_photo)  : '' }}";
 
                 modal.innerHTML = `
             <div class="relative top-10 mx-auto p-6 border max-w-6xl shadow-lg rounded-lg bg-white modal-enter">
