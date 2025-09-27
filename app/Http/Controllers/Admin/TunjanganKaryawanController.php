@@ -360,7 +360,7 @@ class TunjanganKaryawanController extends Controller
 
             // Delete uploaded photo if error
             if (isset($photoPath) && $photoPath) {
-                Storage::disk('public')->delete($photoPath);
+                Storage::disk('s3')->delete($photoPath);
             }
 
             return response()->json([
@@ -414,7 +414,7 @@ class TunjanganKaryawanController extends Controller
 
             // Delete confirmation photo if exists
             if ($tunjanganKaryawan->received_confirmation_photo) {
-                Storage::disk('public')->delete($tunjanganKaryawan->received_confirmation_photo);
+                Storage::disk('s3')->delete($tunjanganKaryawan->received_confirmation_photo);
             }
 
             $tunjanganKaryawan->delete();
@@ -456,7 +456,7 @@ class TunjanganKaryawanController extends Controller
             // Delete photos
             foreach ($tunjanganKaryawan as $tunjangan) {
                 if ($tunjangan->received_confirmation_photo) {
-                    Storage::disk('public')->delete($tunjangan->received_confirmation_photo);
+                    Storage::disk('s3')->delete($tunjangan->received_confirmation_photo);
                 }
             }
 

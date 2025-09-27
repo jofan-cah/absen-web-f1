@@ -90,7 +90,7 @@ class ProfileController extends BaseApiController
         try {
             // Delete old photo if exists
             if ($karyawan->photo) {
-                Storage::disk('public')->delete($karyawan->photo);
+                Storage::disk('s3')->delete($karyawan->photo);
             }
 
             // Upload new photo

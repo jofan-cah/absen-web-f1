@@ -187,84 +187,83 @@ class KaryawanController extends Controller
         return view('admin.karyawan.createKaryawan', compact('departments'));
     }
 
-   public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users',
-        'password' => 'required|string|min:8',
-        'department_id' => 'required|exists:departments,department_id',
-        'nip' => 'required|string|max:50|unique:karyawans',
-        'full_name' => 'required|string|max:255',
-        'position' => 'required|string|max:255',
-        'phone' => 'nullable|string|max:20',
-        'address' => 'nullable|string',
-        'hire_date' => 'required|date',
-        'birth_date' => 'nullable|date|before:hire_date',
-        'gender' => 'required|in:L,P',
-        'staff_status' => 'required|in:staff,koordinator,wakil_koordinator',
-        'photo' => 'nullable|image|mimes:jpeg,png,jpg',
-    ]);
-
-    try {
-        DB::beginTransaction();
-
-        // Create User first
-        $user = User::create([
-
-            'user_id' => User::generateUserId(),
-              'nip' => $request->nip,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'karyawan',
-            'is_active' => true,
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'department_id' => 'required|exists:departments,department_id',
+            'nip' => 'required|string|max:50|unique:karyawans',
+            'full_name' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'hire_date' => 'required|date',
+            'birth_date' => 'nullable|date|before:hire_date',
+            'gender' => 'required|in:L,P',
+            'staff_status' => 'required|in:staff,koordinator,wakil_koordinator',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg',
         ]);
 
-        // Handle photo upload
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            $filename = 'karyawan_' . $user->user_id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-            $photoPath = Storage::disk('public')->putFileAs('karyawan_photos', $photo, $filename);
+        try {
+            DB::beginTransaction();
+
+            // Create User first
+            $user = User::create([
+
+                'user_id' => User::generateUserId(),
+                'nip' => $request->nip,
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'karyawan',
+                'is_active' => true,
+            ]);
+
+            // Handle photo upload
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                $filename = 'karyawan_' . $user->user_id . '_' . time() . '.' . $photo->getClientOriginalExtension();
+                $photoPath = Storage::disk('s3')->putFileAs('karyawan_photos', $photo, $filename);
+            }
+
+            // Create Karyawan
+            Karyawan::create([
+                'karyawan_id' => Karyawan::generateKaryawanId(),
+                'user_id' => $user->user_id,
+                'department_id' => $request->department_id,
+                'nip' => $request->nip,
+                'full_name' => $request->full_name,
+                'position' => $request->position,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'hire_date' => $request->hire_date,
+                'birth_date' => $request->birth_date,
+                'gender' => $request->gender,
+                'photo' => $photoPath,
+                'employment_status' => 'active',
+                'staff_status' => $request->staff_status,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('admin.karyawan.index')
+                ->with('success', 'Karyawan berhasil ditambahkan');
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            // Delete uploaded photo if exists
+            if (isset($photoPath) && $photoPath && Storage::disk('s3')->exists($photoPath)) {
+                Storage::disk('s3')->delete($photoPath);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan karyawan: ' . $e->getMessage());
         }
-
-        // Create Karyawan
-        Karyawan::create([
-            'karyawan_id' => Karyawan::generateKaryawanId(),
-            'user_id' => $user->user_id,
-            'department_id' => $request->department_id,
-            'nip' => $request->nip,
-            'full_name' => $request->full_name,
-            'position' => $request->position,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'hire_date' => $request->hire_date,
-            'birth_date' => $request->birth_date,
-            'gender' => $request->gender,
-            'photo' => $photoPath,
-            'employment_status' => 'active',
-            'staff_status' => $request->staff_status,
-        ]);
-
-        DB::commit();
-
-        return redirect()->route('admin.karyawan.index')
-            ->with('success', 'Karyawan berhasil ditambahkan');
-
-    } catch (\Exception $e) {
-        DB::rollback();
-
-        // Delete uploaded photo if exists
-        if (isset($photoPath) && $photoPath && Storage::disk('public')->exists($photoPath)) {
-            Storage::disk('public')->delete($photoPath);
-        }
-
-        return redirect()->back()
-            ->withInput()
-            ->with('error', 'Gagal menambahkan karyawan: ' . $e->getMessage());
     }
-}
 
     public function toggleStatus($id)
     {
@@ -401,8 +400,8 @@ class KaryawanController extends Controller
             $photoPath = $karyawan->photo; // Keep existing photo
             if ($request->hasFile('photo')) {
                 // Delete old photo
-                if ($karyawan->photo && Storage::disk('public')->exists($karyawan->photo)) {
-                    Storage::disk('public')->delete($karyawan->photo);
+                if ($karyawan->photo && Storage::disk('s3')->exists($karyawan->photo)) {
+                    Storage::disk('s3')->delete($karyawan->photo);
                 }
 
                 $photo = $request->file('photo');
@@ -444,8 +443,8 @@ class KaryawanController extends Controller
             DB::beginTransaction();
 
             // Delete photo if exists
-            if ($karyawan->photo && Storage::disk('public')->exists($karyawan->photo)) {
-                Storage::disk('public')->delete($karyawan->photo);
+            if ($karyawan->photo && Storage::disk('s3')->exists($karyawan->photo)) {
+                Storage::disk('s3')->delete($karyawan->photo);
             }
 
             // Delete related records

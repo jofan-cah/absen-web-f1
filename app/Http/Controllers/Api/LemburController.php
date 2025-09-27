@@ -226,7 +226,7 @@ class LemburController extends BaseApiController
             if ($request->hasFile('bukti_foto')) {
                 // Delete old photo
                 if ($photoPath) {
-                    Storage::disk('public')->delete($photoPath);
+                    Storage::disk('s3')->delete($photoPath);
                 }
 
                 $photo = $request->file('bukti_foto');
@@ -319,7 +319,7 @@ class LemburController extends BaseApiController
         try {
             // Delete foto if exists
             if ($lembur->bukti_foto) {
-                Storage::disk('public')->delete($lembur->bukti_foto);
+                Storage::disk('s3')->delete($lembur->bukti_foto);
             }
 
             $lembur->delete();

@@ -263,7 +263,7 @@ class LemburController extends Controller
             // Delete photos
             foreach ($lemburs as $lembur) {
                 if ($lembur->bukti_foto) {
-                    Storage::disk('public')->delete($lembur->bukti_foto);
+                    Storage::disk('s3')->delete($lembur->bukti_foto);
                 }
             }
 

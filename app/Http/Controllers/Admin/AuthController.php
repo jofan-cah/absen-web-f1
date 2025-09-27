@@ -7,6 +7,7 @@ use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -72,7 +73,7 @@ class AuthController extends Controller
                 if ($request->hasFile('photo')) {
                     // Delete old photo
                     if ($karyawan->photo) {
-                        Storage::disk('public')->delete($karyawan->photo);
+                        Storage::disk('s3')->delete($karyawan->photo);
                     }
 
                     // Store new photo
