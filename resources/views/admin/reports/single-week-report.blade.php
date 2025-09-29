@@ -502,7 +502,7 @@
             </div>
 
             <div class="summary-item">
-                <div class="summary-value">Rp {{ number_format(($summary['total_amount'] ?? 0)/1000000, 1) }}M</div>
+                <div class="summary-value">Rp {{ number_format(($summary['total_amount'] ?? 0)) }}</div>
                 <div class="summary-label">Total Nominal</div>
             </div>
         </div>
