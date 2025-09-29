@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 
 class TunjanganKaryawanController extends Controller
 {
@@ -1045,148 +1046,149 @@ class TunjanganKaryawanController extends Controller
         return $pdf->download($filename);
     }
 
-    private function generateAllEmployeeWeeklyReport($tunjanganType, $month, $year)
-    {
-        $startDate = Carbon::create($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
+    // private function generateAllEmployeeWeeklyReport($tunjanganType, $month, $year)
+    // {
+    //     // dd('Joifan');
+    //     $startDate = Carbon::create($year, $month, 1);
+    //     $endDate = $startDate->copy()->endOfMonth();
 
-        $karyawans = Karyawan::with(['department'])
-            ->where('employment_status', 'active')
-            ->orderBy('full_name')
-            ->get();
+    //     $karyawans = Karyawan::with(['department'])
+    //         ->where('employment_status', 'active')
+    //         ->orderBy('full_name')
+    //         ->get();
 
-        // Bagi minggu
-        $weeks = [];
-        $currentDate = $startDate->copy();
-        $weekNumber = 1;
+    //     // Bagi minggu
+    //     $weeks = [];
+    //     $currentDate = $startDate->copy();
+    //     $weekNumber = 1;
 
-        while ($currentDate <= $endDate) {
-            $weekStart = $currentDate->copy();
-            if ($weekStart->dayOfWeek != Carbon::MONDAY) {
-                if ($weekStart->day <= 7) {
-                    $weekStart = $startDate->copy();
-                } else {
-                    $weekStart = $weekStart->startOfWeek(Carbon::MONDAY);
-                }
-            }
+    //     while ($currentDate <= $endDate) {
+    //         $weekStart = $currentDate->copy();
+    //         if ($weekStart->dayOfWeek != Carbon::MONDAY) {
+    //             if ($weekStart->day <= 7) {
+    //                 $weekStart = $startDate->copy();
+    //             } else {
+    //                 $weekStart = $weekStart->startOfWeek(Carbon::MONDAY);
+    //             }
+    //         }
 
-            $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
-            if ($weekEnd > $endDate) {
-                $weekEnd = $endDate->copy();
-            }
-            if ($weekStart < $startDate) {
-                $weekStart = $startDate->copy();
-            }
+    //         $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+    //         if ($weekEnd > $endDate) {
+    //             $weekEnd = $endDate->copy();
+    //         }
+    //         if ($weekStart < $startDate) {
+    //             $weekStart = $startDate->copy();
+    //         }
 
-            $weeks[] = [
-                'number' => $weekNumber,
-                'start' => $weekStart,
-                'end' => $weekEnd,
-                'label' => $weekStart->format('d') . '-' . $weekEnd->format('d'),
-                'full_label' => $weekStart->format('d/m') . ' - ' . $weekEnd->format('d/m'),
-                'day_names' => $this->getWeekDayNames($weekStart, $weekEnd),
-                'is_full_week' => $weekStart->diffInDays($weekEnd) >= 6
-            ];
+    //         $weeks[] = [
+    //             'number' => $weekNumber,
+    //             'start' => $weekStart,
+    //             'end' => $weekEnd,
+    //             'label' => $weekStart->format('d') . '-' . $weekEnd->format('d'),
+    //             'full_label' => $weekStart->format('d/m') . ' - ' . $weekEnd->format('d/m'),
+    //             'day_names' => $this->getWeekDayNames($weekStart, $weekEnd),
+    //             'is_full_week' => $weekStart->diffInDays($weekEnd) >= 6
+    //         ];
 
-            $currentDate = $weekEnd->copy()->addDay();
-            $weekNumber++;
-        }
+    //         $currentDate = $weekEnd->copy()->addDay();
+    //         $weekNumber++;
+    //     }
 
-        // CEK APAKAH INI UANG LEMBUR
-        $isLembur = $tunjanganType->code === 'UANG_LEMBUR';
+    //     // CEK APAKAH INI UANG LEMBUR
+    //     $isLembur = $tunjanganType->code === 'UANG_LEMBUR';
 
-        $employeeData = [];
-        foreach ($karyawans as $karyawan) {
-            $weeklyData = [];
+    //     $employeeData = [];
+    //     foreach ($karyawans as $karyawan) {
+    //         $weeklyData = [];
 
-            foreach ($weeks as $week) {
-                if ($isLembur) {
-                    // ✅ UNTUK LEMBUR: Ambil dari tabel lemburs
-                    $lemburList = Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                        ->whereDate('tanggal_lembur', '>=', $week['start'])
-                        ->whereDate('tanggal_lembur', '<=', $week['end'])
-                        ->whereIn('status', ['approved', 'processed'])
-                        ->with('tunjanganKaryawan')
-                        ->get();
+    //         foreach ($weeks as $week) {
+    //             if ($isLembur) {
+    //                 // ✅ UNTUK LEMBUR: Ambil dari tabel lemburs
+    //                 $lemburList = Lembur::where('karyawan_id', $karyawan->karyawan_id)
+    //                     ->whereDate('tanggal_lembur', '>=', $week['start'])
+    //                     ->whereDate('tanggal_lembur', '<=', $week['end'])
+    //                     ->whereIn('status', ['approved', 'processed'])
+    //                     ->with('tunjanganKaryawan')
+    //                     ->get();
 
-                    $totalAmount = 0;
-                    $totalJam = $lemburList->sum('total_jam');
-                    $anyTaken = false;
+    //                 $totalAmount = 0;
+    //                 $totalJam = $lemburList->sum('total_jam');
+    //                 $anyTaken = false;
 
-                    foreach ($lemburList as $lembur) {
-                        if ($lembur->tunjanganKaryawan) {
-                            $totalAmount += $lembur->tunjanganKaryawan->total_amount;
-                            if (in_array($lembur->tunjanganKaryawan->status, ['approved', 'received'])) {
-                                $anyTaken = true;
-                            }
-                        }
-                    }
+    //                 foreach ($lemburList as $lembur) {
+    //                     if ($lembur->tunjanganKaryawan) {
+    //                         $totalAmount += $lembur->tunjanganKaryawan->total_amount;
+    //                         if (in_array($lembur->tunjanganKaryawan->status, ['approved', 'received'])) {
+    //                             $anyTaken = true;
+    //                         }
+    //                     }
+    //                 }
 
-                    $weeklyData[] = [
-                        'week' => $week,
-                        'tunjangan' => $lemburList->first()->tunjanganKaryawan ?? null,
-                        'is_taken' => $anyTaken,
-                        'status' => $anyTaken ? 'approved' : ($lemburList->count() > 0 ? 'pending' : 'no_data'),
-                        'amount' => $totalAmount,
-                        'total_jam' => $totalJam, // TAMBAHAN untuk lembur
-                        'source' => 'lembur',
-                    ];
-                } else {
-                    // ✅ UNTUK UANG MAKAN: Query dari TunjanganKaryawan (berbasis absen)
-                    $tunjangan = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-                        ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-                        ->whereNull('absen_id') // EXCLUDE lembur
-                        ->where(function ($query) use ($week) {
-                            $query->whereBetween('period_start', [$week['start'], $week['end']])
-                                ->orWhereBetween('period_end', [$week['start'], $week['end']])
-                                ->orWhere(function ($q) use ($week) {
-                                    $q->where('period_start', '<=', $week['start'])
-                                        ->where('period_end', '>=', $week['end']);
-                                });
-                        })
-                        ->first();
+    //                 $weeklyData[] = [
+    //                     'week' => $week,
+    //                     'tunjangan' => $lemburList->first()->tunjanganKaryawan ?? null,
+    //                     'is_taken' => $anyTaken,
+    //                     'status' => $anyTaken ? 'approved' : ($lemburList->count() > 0 ? 'pending' : 'no_data'),
+    //                     'amount' => $totalAmount,
+    //                     'total_jam' => $totalJam, // TAMBAHAN untuk lembur
+    //                     'source' => 'lembur',
+    //                 ];
+    //             } else {
+    //                 // ✅ UNTUK UANG MAKAN: Query dari TunjanganKaryawan (berbasis absen)
+    //                 $tunjangan = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+    //                     ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
+    //                     ->whereNull('absen_id') // EXCLUDE lembur
+    //                     ->where(function ($query) use ($week) {
+    //                         $query->whereBetween('period_start', [$week['start'], $week['end']])
+    //                             ->orWhereBetween('period_end', [$week['start'], $week['end']])
+    //                             ->orWhere(function ($q) use ($week) {
+    //                                 $q->where('period_start', '<=', $week['start'])
+    //                                     ->where('period_end', '>=', $week['end']);
+    //                             });
+    //                     })
+    //                     ->first();
 
-                    $weeklyData[] = [
-                        'week' => $week,
-                        'tunjangan' => $tunjangan,
-                        'is_taken' => $tunjangan ? in_array($tunjangan->status, ['approved', 'received']) : false,
-                        'status' => $tunjangan ? $tunjangan->status : 'no_data',
-                        'amount' => $tunjangan ? $tunjangan->total_amount : 0,
-                        'source' => 'absen',
-                    ];
-                }
-            }
+    //                 $weeklyData[] = [
+    //                     'week' => $week,
+    //                     'tunjangan' => $tunjangan,
+    //                     'is_taken' => $tunjangan ? in_array($tunjangan->status, ['approved', 'received']) : false,
+    //                     'status' => $tunjangan ? $tunjangan->status : 'no_data',
+    //                     'amount' => $tunjangan ? $tunjangan->total_amount : 0,
+    //                     'source' => 'absen',
+    //                 ];
+    //             }
+    //         }
 
-            $employeeData[] = [
-                'karyawan' => $karyawan,
-                'weeks' => $weeklyData,
-                'total_taken' => collect($weeklyData)->where('is_taken', true)->count(),
-                'total_amount' => collect($weeklyData)->sum('amount'),
-            ];
-        }
+    //         $employeeData[] = [
+    //             'karyawan' => $karyawan,
+    //             'weeks' => $weeklyData,
+    //             'total_taken' => collect($weeklyData)->where('is_taken', true)->count(),
+    //             'total_amount' => collect($weeklyData)->sum('amount'),
+    //         ];
+    //     }
 
-        $data = [
-            'tunjanganType' => $tunjanganType,
-            'month' => $month,
-            'year' => $year,
-            'month_name' => $startDate->format('F Y'),
-            'weeks' => $weeks,
-            'employees' => $employeeData,
-            'report_type' => 'mingguan',
-            'generated_at' => now()->format('d/m/Y H:i:s'),
-            'summary' => [
-                'total_employees' => count($employeeData),
-                'total_weeks' => count($weeks),
-            ],
-            'is_lembur' => $isLembur,
-        ];
+    //     $data = [
+    //         'tunjanganType' => $tunjanganType,
+    //         'month' => $month,
+    //         'year' => $year,
+    //         'month_name' => $startDate->format('F Y'),
+    //         'weeks' => $weeks,
+    //         'employees' => $employeeData,
+    //         'report_type' => 'mingguan',
+    //         'generated_at' => now()->format('d/m/Y H:i:s'),
+    //         'summary' => [
+    //             'total_employees' => count($employeeData),
+    //             'total_weeks' => count($weeks),
+    //         ],
+    //         'is_lembur' => $isLembur,
+    //     ];
 
-        $pdf = Pdf::loadView('admin.reports.all-employee-universal', $data);
-        $pdf->setPaper('A4', 'landscape');
+    //     $pdf = Pdf::loadView('admin.reports.all-employee-universal', $data);
+    //     $pdf->setPaper('A4', 'landscape');
 
-        $filename = "Laporan_Tunjangan_Mingguan_Semua_Karyawan_{$month}_{$year}.pdf";
-        return $pdf->download($filename);
-    }
+    //     $filename = "Laporan_Tunjangan_Mingguan_Semua_Karyawan_{$month}_{$year}.pdf";
+    //     return $pdf->download($filename);
+    // }
     // Form untuk pilih jenis laporan
     public function reportForm()
     {
@@ -1256,12 +1258,31 @@ class TunjanganKaryawanController extends Controller
                     ->with('tunjanganKaryawan')
                     ->get();
 
+
+                foreach ($lemburList as $lembur) {
+                    if ($lembur->status === 'processed' && !$lembur->tunjangan_karyawan_id) {
+                        try {
+                            // Set status ke approved dulu agar bisa generate
+                            $lembur->status = 'approved';
+                            $lembur->save();
+
+                            // Generate tunjangan
+                            $lembur->generateTunjangan();
+
+                            // Refresh data
+                            $lembur->refresh();
+                            $lembur->load('tunjanganKaryawan');
+                        } catch (\Exception $e) {
+                            Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: " . $e->getMessage());
+                        }
+                    }
+                }
+
                 // Detail lembur per hari
                 $dailyLembur = [];
                 $currentDate = $weekStart->copy();
 
                 while ($currentDate <= $weekEnd) {
-                    // FIX: Gunakan whereDate di collection dengan format yang benar
                     $lembur = $lemburList->first(function ($item) use ($currentDate) {
                         return $item->tanggal_lembur->format('Y-m-d') === $currentDate->format('Y-m-d');
                     });
@@ -1291,7 +1312,6 @@ class TunjanganKaryawanController extends Controller
                         in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']);
                 });
 
-                // Ambil tanggal approve/receive pertama yang ada
                 $firstApproved = $lemburList->filter(function ($lembur) {
                     return $lembur->tunjanganKaryawan && $lembur->tunjanganKaryawan->approved_at;
                 })->first();
@@ -1319,7 +1339,7 @@ class TunjanganKaryawanController extends Controller
                 // ✅ UNTUK UANG MAKAN: Dari TunjanganKaryawan + Absen
                 $tunjangan = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
                     ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-                    ->whereNull('absen_id')
+                    ->whereNull('lembur_id') // ← GANTI dari whereNull('absen_id')
                     ->where(function ($query) use ($weekStart, $weekEnd) {
                         $query->whereBetween('period_start', [$weekStart, $weekEnd])
                             ->orWhereBetween('period_end', [$weekStart, $weekEnd])
