@@ -52,15 +52,24 @@ class Jadwal extends Model
     // Helper method
     public static function generateJadwalId()
     {
-        $lastJadwal = self::orderByDesc('jadwal_id')->first();
-        if (!$lastJadwal) {
-            return 'JDW001';
-        }
+        do {
+            // Format: JDW + 12 karakter random alphanumeric = 15 karakter total
+            // Contoh: JDWF9E2D1C8B7A6
 
-        $lastNumber = (int) substr($lastJadwal->jadwal_id, 3);
-        $newNumber = $lastNumber + 1;
+            $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $randomString = '';
 
-        return 'JDW' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+            for ($i = 0; $i < 12; $i++) {
+                $randomString .= $characters[rand(0, strlen($characters) - 1)];
+            }
+
+            $jadwalId = 'JDW' . $randomString;
+
+            // Pastikan unique dengan cek database
+            $exists = self::where('jadwal_id', $jadwalId)->exists();
+        } while ($exists);
+
+        return $jadwalId;
     }
 
     // Auto create absen saat jadwal dibuat
