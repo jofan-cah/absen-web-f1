@@ -56,18 +56,26 @@ class Absen extends Model
         return $this->belongsTo(Jadwal::class, 'jadwal_id', 'jadwal_id');
     }
 
-    // Helper method
     public static function generateAbsenId()
     {
-        $lastAbsen = self::orderByDesc('absen_id')->first();
-        if (!$lastAbsen) {
-            return 'ABS001';
-        }
+        do {
+            // Format: ABS + 12 karakter random alphanumeric = 15 karakter total
+            // Contoh: ABSF9E2D1C8B7A6
 
-        $lastNumber = (int) substr($lastAbsen->absen_id, 3);
-        $newNumber = $lastNumber + 1;
+            $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $randomString = '';
 
-        return 'ABS' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+            for ($i = 0; $i < 12; $i++) {
+                $randomString .= $characters[rand(0, strlen($characters) - 1)];
+            }
+
+            $absenId = 'ABS' . $randomString;
+
+            // Pastikan unique dengan cek database
+            $exists = self::where('absen_id', $absenId)->exists();
+        } while ($exists);
+
+        return $absenId;
     }
 
     // Check if can be edited
