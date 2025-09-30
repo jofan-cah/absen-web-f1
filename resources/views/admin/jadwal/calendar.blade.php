@@ -306,7 +306,7 @@
                 <!-- Calendar Header -->
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <div class="grid grid-cols-7 gap-4 text-center">
-                        @foreach ([ 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu','Minggu'] as $day)
+                        @foreach (['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as $day)
                             <div class="text-sm font-semibold text-gray-700 py-2">{{ $day }}</div>
                         @endforeach
                     </div>
@@ -565,6 +565,9 @@
 
 @push('scripts')
     <script>
+        const userRole = '{{ auth()->user()->role }}';
+        const canEditAll = userRole === 'admin';
+        const accessibleDepts = @json($accessibleDepts ?? null);
         let currentMonth = {{ $month }};
         let currentYear = {{ $year }};
         let selectedShiftId = null;
@@ -1057,6 +1060,28 @@
         }
 
         function deleteJadwalItem(jadwalId) {
+            // Find jadwal data
+            let jadwalData = null;
+            for (const date in calendarData) {
+                const dayJadwals = calendarData[date];
+                jadwalData = dayJadwals.find(j => j.jadwal_id === jadwalId);
+                if (jadwalData) break;
+            }
+
+            if (!jadwalData) {
+                alert('Data jadwal tidak ditemukan');
+                return;
+            }
+
+            // Check permission
+            if (!jadwalData.can_edit) {
+                alert('Anda tidak memiliki akses untuk menghapus jadwal department ini');
+                return;
+            }
+
+            if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) {
+                return;
+            }
             fetch(`{{ route('admin.jadwal.index') }}/${jadwalId}`, {
                     method: 'DELETE',
                     headers: {
@@ -1274,36 +1299,36 @@
         }
 
         // Tambahkan tombol debug untuk development
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.location.hostname === 'localhost' || window.location.hostname.includes('dev')) {
-                const debugContainer = document.querySelector('.space-y-2') || document.body;
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     if (window.location.hostname === 'localhost' || window.location.hostname.includes('dev')) {
+        //         const debugContainer = document.querySelector('.space-y-2') || document.body;
 
-                // Debug Friday button
-                const debugFridayBtn = document.createElement('button');
-                debugFridayBtn.innerHTML = 'Debug Friday';
-                debugFridayBtn.onclick = debugFridayIssue;
-                debugFridayBtn.className = 'text-xs px-2 py-1 bg-red-600 text-white rounded';
-                debugContainer.appendChild(debugFridayBtn);
+        //         // Debug Friday button
+        //         const debugFridayBtn = document.createElement('button');
+        //         debugFridayBtn.innerHTML = 'Debug Friday';
+        //         // debugFridayBtn.onclick = debugFridayIssue;
+        //         debugFridayBtn.className = 'text-xs px-2 py-1 bg-red-600 text-white rounded';
+        //         debugContainer.appendChild(debugFridayBtn);
 
-                // Test Friday generate button
-                const testFridayBtn = document.createElement('button');
-                testFridayBtn.innerHTML = 'Test Friday';
-                testFridayBtn.onclick = testGenerateOnlyFridays;
-                testFridayBtn.className = 'text-xs px-2 py-1 bg-orange-600 text-white rounded';
-                debugContainer.appendChild(testFridayBtn);
+        //         // Test Friday generate button
+        //         const testFridayBtn = document.createElement('button');
+        //         testFridayBtn.innerHTML = 'Test Friday';
+        //         testFridayBtn.onclick = testGenerateOnlyFridays;
+        //         testFridayBtn.className = 'text-xs px-2 py-1 bg-orange-600 text-white rounded';
+        //         debugContainer.appendChild(testFridayBtn);
 
-                // Analyze pattern button
-                const analyzeBtn = document.createElement('button');
-                analyzeBtn.innerHTML = 'Analyze Pattern';
-                analyzeBtn.onclick = analyzeWorkingDaysPattern;
-                analyzeBtn.className = 'text-xs px-2 py-1 bg-purple-600 text-white rounded';
-                debugContainer.appendChild(analyzeBtn);
-            }
-        });
+        //         // Analyze pattern button
+        //         const analyzeBtn = document.createElement('button');
+        //         analyzeBtn.innerHTML = 'Analyze Pattern';
+        //         analyzeBtn.onclick = analyzeWorkingDaysPattern;
+        //         analyzeBtn.className = 'text-xs px-2 py-1 bg-purple-600 text-white rounded';
+        //         debugContainer.appendChild(analyzeBtn);
+        //     }
+        // });
 
 
 
-       
+
         // Fixed autoGenerateMonth dengan date creation yang lebih robust
         function autoGenerateMonth(type) {
             if (!selectedShiftId) {
@@ -1506,34 +1531,34 @@
             }
         }
 
-        // Add debug buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.location.hostname === 'localhost' || window.location.hostname.includes('dev')) {
-                const debugContainer = document.querySelector('.space-y-2') || document.body;
+        // // Add debug buttons
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     if (window.location.hostname === 'localhost' || window.location.hostname.includes('dev')) {
+        //         const debugContainer = document.querySelector('.space-y-2') || document.body;
 
-                // Debug date creation button
-                const debugDateBtn = document.createElement('button');
-                debugDateBtn.innerHTML = 'Debug Dates';
-                debugDateBtn.onclick = debugDateCreationIssue;
-                debugDateBtn.className = 'text-xs px-2 py-1 bg-red-600 text-white rounded';
-                debugContainer.appendChild(debugDateBtn);
+        //         // Debug date creation button
+        //         const debugDateBtn = document.createElement('button');
+        //         debugDateBtn.innerHTML = 'Debug Dates';
+        //         // debugDateBtn.onclick = debugDateCreationIssue;
+        //         debugDateBtn.className = 'text-xs px-2 py-1 bg-red-600 text-white rounded';
+        //         debugContainer.appendChild(debugDateBtn);
 
-                // Test date creation button
-                const testDateBtn = document.createElement('button');
-                testDateBtn.innerHTML = 'Test Dates';
-                testDateBtn.onclick = testDateCreation;
-                testDateBtn.className = 'text-xs px-2 py-1 bg-yellow-600 text-white rounded';
-                debugContainer.appendChild(testDateBtn);
+        //         // Test date creation button
+        //         const testDateBtn = document.createElement('button');
+        //         testDateBtn.innerHTML = 'Test Dates';
+        //         testDateBtn.onclick = testDateCreation;
+        //         testDateBtn.className = 'text-xs px-2 py-1 bg-yellow-600 text-white rounded';
+        //         debugContainer.appendChild(testDateBtn);
 
-                // Fixed generate button
-                const fixedGenBtn = document.createElement('button');
-                fixedGenBtn.innerHTML = 'Fixed Generate';
-                fixedGenBtn.onclick = () => autoGenerateMonthFixed('weekdays');
-                fixedGenBtn.className = 'text-xs px-2 py-1 bg-green-600 text-white rounded';
-                debugContainer.appendChild(fixedGenBtn);
-            }
-        });
-        // Enhanced version with custom day selection modal
+        //         // Fixed generate button
+        //         const fixedGenBtn = document.createElement('button');
+        //         fixedGenBtn.innerHTML = 'Fixed Generate';
+        //         fixedGenBtn.onclick = () => autoGenerateMonthFixed('weekdays');
+        //         fixedGenBtn.className = 'text-xs px-2 py-1 bg-green-600 text-white rounded';
+        //         debugContainer.appendChild(fixedGenBtn);
+        //     }
+        // });
+        // // Enhanced version with custom day selection modal
 
         function showCustomDayModal() {
             const modal = document.createElement('div');

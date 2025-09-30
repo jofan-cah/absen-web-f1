@@ -121,7 +121,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->role !== 'admin') {
+        if ($user->role !== 'admin' && $user->role !== 'koordinator' && $user->role !== 'wakil_coordinator') {
             return back()->withErrors([
                 'nip' => 'Akses ditolak. Hanya admin yang bisa login.',
             ]);

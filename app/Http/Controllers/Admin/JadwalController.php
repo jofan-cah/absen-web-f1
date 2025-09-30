@@ -12,16 +12,70 @@ use Carbon\Carbon;
 
 class JadwalController extends Controller
 {
+    private function getAccessibleDepartments()
+    {
+        $user = auth()->user();
+
+        // Admin bisa akses semua department
+        if ($user->role === 'admin') {
+            return null;
+        }
+
+        // PERBAIKAN: Support bahasa Indonesia dan Inggris
+        $coordinatorRoles = ['coordinator', 'koordinator', 'wakil_coordinator', 'wakil_koordinator'];
+
+        if (in_array($user->role, $coordinatorRoles)) {
+            $user->load('karyawan.department');
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan || !$karyawan->department_id) {
+                return [];
+            }
+
+            return [$karyawan->department_id];
+        }
+
+        return [];
+    }
+
+    private function canManageDepartment($departmentId)
+    {
+        $user = auth()->user();
+
+        // Admin bisa manage semua department
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // PERBAIKAN: Support bahasa Indonesia dan Inggris
+        $coordinatorRoles = ['coordinator', 'koordinator', 'wakil_coordinator', 'wakil_koordinator'];
+
+        if (in_array($user->role, $coordinatorRoles)) {
+            $karyawan = $user->karyawan;
+            return $karyawan && $karyawan->department_id === $departmentId;
+        }
+
+        return false;
+    }
+
     public function index(Request $request)
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
 
-        $jadwals = Jadwal::with(['karyawan', 'shift'])
+        $query = Jadwal::with(['karyawan', 'shift'])
             ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->orderBy('date')
-            ->get();
+            ->whereMonth('date', $month);
+
+        // Filter by accessible departments
+        $accessibleDepts = $this->getAccessibleDepartments();
+        if ($accessibleDepts !== null) {
+            $query->whereHas('karyawan', function ($q) use ($accessibleDepts) {
+                $q->whereIn('department_id', $accessibleDepts);
+            });
+        }
+
+        $jadwals = $query->orderBy('date')->get();
 
         return view('admin.jadwal.indexJadwal', compact('jadwals', 'month', 'year'));
     }
@@ -30,14 +84,62 @@ class JadwalController extends Controller
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
-        $departmentId = $request->get('department_id'); // Tambah filter departemen
+        $departmentId = $request->get('department_id');
 
-        // Get jadwals dengan filter departemen
-        $jadwalsQuery = Jadwal::with(['karyawan', 'shift', 'absen'])
+
+        // Get accessible departments
+        $accessibleDepts = $this->getAccessibleDepartments();
+
+        \Log::info('=== CALENDAR METHOD ===');
+        \Log::info('Accessible Departments: ' . json_encode($accessibleDepts));
+        \Log::info('Selected Department Filter: ' . ($departmentId ?? 'none'));
+
+        // ===== QUERY KARYAWAN =====
+        $karyawansQuery = Karyawan::where('employment_status', 'active')
+            ->with('department');
+
+        // CRITICAL: Apply department filter for non-admin
+        if ($accessibleDepts !== null) {
+            if (empty($accessibleDepts)) {
+                // Jika array kosong, tidak ada akses sama sekali
+                \Log::warning('Empty accessible departments - no karyawan will be shown');
+                $karyawansQuery->whereRaw('1 = 0'); // Force no results
+            } else {
+                // Filter by accessible departments
+                \Log::info('Filtering karyawan by departments: ' . implode(', ', $accessibleDepts));
+                $karyawansQuery->whereIn('department_id', $accessibleDepts);
+            }
+        }
+
+        // Additional filter if user selects specific department
+        if ($departmentId) {
+            $karyawansQuery->where('department_id', $departmentId);
+        }
+
+        $karyawans = $karyawansQuery->get();
+
+        \Log::info('Karyawan Query Result: ' . $karyawans->count() . ' records');
+        if ($karyawans->count() > 0) {
+            \Log::info('Karyawan Names: ' . $karyawans->pluck('full_name')->implode(', '));
+            \Log::info('Karyawan Departments: ' . $karyawans->pluck('department_id')->unique()->implode(', '));
+        }
+
+        // ===== QUERY JADWAL =====
+        $jadwalsQuery = Jadwal::with(['karyawan.department', 'shift', 'absen'])
             ->whereYear('date', $year)
             ->whereMonth('date', $month);
 
-        // Filter berdasarkan departemen jika ada
+        // Apply same department filter
+        if ($accessibleDepts !== null) {
+            if (empty($accessibleDepts)) {
+                $jadwalsQuery->whereRaw('1 = 0');
+            } else {
+                $jadwalsQuery->whereHas('karyawan', function ($query) use ($accessibleDepts) {
+                    $query->whereIn('department_id', $accessibleDepts);
+                });
+            }
+        }
+
         if ($departmentId) {
             $jadwalsQuery->whereHas('karyawan', function ($query) use ($departmentId) {
                 $query->where('department_id', $departmentId);
@@ -46,19 +148,12 @@ class JadwalController extends Controller
 
         $jadwals = $jadwalsQuery->get();
 
-        // Filter karyawan juga berdasarkan departemen
-        $karyawansQuery = Karyawan::where('employment_status', 'active')
-            ->with('department');
+        \Log::info('Jadwal Query Result: ' . $jadwals->count() . ' records');
 
-        if ($departmentId) {
-            $karyawansQuery->where('department_id', $departmentId);
-        }
-
-        $karyawans = $karyawansQuery->get();
-
+        // Get shifts
         $shifts = Shift::where('is_active', true)->get();
 
-        // Format data untuk calendar
+        // Format calendar data
         $calendarData = [];
         foreach ($jadwals as $jadwal) {
             $date = $jadwal->date->format('Y-m-d');
@@ -66,15 +161,20 @@ class JadwalController extends Controller
                 $calendarData[$date] = [];
             }
 
+            $canEdit = $this->canManageDepartment($jadwal->karyawan->department_id);
+
             $calendarData[$date][] = [
                 'jadwal_id' => $jadwal->jadwal_id,
                 'karyawan_id' => $jadwal->karyawan_id,
                 'karyawan_name' => $jadwal->karyawan->full_name,
+                'department_id' => $jadwal->karyawan->department_id,
+                'department_name' => $jadwal->karyawan->department->name ?? '-',
                 'shift_id' => $jadwal->shift_id,
                 'shift_name' => $jadwal->shift->name,
                 'shift_time' => $jadwal->shift->start_time . ' - ' . $jadwal->shift->end_time,
                 'absen_status' => $jadwal->absen ? $jadwal->absen->status : 'scheduled',
                 'is_editable' => $jadwal->absen ? $jadwal->absen->isEditable() : true,
+                'can_edit' => $canEdit,
             ];
         }
 
@@ -84,7 +184,8 @@ class JadwalController extends Controller
             'shifts',
             'month',
             'year',
-            'departmentId' // Pass ke view
+            'departmentId',
+            'accessibleDepts'
         ));
     }
 
@@ -96,6 +197,15 @@ class JadwalController extends Controller
             'date' => 'required|date',
             'notes' => 'nullable|string',
         ]);
+
+        // Check permission
+        $karyawan = Karyawan::findOrFail($request->karyawan_id);
+        if (!$this->canManageDepartment($karyawan->department_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk mengelola jadwal department ini'
+            ], 403);
+        }
 
         // Check if jadwal already exists
         $existingJadwal = Jadwal::where('karyawan_id', $request->karyawan_id)
@@ -137,6 +247,14 @@ class JadwalController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // Check permission
+        if (!$this->canManageDepartment($jadwal->karyawan->department_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk mengubah jadwal department ini'
+            ], 403);
+        }
+
         // Check if absen already has clock_in
         if ($jadwal->absen && !$jadwal->absen->isEditable()) {
             return response()->json([
@@ -161,45 +279,53 @@ class JadwalController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil diupdate');
     }
 
-    // public function destroy(Jadwal $jadwal)
-    // {
-    //     // Check if absen already has clock_in
-    //     if ($jadwal->absen && !$jadwal->absen->isEditable()) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Jadwal tidak bisa dihapus, karyawan sudah melakukan absensi'
-    //         ], 422);
-    //     }
-
-    //     // Delete absen record first (if exists)
-    //     if ($jadwal->absen) {
-    //         $jadwal->absen->delete();
-    //     }
-
-    //     $jadwal->delete();
-
-    //     if (request()->expectsJson()) {
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Jadwal berhasil dihapus'
-    //         ]);
-    //     }
-
-    //     return redirect()->back()->with('success', 'Jadwal berhasil dihapus');
-    // }
-
-    public function checkEditable(Jadwal $jadwal)
+    public function destroy(Jadwal $jadwal)
     {
-        $isEditable = $jadwal->absen ? $jadwal->absen->isEditable() : true;
-        $reason = $isEditable ? null : 'Karyawan sudah melakukan absensi';
+        // Check permission
+        if (!$this->canManageDepartment($jadwal->karyawan->department_id)) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk menghapus jadwal department ini'
+                ], 403);
+            }
 
-        return response()->json([
-            'editable' => $isEditable,
-            'reason' => $reason
-        ]);
+            return back()->withErrors([
+                'delete' => 'Anda tidak memiliki akses untuk menghapus jadwal department ini'
+            ]);
+        }
+
+        // Check if absen has actual attendance data
+        if ($jadwal->absen && $jadwal->absen->clock_in) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jadwal tidak bisa dihapus karena karyawan sudah melakukan absensi'
+                ], 422);
+            }
+
+            return back()->withErrors([
+                'delete' => 'Jadwal tidak bisa dihapus karena karyawan sudah melakukan absensi'
+            ]);
+        }
+
+        // Delete absen record first if it exists and still 'scheduled'
+        if ($jadwal->absen && $jadwal->absen->status === 'scheduled') {
+            $jadwal->absen->delete();
+        }
+
+        $jadwal->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil dihapus'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Jadwal berhasil dihapus');
     }
 
-    // Bulk operations for drag & drop
     public function bulkStore(Request $request)
     {
         $request->validate([
@@ -213,6 +339,13 @@ class JadwalController extends Controller
         $errors = [];
 
         foreach ($request->jadwals as $jadwalData) {
+            // Check permission for each karyawan
+            $karyawan = Karyawan::find($jadwalData['karyawan_id']);
+            if (!$karyawan || !$this->canManageDepartment($karyawan->department_id)) {
+                $errors[] = "Tidak memiliki akses untuk {$jadwalData['karyawan_id']}";
+                continue;
+            }
+
             // Check if already exists
             $exists = Jadwal::where('karyawan_id', $jadwalData['karyawan_id'])
                 ->where('date', $jadwalData['date'])
@@ -243,37 +376,24 @@ class JadwalController extends Controller
         ]);
     }
 
-    // Tambahkan method ini di JadwalController
-    public function destroy(Jadwal $jadwal)
+    public function checkEditable(Jadwal $jadwal)
     {
-        // Check if absen has actual attendance data (clock_in exists)
-        if ($jadwal->absen && $jadwal->absen->clock_in) {
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Jadwal tidak bisa dihapus karena karyawan sudah melakukan absensi'
-                ], 422);
-            }
+        // Check permission
+        $canEdit = $this->canManageDepartment($jadwal->karyawan->department_id);
 
-            return back()->withErrors([
-                'delete' => 'Jadwal tidak bisa dihapus karena karyawan sudah melakukan absensi'
-            ]);
-        }
-
-        // Delete absen record first if it exists and still 'scheduled'
-        if ($jadwal->absen && $jadwal->absen->status === 'scheduled') {
-            $jadwal->absen->delete();
-        }
-
-        $jadwal->delete();
-
-        if (request()->expectsJson()) {
+        if (!$canEdit) {
             return response()->json([
-                'success' => true,
-                'message' => 'Jadwal berhasil dihapus'
+                'editable' => false,
+                'reason' => 'Anda tidak memiliki akses untuk mengedit jadwal department ini'
             ]);
         }
 
-        return redirect()->back()->with('success', 'Jadwal berhasil dihapus');
+        $isEditable = $jadwal->absen ? $jadwal->absen->isEditable() : true;
+        $reason = $isEditable ? null : 'Karyawan sudah melakukan absensi';
+
+        return response()->json([
+            'editable' => $isEditable,
+            'reason' => $reason
+        ]);
     }
 }

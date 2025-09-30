@@ -55,4 +55,14 @@ class User extends Authenticatable
 
         return 'USR' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
+
+    public function getDepartmentId()
+    {
+        return $this->karyawan ? $this->karyawan->department_id : null;
+    }
+
+    public function canManageSchedule()
+    {
+        return in_array($this->role, ['admin', 'coordinator', 'wakil_coordinator']);
+    }
 }
