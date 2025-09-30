@@ -156,5 +156,4 @@ Route::prefix('admin')->name('admin.')->group(function () {
         }); // End Admin only routes
 
     }); // End authenticated routes
-
 });
