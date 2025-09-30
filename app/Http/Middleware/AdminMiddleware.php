@@ -19,7 +19,7 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        if (auth()->user()->role !== 'admin') {
+        if (auth()->user()->role !== 'admin' && auth()->user()->role !== 'koordinator' && auth()->user()->role !== 'wakil_coordinator') {
             abort(403, 'Akses ditolak. Hanya admin yang dapat mengakses halaman ini.');
         }
 
