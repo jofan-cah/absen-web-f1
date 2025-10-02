@@ -8,7 +8,7 @@
 
     <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Logistik Murni') }}</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<!-- favicon -->
+    <!-- favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('F1LOG1.png') }}">
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -43,7 +43,7 @@
     </script>
 
     <style>
-        /* Improved Sidebar Styles */
+        /* Compact Scrollbar */
         .sidebar-scroll::-webkit-scrollbar {
             width: 4px;
         }
@@ -54,14 +54,14 @@
 
         .sidebar-scroll::-webkit-scrollbar-thumb {
             background: rgba(156, 163, 175, 0.3);
-            border-radius: 4px;
+            border-radius: 2px;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
             background: rgba(156, 163, 175, 0.5);
         }
 
-        /* Navigation Items */
+        /* Compact Navigation Items */
         .nav-item {
             color: #6b7280;
             position: relative;
@@ -92,24 +92,15 @@
 
         /* Navigation Icons */
         .nav-icon {
-            background-color: #f3f4f6;
             transition: all 0.2s ease;
         }
 
         .nav-item:hover .nav-icon {
-            background-color: #e5e7eb;
+            transform: scale(1.05);
         }
 
         .nav-item.active .nav-icon {
-            background-color: #1d4ed8;
-            color: white;
-        }
-
-        /* Badges */
-        .nav-badge {
-            font-size: 0.6875rem;
-            font-weight: 600;
-            line-height: 1;
+            transform: scale(1.03);
         }
 
         /* Glass Effect */
@@ -118,7 +109,7 @@
             -webkit-backdrop-filter: blur(10px);
         }
 
-        /* Critical: Consistent Layout System */
+        /* Compact Layout System */
         .main-container {
             min-height: 100vh;
             display: flex;
@@ -130,7 +121,6 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
-            /* Prevent overflow */
             transition: margin-left 0.3s ease-in-out;
         }
 
@@ -138,7 +128,6 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            /* Prevent horizontal overflow */
             background-color: #f9fafb;
             position: relative;
         }
@@ -159,30 +148,27 @@
                 width: 100%;
             }
 
-            /* Prevent content overflow on mobile */
             .main-content {
                 padding-left: 0;
                 padding-right: 0;
             }
 
-            /* Mobile specific utilities */
             .mobile-container {
-                padding-left: 1rem;
-                padding-right: 1rem;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
                 max-width: 100%;
                 overflow-x: hidden;
             }
         }
 
-        /* Desktop Layout (≥ 1024px) */
+        /* Desktop Layout (≥ 1024px) - Adjusted for compact sidebar (w-56 = 14rem) */
         @media (min-width: 1024px) {
             .sidebar-desktop {
                 transform: translateX(0);
             }
 
             .content-wrapper {
-                margin-left: 16rem;
-                /* 64 * 0.25rem = 16rem */
+                margin-left: 14rem; /* 56 * 0.25rem = 14rem (w-56) */
             }
         }
 
@@ -199,25 +185,24 @@
 
         /* Smooth animations */
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
+            animation: fadeIn 0.2s ease-in-out;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
             }
-
             to {
                 opacity: 1;
             }
         }
 
-        /* Focus styles for accessibility */
+        /* Focus styles */
         .focus-ring {
-            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1;
         }
 
-        /* Better button states */
+        /* Button states */
         .btn-transition {
             transition: all 0.2s ease-in-out;
         }
@@ -230,29 +215,40 @@
             transform: translateY(0);
         }
 
-        /* Fix page actions responsive */
+        /* Compact page container */
         .page-actions-container {
             max-width: 100%;
             overflow-x: hidden;
         }
 
-        /* Ensure content doesn't exceed viewport */
         .content-container {
             max-width: 100%;
             min-height: 100%;
+        }
+
+        /* Compact content spacing */
+        .compact-content {
+            padding: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+            .compact-content {
+                padding: 1.5rem;
+            }
         }
     </style>
 
     @stack('styles')
 </head>
 
-<body class="bg-gray-50 font-sans antialiased">
-    <div class="main-container" x-data="{ sidebarOpen: false }" x-init="// Handle window resize
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 1024) {
-            sidebarOpen = false;
-        }
-    });">
+<body class="bg-gray-50 font-sans antialiased text-sm">
+    <div class="main-container" x-data="{ sidebarOpen: false }" x-init="
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1024) {
+                sidebarOpen = false;
+            }
+        });
+    ">
 
         <!-- SIDEBAR -->
         @include('admin.layouts.partials.sidebar')
@@ -267,8 +263,7 @@
             <main class="main-content">
                 <!-- Content Container -->
                 <div class="content-container">
-                    <div class="space-y-6 p-6 lg:p-8">
-
+                    <div class="compact-content space-y-4">
                         @yield('content')
                     </div>
                 </div>
@@ -278,19 +273,23 @@
 
         <!-- Mobile Sidebar Overlay -->
         <div x-show="sidebarOpen" @click="sidebarOpen = false"
-            x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            class="fixed inset-0 z-40 bg-black bg-opacity-50 sidebar-overlay lg:hidden" style="display: none;">
+            x-transition:enter="transition-opacity ease-linear duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition-opacity ease-linear duration-300"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-40 bg-black bg-opacity-50 sidebar-overlay lg:hidden"
+            style="display: none;">
         </div>
 
     </div>
 
-    <!-- Loading Overlay -->
+    <!-- Compact Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-50 bg-white/80 glass-effect hidden items-center justify-center">
         <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-            <p class="text-gray-600 font-medium">Loading...</p>
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mb-3"></div>
+            <p class="text-gray-600 font-medium text-sm">Loading...</p>
         </div>
     </div>
 
@@ -330,19 +329,16 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-hide loading after page load
             setTimeout(hideLoading, 100);
-
-            // Add smooth scrolling
             document.documentElement.style.scrollBehavior = 'smooth';
         });
 
-        // Global CSRF token for AJAX requests
+        // Global CSRF token
         window.Laravel = {
             csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         };
 
-        // Global utility functions
+        // Utility functions
         window.formatCurrency = function(amount) {
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -356,34 +352,25 @@
         };
 
         window.showToast = function(message, type = 'success') {
-            // Simple toast notification
             const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transform transition-all duration-300 ${
+            toast.className = `fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg shadow-lg text-white text-sm transform transition-all duration-300 ${
                 type === 'success' ? 'bg-green-500' :
                 type === 'error' ? 'bg-red-500' :
                 type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
             }`;
             toast.textContent = message;
-
-            // Animation
             toast.style.transform = 'translateX(100%)';
             document.body.appendChild(toast);
 
-            setTimeout(() => {
-                toast.style.transform = 'translateX(0)';
-            }, 100);
-
+            setTimeout(() => toast.style.transform = 'translateX(0)', 100);
             setTimeout(() => {
                 toast.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
+                setTimeout(() => toast.remove(), 300);
             }, 3000);
         };
 
-        // Handle keyboard shortcuts
+        // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // ESC to close sidebar on mobile
             if (e.key === 'Escape' && window.innerWidth < 1024) {
                 const sidebarData = Alpine.$data(document.querySelector('[x-data]'));
                 if (sidebarData) {
@@ -392,7 +379,7 @@
             }
         });
 
-        // Handle touch gestures for mobile sidebar
+        // Touch gestures for mobile
         let startX = null;
         let currentX = null;
 
@@ -414,12 +401,11 @@
 
             if (!sidebarData) return;
 
-            // Swipe left to close sidebar
+            // Swipe gestures
             if (diffX > threshold && sidebarData.sidebarOpen) {
                 sidebarData.sidebarOpen = false;
             }
 
-            // Swipe right to open sidebar (only from left edge)
             if (diffX < -threshold && startX < 20 && !sidebarData.sidebarOpen) {
                 sidebarData.sidebarOpen = true;
             }
@@ -431,7 +417,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
-
 
     @stack('scripts')
 </body>
