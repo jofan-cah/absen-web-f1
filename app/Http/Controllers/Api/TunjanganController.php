@@ -25,11 +25,10 @@ class TunjanganController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $month = $request->get('month', now()->month);
-        $year = $request->get('year', now()->year);
+        $month = $request->get('month'); // null jika tidak ada
+        $year = $request->get('year');   // null jika tidak ada
         $perPage = $this->getPerPage($request);
 
-        // Get tunjangan type for Uang Makan
         $tunjanganType = TunjanganType::where('code', 'UANG_MAKAN')->first();
 
         if (!$tunjanganType) {
@@ -39,18 +38,32 @@ class TunjanganController extends BaseApiController
         // Query tunjangan karyawan
         $query = TunjanganKaryawan::with(['tunjanganType', 'penalti', 'approvedBy'])
             ->where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month);
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        // Filter by year jika ada
+        if ($year) {
+            $query->whereYear('period_start', $year);
+        }
+
+        // Filter by month jika ada
+        if ($month) {
+            $query->whereMonth('period_start', $month);
+        }
 
         $tunjangans = $query->orderBy('period_start', 'desc')->paginate($perPage);
 
         // Summary
-        $allTunjangans = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month)
-            ->get();
+        $summaryQuery = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        if ($year) {
+            $summaryQuery->whereYear('period_start', $year);
+        }
+        if ($month) {
+            $summaryQuery->whereMonth('period_start', $month);
+        }
+
+        $allTunjangans = $summaryQuery->get();
 
         $summary = [
             'total_tunjangan' => $allTunjangans->count(),
@@ -77,7 +90,7 @@ class TunjanganController extends BaseApiController
             'period' => [
                 'month' => $month,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
+                'month_name' => $month && $year ? Carbon::createFromDate($year, $month)->format('F Y') : 'All Time'
             ]
         ]);
     }
@@ -95,11 +108,10 @@ class TunjanganController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $month = $request->get('month', now()->month);
-        $year = $request->get('year', now()->year);
+        $month = $request->get('month');
+        $year = $request->get('year');
         $perPage = $this->getPerPage($request);
 
-        // Get tunjangan type for Uang Kuota
         $tunjanganType = TunjanganType::where('code', 'UANG_KUOTA')->first();
 
         if (!$tunjanganType) {
@@ -109,18 +121,30 @@ class TunjanganController extends BaseApiController
         // Query tunjangan karyawan
         $query = TunjanganKaryawan::with(['tunjanganType', 'approvedBy'])
             ->where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month);
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        if ($year) {
+            $query->whereYear('period_start', $year);
+        }
+
+        if ($month) {
+            $query->whereMonth('period_start', $month);
+        }
 
         $tunjangans = $query->orderBy('period_start', 'desc')->paginate($perPage);
 
         // Summary
-        $allTunjangans = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month)
-            ->get();
+        $summaryQuery = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        if ($year) {
+            $summaryQuery->whereYear('period_start', $year);
+        }
+        if ($month) {
+            $summaryQuery->whereMonth('period_start', $month);
+        }
+
+        $allTunjangans = $summaryQuery->get();
 
         $summary = [
             'total_tunjangan' => $allTunjangans->count(),
@@ -144,7 +168,7 @@ class TunjanganController extends BaseApiController
             'period' => [
                 'month' => $month,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
+                'month_name' => $month && $year ? Carbon::createFromDate($year, $month)->format('F Y') : 'All Time'
             ]
         ]);
     }
@@ -162,11 +186,10 @@ class TunjanganController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $month = $request->get('month', now()->month);
-        $year = $request->get('year', now()->year);
+        $month = $request->get('month');
+        $year = $request->get('year');
         $perPage = $this->getPerPage($request);
 
-        // Get tunjangan type for Uang Lembur
         $tunjanganType = TunjanganType::where('code', 'UANG_LEMBUR')->first();
 
         if (!$tunjanganType) {
@@ -174,20 +197,32 @@ class TunjanganController extends BaseApiController
         }
 
         // Query tunjangan karyawan
-        $query = TunjanganKaryawan::with(['tunjanganType', 'absen', 'approvedBy'])
+        $query = TunjanganKaryawan::with(['tunjanganType', 'absen', 'lembur', 'approvedBy'])
             ->where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month);
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        if ($year) {
+            $query->whereYear('period_start', $year);
+        }
+
+        if ($month) {
+            $query->whereMonth('period_start', $month);
+        }
 
         $tunjangans = $query->orderBy('period_start', 'desc')->paginate($perPage);
 
         // Summary
-        $allTunjangans = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month)
-            ->get();
+        $summaryQuery = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+            ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id);
+
+        if ($year) {
+            $summaryQuery->whereYear('period_start', $year);
+        }
+        if ($month) {
+            $summaryQuery->whereMonth('period_start', $month);
+        }
+
+        $allTunjangans = $summaryQuery->get();
 
         $summary = [
             'total_tunjangan' => $allTunjangans->count(),
@@ -212,7 +247,7 @@ class TunjanganController extends BaseApiController
             'period' => [
                 'month' => $month,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
+                'month_name' => $month && $year ? Carbon::createFromDate($year, $month)->format('F Y') : 'All Time'
             ]
         ]);
     }
@@ -230,16 +265,24 @@ class TunjanganController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $month = $request->get('month', now()->month);
-        $year = $request->get('year', now()->year);
+        $month = $request->get('month');
+        $year = $request->get('year');
         $status = $request->get('status'); // pending, requested, approved, received
         $type = $request->get('type'); // UANG_MAKAN, UANG_KUOTA, UANG_LEMBUR
         $perPage = $this->getPerPage($request);
 
         $query = TunjanganKaryawan::with(['tunjanganType', 'penalti', 'approvedBy'])
-            ->where('karyawan_id', $karyawan->karyawan_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month);
+            ->where('karyawan_id', $karyawan->karyawan_id);
+
+        // Filter by year jika ada
+        if ($year) {
+            $query->whereYear('period_start', $year);
+        }
+
+        // Filter by month jika ada
+        if ($month) {
+            $query->whereMonth('period_start', $month);
+        }
 
         // Filter by status
         if ($status) {
@@ -259,10 +302,16 @@ class TunjanganController extends BaseApiController
                           ->paginate($perPage);
 
         // Summary
-        $allTunjangans = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month)
-            ->get();
+        $summaryQuery = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id);
+
+        if ($year) {
+            $summaryQuery->whereYear('period_start', $year);
+        }
+        if ($month) {
+            $summaryQuery->whereMonth('period_start', $month);
+        }
+
+        $allTunjangans = $summaryQuery->get();
 
         $summary = [
             'total' => $allTunjangans->count(),
@@ -286,7 +335,7 @@ class TunjanganController extends BaseApiController
             'period' => [
                 'month' => $month,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
+                'month_name' => $month && $year ? Carbon::createFromDate($year, $month)->format('F Y') : 'All Time'
             ]
         ]);
     }
@@ -304,6 +353,7 @@ class TunjanganController extends BaseApiController
             'tunjanganType',
             'penalti',
             'absen.jadwal.shift',
+            'lembur',
             'approvedBy'
         ])
             ->where('tunjangan_karyawan_id', $id)
@@ -406,18 +456,24 @@ class TunjanganController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $month = $request->get('month', now()->month);
-        $year = $request->get('year', now()->year);
+        $month = $request->get('month');
+        $year = $request->get('year');
 
         // Get all tunjangan types
         $uangMakan = TunjanganType::where('code', 'UANG_MAKAN')->first();
         $uangKuota = TunjanganType::where('code', 'UANG_KUOTA')->first();
         $uangLembur = TunjanganType::where('code', 'UANG_LEMBUR')->first();
 
-        $allTunjangans = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-            ->whereYear('period_start', $year)
-            ->whereMonth('period_start', $month)
-            ->get();
+        $query = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id);
+
+        if ($year) {
+            $query->whereYear('period_start', $year);
+        }
+        if ($month) {
+            $query->whereMonth('period_start', $month);
+        }
+
+        $allTunjangans = $query->get();
 
         $summary = [
             'total_semua_tunjangan' => $allTunjangans->count(),
@@ -461,7 +517,7 @@ class TunjanganController extends BaseApiController
             'period' => [
                 'month' => $month,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
+                'month_name' => $month && $year ? Carbon::createFromDate($year, $month)->format('F Y') : 'All Time'
             ]
         ], 'Summary tunjangan berhasil diambil');
     }
