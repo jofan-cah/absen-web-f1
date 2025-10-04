@@ -176,10 +176,10 @@
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Foto</label>
 
-                                            <img src="{{ Storage::disk('s3')->url($absen->clock_in_photo) }}"
+                                            <img src="{{ $absen->clock_in_photo_url }}"
                                                 alt="Clock In Photo"
                                                 class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                onclick="AttendanceDetail.showImageModal('{{ Storage::disk('s3')->url($absen->clock_in_photo) }}', 'Foto Clock In')">
+                                                onclick="AttendanceDetail.showImageModal('{{ $absen->clock_in_photo_url }}', 'Foto Clock In')">
                                         </div>
                                     @endif
                                 </div>
@@ -229,10 +229,10 @@
                                     @if ($absen->clock_out_photo)
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Foto</label>
-                                            <img src="{{ Storage::disk('s3')->url($absen->clock_out_photo) }}"
+                                            <img src="{{ $absen->clock_out_photo_url }}"
                                                 alt="Clock Out Photo"
                                                 class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                onclick="AttendanceDetail.showImageModal('{{ Storage::disk('s3')->url($absen->clock_out_photo) }}', 'Foto Clock Out')">
+                                                onclick="AttendanceDetail.showImageModal('{{ $absen->clock_out_photo_url }}', 'Foto Clock Out')">
                                         </div>
                                     @endif
                                 </div>
@@ -844,7 +844,7 @@
 
                 const clockInPhoto = "{{ $absen->clock_in_photo ?  Storage::disk('s3')->url($absen->clock_in_photo)  : '' }}";
                 const clockOutPhoto =
-                    "{{ $absen->clock_out_photo ? Storage::disk('s3')->url($absen->clock_out_photo)  : '' }}";
+                    "{{ $absen->clock_out_photo ? $absen->clock_out_photo_url  : '' }}";
 
                 modal.innerHTML = `
             <div class="relative top-10 mx-auto p-6 border max-w-6xl shadow-lg rounded-lg bg-white modal-enter">

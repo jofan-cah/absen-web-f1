@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Absen extends Model
 {
     use HasFactory;
 
     protected $primaryKey = 'absen_id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -45,6 +47,30 @@ class Absen extends Model
         'work_hours' => 'decimal:2',
     ];
 
+
+    // ✅ PERBAIKAN: Accessor untuk URL temporary
+    public function getClockInPhotoUrlAttribute()
+    {
+        if ($this->clock_in_photo) {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->clock_in_photo,
+                now()->addMinutes(60)
+            );
+        }
+        return null;
+    }
+
+    public function getClockOutPhotoUrlAttribute()
+    {
+        if ($this->clock_out_photo) {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->clock_out_photo,
+                now()->addMinutes(60)
+            );
+        }
+        return null;
+    }
+
     // Relationships
     public function karyawan()
     {
@@ -69,7 +95,7 @@ class Absen extends Model
                 $randomString .= $characters[rand(0, strlen($characters) - 1)];
             }
 
-            $absenId = 'ABS' . $randomString;
+            $absenId = 'ABS'.$randomString;
 
             // Pastikan unique dengan cek database
             $exists = self::where('absen_id', $absenId)->exists();
