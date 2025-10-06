@@ -62,9 +62,6 @@ class AbsenController extends BaseApiController
         $today = Carbon::today();
         $now = Carbon::now();
 
-
-                $today = Carbon::today()->toDateString();
-
         // ✅ CEK IJIN APPROVED
         $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
             ->where('status', 'approved')
@@ -159,7 +156,6 @@ class AbsenController extends BaseApiController
         $today = Carbon::today();
         $now = Carbon::now();
 
-        $today = Carbon::today()->toDateString();
 
         // ✅ CEK IJIN APPROVED
         $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
@@ -197,7 +193,7 @@ class AbsenController extends BaseApiController
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d_H-i-s') . '.' . $photo->getClientOriginalExtension();
+            $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today . '.' . $photo->getClientOriginalExtension();
 
             // Upload ke S3 dengan path yang sama
             $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
