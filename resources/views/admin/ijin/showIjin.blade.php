@@ -176,6 +176,24 @@
                             <p class="text-gray-900 leading-relaxed">{{ $ijin->reason }}</p>
                         </div>
                     </div>
+                       @if ($ijin->hasPhoto())
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lampiran Foto</label>
+                            <div class="relative group cursor-pointer" onclick="openPhotoModal('{{ $ijin->photo_url }}')">
+                                <img src="{{ $ijin->photo_url }}"
+                                     alt="Lampiran Ijin"
+                                     class="w-full max-w-md rounded-lg border-2 border-gray-200 hover:border-indigo-400 transition-all duration-300 shadow-sm hover:shadow-md">
+                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white rounded-full p-3 shadow-lg">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Klik untuk memperbesar</p>
+                        </div>
+                    @endif
                 </div>
             </div>
 

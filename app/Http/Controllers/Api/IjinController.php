@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class IjinController extends BaseApiController
 {
@@ -158,7 +159,9 @@ class IjinController extends BaseApiController
             'date_from' => 'required|date|after_or_equal:today',
             'date_to' => 'required|date|after_or_equal:date_from',
             'reason' => 'required|string|max:500',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg',
         ]);
+
 
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
@@ -193,6 +196,12 @@ class IjinController extends BaseApiController
             }
 
             $coordinator = $this->getCoordinator($karyawan);
+                    $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $fileName = 'ijin/' . $karyawan->karyawan_id . '/' . time() . '_' . $file->getClientOriginalName();
+                $photoPath = Storage::disk('s3')->putFileAs('', $file, $fileName, 'private');
+            }
 
             $ijin = Ijin::create([
                 'karyawan_id' => $karyawan->karyawan_id,
@@ -204,6 +213,7 @@ class IjinController extends BaseApiController
                 'coordinator_status' => 'pending',
                 'admin_status' => 'pending',
                 'status' => 'pending',
+                'photo_path' => $photoPath,
             ]);
 
             DB::commit();

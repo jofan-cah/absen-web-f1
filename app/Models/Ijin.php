@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Ijin extends Model
 {
@@ -33,6 +34,7 @@ class Ijin extends Model
         'admin_note',
         'admin_reviewed_at',
         'status',
+        'photo_path',
     ];
 
     protected $casts = [
@@ -44,7 +46,8 @@ class Ijin extends Model
         'admin_reviewed_at' => 'datetime',
     ];
 
-    protected $appends = ['total_days'];
+    // Tambah di $appends
+protected $appends = ['total_days', 'photo_url'];
 
     public function getTotalDaysAttribute()
     {
@@ -145,77 +148,77 @@ class Ijin extends Model
         }
     }
 
-private function processShiftSwap()
-{
-    $originalJadwal = Jadwal::where('karyawan_id', $this->karyawan_id)
-                            ->where('date', $this->original_shift_date)
-                            ->first();
+    private function processShiftSwap()
+    {
+        $originalJadwal = Jadwal::where('karyawan_id', $this->karyawan_id)
+                                ->where('date', $this->original_shift_date)
+                                ->first();
 
-    if (!$originalJadwal) {
-        Log::warning('Original jadwal not found for shift swap', [
+        if (!$originalJadwal) {
+            Log::warning('Original jadwal not found for shift swap', [
+                'ijin_id' => $this->ijin_id,
+                'date' => $this->original_shift_date,
+            ]);
+            return;
+        }
+
+        // Update jadwal asli jadi inactive
+        $originalJadwal->update([
             'ijin_id' => $this->ijin_id,
-            'date' => $this->original_shift_date,
-        ]);
-        return;
-    }
-
-    // Update jadwal asli jadi inactive
-    $originalJadwal->update([
-        'ijin_id' => $this->ijin_id,
-        'status' => Jadwal::STATUS_HAS_IJIN,
-        'is_active' => false,
-        'notes' => "Tukar shift ke " . Carbon::parse($this->replacement_shift_date)->format('d/m/Y')
-    ]);
-
-    // Update absen asli
-    if ($originalJadwal->absen) {
-        $originalJadwal->absen->update([
-            'ijin_id' => $this->ijin_id,
-            'status' => 'shift_swap',
+            'status' => Jadwal::STATUS_HAS_IJIN,
+            'is_active' => false,
             'notes' => "Tukar shift ke " . Carbon::parse($this->replacement_shift_date)->format('d/m/Y')
         ]);
+
+        // Update absen asli
+        if ($originalJadwal->absen) {
+            $originalJadwal->absen->update([
+                'ijin_id' => $this->ijin_id,
+                'status' => 'shift_swap',
+                'notes' => "Tukar shift ke " . Carbon::parse($this->replacement_shift_date)->format('d/m/Y')
+            ]);
+        }
+
+        // ✅ CEK APAKAH JADWAL DI TANGGAL PENGGANTI SUDAH ADA
+        $existingReplacementJadwal = Jadwal::where('karyawan_id', $this->karyawan_id)
+                                        ->where('date', $this->replacement_shift_date)
+                                        ->first();
+
+        if ($existingReplacementJadwal) {
+            // ✅ JIKA SUDAH ADA, UPDATE AJA
+            $existingReplacementJadwal->update([
+                'ijin_id' => $this->ijin_id,
+                'shift_id' => $originalJadwal->shift_id,
+                'is_active' => true,
+                'status' => Jadwal::STATUS_NORMAL,
+                'notes' => "Tukar shift dari " . Carbon::parse($this->original_shift_date)->format('d/m/Y'),
+            ]);
+
+            Log::info('Updated existing replacement jadwal for shift swap', [
+                'ijin_id' => $this->ijin_id,
+                'jadwal_id' => $existingReplacementJadwal->jadwal_id,
+                'date' => $this->replacement_shift_date,
+            ]);
+        } else {
+            // ✅ JIKA BELUM ADA, CREATE BARU
+            Jadwal::create([
+                'jadwal_id' => Jadwal::generateJadwalId(),
+                'karyawan_id' => $this->karyawan_id,
+                'shift_id' => $originalJadwal->shift_id,
+                'ijin_id' => $this->ijin_id,
+                'date' => $this->replacement_shift_date,
+                'is_active' => true,
+                'status' => Jadwal::STATUS_NORMAL,
+                'notes' => "Tukar shift dari " . Carbon::parse($this->original_shift_date)->format('d/m/Y'),
+                'created_by_user_id' => auth()->user()->user_id ?? 'SYSTEM',
+            ]);
+
+            Log::info('Created new replacement jadwal for shift swap', [
+                'ijin_id' => $this->ijin_id,
+                'date' => $this->replacement_shift_date,
+            ]);
+        }
     }
-
-    // ✅ CEK APAKAH JADWAL DI TANGGAL PENGGANTI SUDAH ADA
-    $existingReplacementJadwal = Jadwal::where('karyawan_id', $this->karyawan_id)
-                                       ->where('date', $this->replacement_shift_date)
-                                       ->first();
-
-    if ($existingReplacementJadwal) {
-        // ✅ JIKA SUDAH ADA, UPDATE AJA
-        $existingReplacementJadwal->update([
-            'ijin_id' => $this->ijin_id,
-            'shift_id' => $originalJadwal->shift_id,
-            'is_active' => true,
-            'status' => Jadwal::STATUS_NORMAL,
-            'notes' => "Tukar shift dari " . Carbon::parse($this->original_shift_date)->format('d/m/Y'),
-        ]);
-
-        Log::info('Updated existing replacement jadwal for shift swap', [
-            'ijin_id' => $this->ijin_id,
-            'jadwal_id' => $existingReplacementJadwal->jadwal_id,
-            'date' => $this->replacement_shift_date,
-        ]);
-    } else {
-        // ✅ JIKA BELUM ADA, CREATE BARU
-        Jadwal::create([
-            'jadwal_id' => Jadwal::generateJadwalId(),
-            'karyawan_id' => $this->karyawan_id,
-            'shift_id' => $originalJadwal->shift_id,
-            'ijin_id' => $this->ijin_id,
-            'date' => $this->replacement_shift_date,
-            'is_active' => true,
-            'status' => Jadwal::STATUS_NORMAL,
-            'notes' => "Tukar shift dari " . Carbon::parse($this->original_shift_date)->format('d/m/Y'),
-            'created_by_user_id' => auth()->user()->user_id ?? 'SYSTEM',
-        ]);
-
-        Log::info('Created new replacement jadwal for shift swap', [
-            'ijin_id' => $this->ijin_id,
-            'date' => $this->replacement_shift_date,
-        ]);
-    }
-}
 
     private function processCompensationLeave()
     {
@@ -319,6 +322,28 @@ private function processShiftSwap()
         return $this->ijinType->code === 'compensation_leave';
     }
 
+        public function getPhotoUrlAttribute()
+    {
+        if (!$this->photo_path) {
+            return null;
+        }
+
+        // Generate temporary signed URL (valid for 60 minutes)
+        return Storage::disk('s3')->temporaryUrl(
+            $this->photo_path,
+            now()->addMinutes(60)
+        );
+    }
+
+    // Helper methods
+    public function hasPhoto()
+    {
+        return !empty($this->photo_path) && Storage::disk('s3')->exists($this->photo_path);
+    }
+
+
+
+
     // ✅ BOOT METHOD
     protected static function boot()
     {
@@ -347,6 +372,11 @@ private function processShiftSwap()
             if ($ijin->isDirty('status') && $ijin->status === 'rejected') {
                 $ijin->removeFromJadwals();
             }
+        });
+
+           static::deleting(function ($model) {
+            // Delete photo when ijin is deleted
+            $model->deletePhoto();
         });
     }
 }
