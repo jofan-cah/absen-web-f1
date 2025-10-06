@@ -172,13 +172,66 @@
             font-size: 8px;
             color: #dc2626;
         }
+
+        /* NEW: Total Summary Styles */
+        .total-row {
+            background-color: #2563eb !important;
+            color: white;
+            font-weight: bold;
+            font-size: 9px;
+        }
+
+        .total-row td {
+            border: 2px solid #1e40af !important;
+            padding: 6px 4px !important;
+        }
+
+        .summary-box {
+            margin-top: 15px;
+            background: #dbeafe;
+            border: 2px solid #2563eb;
+            border-radius: 5px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 8px 15px;
+            margin: 5px;
+            background: white;
+            border-radius: 4px;
+            min-width: 120px;
+        }
+
+        .summary-label {
+            font-size: 8px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .summary-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+
+        .summary-value.success {
+            color: #16a34a;
+        }
+
+        .summary-value.warning {
+            color: #dc2626;
+        }
     </style>
 </head>
 
 <body>
     <!-- Header -->
     <div class="header">
-        <div class="company-logo">PT. JARINGAN FIBERONE INDONESIA KOK</div>
+        <div class="company-logo">PT. JARINGAN FIBERONE INDONESIA</div>
         <div class="report-title">LAPORAN TUNJANGAN {{ strtoupper($report_type ?? 'UNIVERSAL') }} - SEMUA KARYAWAN</div>
         <div>{{ $month_name ?? 'Periode Tidak Diketahui' }}</div>
     </div>
@@ -216,8 +269,8 @@
 
     <!-- Legend -->
     <div class="legend">
-        <div class="legend-item"><span class="status-taken">✓</span> Sudah Diambil</div>
-        <div class="legend-item"><span class="status-not-taken">✗</span> Belum Diambil</div>
+        <div class="legend-item"><span class="status-taken">V</span> Sudah Diambil</div>
+        <div class="legend-item"><span class="status-not-taken">X</span> Belum Diambil</div>
         <div class="legend-item"><span class="status-no-data">-</span> Tidak Ada Data</div>
         @if (isset($is_lembur) && $is_lembur)
             <div class="legend-item" style="color: #0891b2;"><strong>Jam:</strong> Total Jam Lembur</div>
@@ -311,27 +364,23 @@
                                 @if (($weekData['status'] ?? '') == 'no_data')
                                     <span class="status-no-data">-</span>
                                 @elseif($weekData['is_taken'] ?? false)
-                                    <span class="status-taken">✓</span>
+                                    <span class="status-taken">V</span>
                                     @if (($weekData['amount'] ?? 0) > 0)
-                                        <span
-                                            class="amount-text">{{ number_format($weekData['amount'] / 1000, 0) }}k</span>
+                                        <span class="amount-text">{{ number_format($weekData['amount'] / 1000, 0) }}k</span>
                                     @endif
                                     @if (isset($is_lembur) && $is_lembur && isset($weekData['total_jam']))
                                         <span class="jam-text">{{ number_format($weekData['total_jam'], 1) }}j</span>
                                     @endif
                                 @else
-                                    <span class="status-not-taken">✗</span>
+                                    <span class="status-not-taken">X</span>
                                     @if (($weekData['amount'] ?? 0) > 0)
-                                        <span
-                                            class="amount-text">{{ number_format($weekData['amount'] / 1000, 0) }}k</span>
+                                        <span class="amount-text">{{ number_format($weekData['amount'] / 1000, 0) }}k</span>
                                     @endif
                                 @endif
                             </td>
                         @endforeach
-                        <td style="font-weight: bold;">{{ $employee['total_taken'] ?? 0 }}/{{ count($weeks ?? []) }}
-                        </td>
-                        <td style="font-weight: bold;">{{ number_format($employee['total_amount'] ?? 0, 0, ',', '.') }}
-                        </td>
+                        <td style="font-weight: bold;">{{ $employee['total_taken'] ?? 0 }}/{{ count($weeks ?? []) }}</td>
+                        <td style="font-weight: bold;">{{ number_format($employee['total_amount'] ?? 0, 0, ',', '.') }}</td>
                     @elseif(($report_type ?? '') === 'bulanan')
                         <!-- Data Bulanan -->
                         @if (isset($is_lembur) && $is_lembur)
@@ -339,26 +388,24 @@
                             <td style="font-weight: bold;">{{ $employee['total_lembur'] ?? 0 }}</td>
                             <td style="font-weight: bold; color: #0891b2;">
                                 {{ number_format($employee['total_jam'] ?? 0, 1) }}</td>
-                            <td style="font-weight: bold;">{{ number_format($employee['amount'] ?? 0, 0, ',', '.') }}
-                            </td>
+                            <td style="font-weight: bold;">{{ number_format($employee['amount'] ?? 0, 0, ',', '.') }}</td>
                             <td>
                                 @if ($employee['is_taken'] ?? false)
-                                    <span class="status-taken">✓</span>
+                                    <span class="status-taken">V</span>
                                 @else
-                                    <span class="status-not-taken">✗</span>
+                                    <span class="status-not-taken">X</span>
                                 @endif
                             </td>
                         @else
                             {{-- UANG MAKAN / KUOTA --}}
                             <td>
                                 @if ($employee['is_taken'] ?? false)
-                                    <span class="status-taken">✓</span>
+                                    <span class="status-taken">V</span>
                                 @else
-                                    <span class="status-not-taken">✗</span>
+                                    <span class="status-not-taken">X</span>
                                 @endif
                             </td>
-                            <td>{{ ($employee['amount'] ?? 0) > 0 ? 'Rp ' . number_format($employee['amount'], 0, ',', '.') : '-' }}
-                            </td>
+                            <td>{{ ($employee['amount'] ?? 0) > 0 ? 'Rp ' . number_format($employee['amount'], 0, ',', '.') : '-' }}</td>
                         @endif
 
                         <td>{{ $employee['approved_date'] ?? '-' }}</td>
@@ -367,8 +414,7 @@
                             @if (isset($is_lembur) && $is_lembur)
                                 @if (($employee['total_lembur'] ?? 0) > 0)
                                     {{ $employee['total_lembur'] }} kali lembur<br>
-                                    <span style="color: #666;">({{ number_format($employee['total_jam'] ?? 0, 1) }} jam
-                                        total)</span>
+                                    <span style="color: #666;">({{ number_format($employee['total_jam'] ?? 0, 1) }} jam total)</span>
                                 @else
                                     Tidak ada lembur
                                 @endif
@@ -387,8 +433,7 @@
                         <td style="font-weight: bold;">{{ $employee['total_days'] ?? 0 }}</td>
                         <td class="status-taken">{{ $employee['taken_days'] ?? 0 }}</td>
                         <td class="status-not-taken">{{ $employee['pending_days'] ?? 0 }}</td>
-                        <td style="font-weight: bold;">{{ number_format($employee['total_amount'] ?? 0, 0, ',', '.') }}
-                        </td>
+                        <td style="font-weight: bold;">{{ number_format($employee['total_amount'] ?? 0, 0, ',', '.') }}</td>
                         <td>
                             @if (($employee['total_days'] ?? 0) == 0)
                                 <span class="status-no-data">No Data</span>
@@ -416,33 +461,122 @@
                     </td>
                 </tr>
             @endforelse
+
+            <!-- TOTAL ROW - NEW -->
+            @if (count($employees ?? []) > 0)
+                @php
+                    $totalNominal = collect($employees)->sum('amount');
+                    $totalTaken = collect($employees)->where('is_taken', true)->count();
+
+                    if (($report_type ?? '') === 'mingguan') {
+                        $totalNominal = collect($employees)->sum('total_amount');
+                    } elseif (($report_type ?? '') === 'harian') {
+                        $totalNominal = collect($employees)->sum('total_amount');
+                        $totalDays = collect($employees)->sum('total_days');
+                        $totalTakenDays = collect($employees)->sum('taken_days');
+                        $totalPendingDays = collect($employees)->sum('pending_days');
+                    }
+
+                    if (isset($is_lembur) && $is_lembur) {
+                        $totalLembur = collect($employees)->sum('total_lembur');
+                        $totalJam = collect($employees)->sum('total_jam');
+                    }
+                @endphp
+
+                <tr class="total-row">
+                    <td colspan="2" style="text-align: center;">TOTAL KESELURUHAN</td>
+
+                    @if (($report_type ?? '') === 'mingguan')
+                        @foreach ($weeks ?? [] as $week)
+                            <td>-</td>
+                        @endforeach
+                        <td>{{ $totalTaken }}/{{ count($employees) }}</td>
+                        <td>Rp {{ number_format($totalNominal, 0, ',', '.') }}</td>
+
+                    @elseif(($report_type ?? '') === 'bulanan')
+                        @if (isset($is_lembur) && $is_lembur)
+                            <td>{{ $totalLembur }}</td>
+                            <td>{{ number_format($totalJam, 1) }}</td>
+                            <td>Rp {{ number_format($totalNominal, 0, ',', '.') }}</td>
+                            <td>{{ $totalTaken }}/{{ count($employees) }}</td>
+                        @else
+                            <td>{{ $totalTaken }}/{{ count($employees) }}</td>
+                            <td>Rp {{ number_format($totalNominal, 0, ',', '.') }}</td>
+                        @endif
+                        <td colspan="3">-</td>
+
+                    @elseif(($report_type ?? '') === 'harian')
+                        <td>{{ $totalDays }}</td>
+                        <td>{{ $totalTakenDays }}</td>
+                        <td>{{ $totalPendingDays }}</td>
+                        <td>Rp {{ number_format($totalNominal, 0, ',', '.') }}</td>
+                        <td colspan="2">-</td>
+                    @endif
+                </tr>
+            @endif
         </tbody>
     </table>
 
-    <!-- Report Info -->
-    <div class="report-info">
-        <div class="info-item"><strong>Jenis Tunjangan:</strong> {{ $tunjanganType->name ?? 'Tidak Diketahui' }}</div>
-        <div class="info-item"><strong>Kategori:</strong> {{ ucfirst($tunjanganType->category ?? 'tidak diketahui') }}
-        </div>
-        <div class="info-item"><strong>Total Karyawan:</strong> {{ count($employees ?? []) }}</div>
-        @if (($report_type ?? '') === 'mingguan' && isset($weeks))
-            <div class="info-item"><strong>Total Minggu:</strong> {{ count($weeks) }}</div>
-        @endif
+    <!-- SUMMARY BOX - NEW -->
+    {{-- @if (count($employees ?? []) > 0)
+        <div class="summary-box">
+            <div class="summary-item">
+                <div class="summary-label">Total Karyawan</div>
+                <div class="summary-value">{{ count($employees) }}</div>
+            </div>
 
-        {{-- TAMBAHAN: Notes Sumber Data --}}
-        @if (isset($is_lembur) && $is_lembur)
-            <div class="info-item" style="color: #dc2626; font-weight: bold;">
-                📌 Data dari: Laporan Lembur (bukan Absensi)
+            @if (($report_type ?? '') === 'bulanan' || ($report_type ?? '') === 'mingguan')
+                <div class="summary-item">
+                    <div class="summary-label">Sudah Diambil</div>
+                    <div class="summary-value success">{{ $totalTaken }} Orang</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Belum Diambil</div>
+                    <div class="summary-value warning">{{ count($employees) - $totalTaken }} Orang</div>
+                </div>
+            @endif
+
+            @if (isset($is_lembur) && $is_lembur)
+                <div class="summary-item">
+                    <div class="summary-label">Total Lembur</div>
+                    <div class="summary-value">{{ $totalLembur }} Kali</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Total Jam</div>
+                    <div class="summary-value" style="color: #0891b2;">{{ number_format($totalJam, 1) }} Jam</div>
+                </div>
+            @endif
+
+            @if (($report_type ?? '') === 'harian')
+                <div class="summary-item">
+                    <div class="summary-label">Total Hari</div>
+                    <div class="summary-value">{{ $totalDays }} Hari</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Hari Diambil</div>
+                    <div class="summary-value success">{{ $totalTakenDays }} Hari</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Hari Pending</div>
+                    <div class="summary-value warning">{{ $totalPendingDays }} Hari</div>
+                </div>
+            @endif
+
+            <div class="summary-item">
+                <div class="summary-label">Total Nominal</div>
+                <div class="summary-value" style="font-size: 14px;">Rp {{ number_format($totalNominal, 0, ',', '.') }}</div>
             </div>
-        @else
-            <div class="info-item" style="color: #059669; font-weight: bold;">
-                📌 Data dari: Absensi Harian
-            </div>
-        @endif
-    </div>
+        </div>
+    @endif --}}
+
+
 
     <!-- Notice untuk yang belum lengkap -->
-    @if (($report_type ?? '') === 'mingguan' && isset($employees) && isset($weeks))
+    {{-- @if (($report_type ?? '') === 'mingguan' && isset($employees) && isset($weeks))
         @php
             $notTakenEmployees = collect($employees)->filter(function ($emp) use ($weeks) {
                 return ($emp['total_taken'] ?? 0) < count($weeks);
@@ -505,7 +639,7 @@
                 </div>
             </div>
         @endif
-    @endif
+    @endif --}}
 
     <!-- Footer -->
     <div class="footer">
