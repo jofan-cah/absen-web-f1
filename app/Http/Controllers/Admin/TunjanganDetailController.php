@@ -121,6 +121,7 @@ class TunjanganDetailController extends Controller
     public function show(TunjanganDetail $tunjanganDetail)
     {
         $tunjanganDetail->load('tunjanganType');
+        
 
         return view('admin.tunjangan-detail.showTunDet', compact('tunjanganDetail'));
     }

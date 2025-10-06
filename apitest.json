@@ -1823,6 +1823,703 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "📝 Ijin Management",
+            "item": [
+                {
+                    "name": "📋 Ijin Types & Info",
+                    "item": [
+                        {
+                            "name": "Get Ijin Types",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/types",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "types"
+                                    ]
+                                },
+                                "description": "Get all active ijin types for dropdown selection"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Available Piket Dates",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/available-piket-dates",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "available-piket-dates"
+                                    ]
+                                },
+                                "description": "Get available Sunday piket dates for compensation leave claim"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "📜 My Ijin History",
+                    "item": [
+                        {
+                            "name": "Get My Ijin History",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/my-history?status=&type=&per_page=15&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "my-history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional: pending|approved|rejected"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "",
+                                            "description": "Optional: ijin_type_id filter"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15",
+                                            "description": "Items per page"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number"
+                                        }
+                                    ]
+                                },
+                                "description": "Get ijin history with filters and pagination"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get My Ijin History - Filter Pending",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/my-history?status=pending",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "my-history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get My Ijin History - Filter Approved",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/my-history?status=approved",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "my-history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "approved"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Ijin Detail",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/IJN001",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "IJN001"
+                                    ]
+                                },
+                                "description": "Get detail of specific ijin"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "✍️ Submit Ijin",
+                    "item": [
+                        {
+                            "name": "Submit Regular Ijin (Sakit/Cuti/Pribadi)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ijin_type_id\": \"IJTTHBMPS5K7ESR\",\n    \"date_from\": \"2025-10-10\",\n    \"date_to\": \"2025-10-12\",\n    \"reason\": \"Sakit demam tinggi, perlu istirahat di rumah\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Submit ijin for sick leave, annual leave, or personal leave"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Shift Swap",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-10-13\",\n    \"replacement_shift_date\": \"2025-10-20\",\n    \"reason\": \"Ada acara keluarga mendesak di hari Minggu\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/shift-swap",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "shift-swap"
+                                    ]
+                                },
+                                "description": "Submit request to swap Sunday shift to weekday"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Compensation Leave",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-09-29\",\n    \"date_from\": \"2025-10-15\",\n    \"date_to\": \"2025-10-16\",\n    \"reason\": \"Cuti pengganti dari piket hari Minggu tanggal 29 September\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/compensation-leave",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "compensation-leave"
+                                    ]
+                                },
+                                "description": "Submit compensation leave from previous Sunday shift"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "🗑️ Cancel Ijin",
+                    "item": [
+                        {
+                            "name": "Cancel Ijin (Pending Only)",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/IJN001",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "IJN001"
+                                    ]
+                                },
+                                "description": "Cancel pending ijin - only allowed for pending status"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "❌ Error Test Cases",
+                    "item": [
+                        {
+                            "name": "❌ Submit Ijin - Invalid Date Format",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ijin_type_id\": \"IJTTHBMPS5K7ESR\",\n    \"date_from\": \"10-10-2025\",\n    \"date_to\": \"12-10-2025\",\n    \"reason\": \"Test error\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Test validation error - invalid date format"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Submit Ijin - Missing Reason",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ijin_type_id\": \"IJTTHBMPS5K7ESR\",\n    \"date_from\": \"2025-10-10\",\n    \"date_to\": \"2025-10-12\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Test validation error - reason is required"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Submit Ijin - Overlapping Dates",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ijin_type_id\": \"IJTTHBMPS5K7ESR\",\n    \"date_from\": \"2025-10-10\",\n    \"date_to\": \"2025-10-12\",\n    \"reason\": \"Test overlap\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Test business logic error - dates overlap with existing ijin"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Shift Swap - Not Sunday",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-10-14\",\n    \"replacement_shift_date\": \"2025-10-20\",\n    \"reason\": \"Test error - weekday\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/shift-swap",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "shift-swap"
+                                    ]
+                                },
+                                "description": "Test error - original_shift_date must be Sunday"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Shift Swap - Replacement is Sunday",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-10-13\",\n    \"replacement_shift_date\": \"2025-10-20\",\n    \"reason\": \"Test error - replacement is Sunday\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/shift-swap",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "shift-swap"
+                                    ]
+                                },
+                                "description": "Test error - replacement_shift_date cannot be Sunday"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Compensation Leave - No Piket Record",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-09-22\",\n    \"date_from\": \"2025-10-15\",\n    \"date_to\": \"2025-10-16\",\n    \"reason\": \"Test error - no piket\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/compensation-leave",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "compensation-leave"
+                                    ]
+                                },
+                                "description": "Test error - no attendance record found for piket date"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Compensation Leave - Already Claimed",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-09-29\",\n    \"date_from\": \"2025-10-18\",\n    \"date_to\": \"2025-10-19\",\n    \"reason\": \"Test error - already claimed\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/compensation-leave",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "compensation-leave"
+                                    ]
+                                },
+                                "description": "Test error - piket date already claimed for compensation"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Cancel Approved Ijin",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/IJN002",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "IJN002"
+                                    ]
+                                },
+                                "description": "Test error - cannot cancel approved ijin"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "❌ Get Non-existent Ijin",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/IJN999",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "IJN999"
+                                    ]
+                                },
+                                "description": "Test 404 - ijin not found"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "🔄 Workflow Test Scenarios",
+                    "item": [
+                        {
+                            "name": "Scenario 1: Get Ijin Types",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/types",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "types"
+                                    ]
+                                },
+                                "description": "Step 1: Get available ijin types"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Scenario 2: Submit Ijin",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ijin_type_id\": \"IJTTHBMPS5K7ESR\",\n    \"date_from\": \"2025-10-10\",\n    \"date_to\": \"2025-10-10\",\n    \"reason\": \"Sakit flu\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Step 2: Submit ijin"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Scenario 3: Check My History",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/my-history?status=pending",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "my-history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        }
+                                    ]
+                                },
+                                "description": "Step 3: Verify ijin appears in history"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Scenario 4: Get Piket Dates",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/available-piket-dates",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "available-piket-dates"
+                                    ]
+                                },
+                                "description": "Step 4: Get available piket dates for compensation"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Scenario 5: Submit Compensation Leave",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"original_shift_date\": \"2025-09-29\",\n    \"date_from\": \"2025-10-21\",\n    \"date_to\": \"2025-10-21\",\n    \"reason\": \"Cuti pengganti piket\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/ijin/compensation-leave",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "ijin",
+                                        "compensation-leave"
+                                    ]
+                                },
+                                "description": "Step 5: Submit compensation leave"
+                            },
+                            "response": []
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "event": [

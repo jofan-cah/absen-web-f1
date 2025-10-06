@@ -10,7 +10,9 @@ class Karyawan extends Model
     use HasFactory;
 
     protected $primaryKey = 'karyawan_id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -60,19 +62,49 @@ class Karyawan extends Model
     public static function generateKaryawanId()
     {
         $lastKaryawan = self::orderByDesc('karyawan_id')->first();
-        if (!$lastKaryawan) {
+        if (! $lastKaryawan) {
             return 'KAR001';
         }
 
         $lastNumber = (int) substr($lastKaryawan->karyawan_id, 3);
         $newNumber = $lastNumber + 1;
 
-        return 'KAR' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return 'KAR'.str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
 
     // Permission check
     public function canEditSchedule()
     {
         return in_array($this->staff_status, ['koordinator', 'wakil_koordinator']);
+    }
+
+    public function ijins()
+    {
+        return $this->hasMany(Ijin::class, 'karyawan_id', 'karyawan_id');
+    }
+
+    // Helper untuk cek ijin aktif hari ini
+    public function hasActiveIjinToday()
+    {
+        $today = now()->format('Y-m-d');
+
+        return $this->ijins()
+            ->where('status', 'approved')
+            ->where('date_from', '<=', $today)
+            ->where('date_to', '>=', $today)
+            ->exists();
+    }
+
+    // Helper untuk get ijin hari ini
+    public function getTodayIjin()
+    {
+        $today = now()->format('Y-m-d');
+
+        return $this->ijins()
+            ->where('status', 'approved')
+            ->where('date_from', '<=', $today)
+            ->where('date_to', '>=', $today)
+            ->with('ijinType')
+            ->first();
     }
 }

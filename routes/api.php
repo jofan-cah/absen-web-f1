@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AbsenController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\IjinController;
+use App\Http\Controllers\Api\JadwalController;
+use App\Http\Controllers\Api\LemburController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RiwayatController;
 use App\Http\Controllers\Api\TunjanganController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\ProfileController;
-use App\Http\Controllers\Api\JadwalController;
-use App\Http\Controllers\Api\AbsenController;
-use App\Http\Controllers\Api\LemburController;
-use App\Http\Controllers\Api\RiwayatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,7 +33,7 @@ Route::get('/test', function () {
         'success' => true,
         'message' => 'API is working',
         'timestamp' => now(),
-        'version' => '1.0.0'
+        'version' => '1.0.0',
     ]);
 })->middleware('throttle:5,1');
 
@@ -126,6 +127,36 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::post('/{id}/request', [TunjanganController::class, 'requestTunjangan']); // Request pencairan
         Route::post('/{id}/confirm-received', [TunjanganController::class, 'confirmReceived']); // Konfirmasi terima
     });
+
+    // ============================
+    // 📂 Ijin Routes
+    // ============================
+    Route::prefix('ijin')->group(function () {
+        // 📋 Dropdown & Data Tersedia
+        Route::get('/types', [IjinController::class, 'getIjinTypes'])
+            ->name('ijin.types');
+        Route::get('/available-piket-dates', [IjinController::class, 'getAvailablePiketDates'])
+            ->name('ijin.available-piket-dates');
+
+        // 🧑‍💼 User-specific Data
+        Route::get('/my-history', [IjinController::class, 'myHistory'])
+            ->name('ijin.my-history');
+        Route::get('/{id}', [IjinController::class, 'show'])
+            ->name('ijin.show');
+
+        // 📝 Submission Endpoints
+        Route::post('/submit', [IjinController::class, 'submitIjin'])
+            ->name('ijin.submit'); // Sakit, Cuti, Pribadi
+        Route::post('/shift-swap', [IjinController::class, 'submitShiftSwap'])
+            ->name('ijin.shift-swap');
+        Route::post('/compensation-leave', [IjinController::class, 'submitCompensationLeave'])
+            ->name('ijin.compensation-leave');
+
+        // ❌ Cancel (Pending Only)
+        Route::delete('/{id}', [IjinController::class, 'cancel'])
+            ->name('ijin.cancel');
+    });
+
 });
 
 // ============================================
@@ -135,17 +166,19 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
 if (app()->environment('local', 'staging')) {
     Route::get('/dev/user/{userId}', function ($userId) {
         $user = \App\Models\User::with('karyawan.department')->find($userId);
+
         return response()->json([
             'success' => true,
-            'data' => $user
+            'data' => $user,
         ]);
     });
 
     Route::get('/dev/clear-tokens', function () {
         \Laravel\Sanctum\PersonalAccessToken::truncate();
+
         return response()->json([
             'success' => true,
-            'message' => 'All tokens cleared'
+            'message' => 'All tokens cleared',
         ]);
     });
 }

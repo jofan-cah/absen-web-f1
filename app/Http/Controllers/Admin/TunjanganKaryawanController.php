@@ -93,6 +93,7 @@ class TunjanganKaryawanController extends Controller
     {
         $karyawans = Karyawan::with(['user', 'department'])
             ->where('employment_status', 'active')
+            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
             ->get();
 
         // Ambil tunjangan types yang aktif (exclude lembur untuk sekarang)

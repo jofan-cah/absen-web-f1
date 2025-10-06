@@ -1,19 +1,21 @@
 <?php
 
+use App\Http\Controllers\Admin\AbsenController;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\IjinController;
+use App\Http\Controllers\Admin\IjinTypeController;
+use App\Http\Controllers\Admin\JadwalController;
+use App\Http\Controllers\Admin\KaryawanController;
+use App\Http\Controllers\Admin\LemburController;
 use App\Http\Controllers\Admin\PenaltiController;
+use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\TunjanganDetailController;
 use App\Http\Controllers\Admin\TunjanganKaryawanController;
 use App\Http\Controllers\Admin\TunjanganTypeController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\KaryawanController;
-use App\Http\Controllers\Admin\ShiftController;
-use App\Http\Controllers\Admin\JadwalController;
-use App\Http\Controllers\Admin\AbsenController;
-use App\Http\Controllers\Admin\LemburController;
 
 // Redirect root to admin login
 Route::get('/', function () {
@@ -155,5 +157,45 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         }); // End Admin only routes
 
+        // Ijin Type Management - Admin only
+        Route::middleware(['role:admin'])->group(function () {
+            Route::resource('ijin-type', IjinTypeController::class);
+            Route::post('ijin-type/{ijinType}/toggle-status', [IjinTypeController::class, 'toggleStatus'])
+                ->name('ijin-type.toggle-status');
+        });
+
+        // Ijin Management
+        Route::prefix('ijin')->name('ijin.')->group(function () {
+
+            // List & Detail - All authenticated users
+            Route::get('/', [IjinController::class, 'index'])->name('index');
+            Route::get('/{ijin}/show', [IjinController::class, 'show'])->name('show');
+
+            // Statistics - Admin & Coordinator
+            Route::middleware(['role:admin,coordinator'])->group(function () {
+                Route::get('/statistics', [IjinController::class, 'statistics'])->name('statistics');
+            });
+
+            // Coordinator Review
+            Route::middleware(['role:admin,coordinator'])->group(function () {
+                Route::get('/coordinator/pending', [IjinController::class, 'coordinatorPending'])
+                    ->name('coordinator-pending');
+                Route::get('/{ijin}/coordinator/review', [IjinController::class, 'coordinatorReviewForm'])
+                    ->name('coordinator-review-form');
+                Route::post('/{ijin}/coordinator/review', [IjinController::class, 'coordinatorReview'])
+                    ->name('coordinator-review');
+            });
+
+            // Admin Review - BISA BYPASS COORDINATOR
+            Route::middleware(['role:admin'])->group(function () {
+                Route::get('/admin/pending', [IjinController::class, 'adminPending'])
+                    ->name('admin-pending');
+                Route::get('/{ijin}/admin/review', [IjinController::class, 'adminReviewForm'])
+                    ->name('admin-review-form');
+                Route::post('/{ijin}/admin/review', [IjinController::class, 'adminReview'])
+                    ->name('admin-review');
+            });
+
+        });
     }); // End authenticated routes
 });
