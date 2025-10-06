@@ -11,15 +11,14 @@ class Absen extends Model
     use HasFactory;
 
     protected $primaryKey = 'absen_id';
-
     public $incrementing = false;
-
     protected $keyType = 'string';
 
     protected $fillable = [
         'absen_id',
         'karyawan_id',
         'jadwal_id',
+        'ijin_id',      // ✅ Referensi ke ijin (sync dari jadwal)
         'date',
         'clock_in',
         'clock_in_photo',
@@ -31,7 +30,7 @@ class Absen extends Model
         'clock_out_latitude',
         'clock_out_longitude',
         'clock_out_address',
-        'status',
+        'status',       // ✅ Follow dari ijin_type->code
         'late_minutes',
         'early_checkout_minutes',
         'work_hours',
@@ -47,8 +46,62 @@ class Absen extends Model
         'work_hours' => 'decimal:2',
     ];
 
+    const STATUS_SCHEDULED = 'scheduled';
+    const STATUS_PRESENT = 'present';
+    const STATUS_LATE = 'late';
+    const STATUS_EARLY_CHECKOUT = 'early_checkout';
+    const STATUS_ABSENT = 'absent';
+    const STATUS_SICK = 'sick';
+    const STATUS_ANNUAL = 'annual';
+    const STATUS_PERSONAL = 'personal';
+    const STATUS_SHIFT_SWAP = 'shift_swap';
+    const STATUS_COMPENSATION_LEAVE = 'compensation_leave';
 
-    // ✅ PERBAIKAN: Accessor untuk URL temporary
+    // Relationships
+    public function karyawan()
+    {
+        return $this->belongsTo(Karyawan::class, 'karyawan_id', 'karyawan_id');
+    }
+
+    public function jadwal()
+    {
+        return $this->belongsTo(Jadwal::class, 'jadwal_id', 'jadwal_id');
+    }
+
+    public function ijin()
+    {
+        return $this->belongsTo(Ijin::class, 'ijin_id', 'ijin_id');
+    }
+
+    // Helper methods
+    public function hasIjin()
+    {
+        return !is_null($this->ijin_id);
+    }
+
+    public function isLeaveStatus()
+    {
+        return in_array($this->status, [
+            self::STATUS_SICK,
+            self::STATUS_ANNUAL,
+            self::STATUS_PERSONAL,
+            self::STATUS_COMPENSATION_LEAVE
+        ]);
+    }
+
+    public function canClockIn()
+    {
+        return !$this->isLeaveStatus();
+    }
+
+    public function isEditable()
+    {
+        return $this->status === self::STATUS_SCHEDULED
+               && !$this->clock_in
+               && !$this->ijin_id;
+    }
+
+    // Accessor
     public function getClockInPhotoUrlAttribute()
     {
         if ($this->clock_in_photo) {
@@ -71,23 +124,9 @@ class Absen extends Model
         return null;
     }
 
-    // Relationships
-    public function karyawan()
-    {
-        return $this->belongsTo(Karyawan::class, 'karyawan_id', 'karyawan_id');
-    }
-
-    public function jadwal()
-    {
-        return $this->belongsTo(Jadwal::class, 'jadwal_id', 'jadwal_id');
-    }
-
     public static function generateAbsenId()
     {
         do {
-            // Format: ABS + 12 karakter random alphanumeric = 15 karakter total
-            // Contoh: ABSF9E2D1C8B7A6
-
             $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $randomString = '';
 
@@ -96,17 +135,9 @@ class Absen extends Model
             }
 
             $absenId = 'ABS'.$randomString;
-
-            // Pastikan unique dengan cek database
             $exists = self::where('absen_id', $absenId)->exists();
         } while ($exists);
 
         return $absenId;
-    }
-
-    // Check if can be edited
-    public function isEditable()
-    {
-        return $this->status === 'scheduled';
     }
 }

@@ -17,8 +17,10 @@ class Jadwal extends Model
         'jadwal_id',
         'karyawan_id',
         'shift_id',
+        'ijin_id',      // ✅ CORE: Jadwal bisa punya ijin
         'date',
         'is_active',
+        'status',       // ✅ Status jadwal
         'notes',
         'created_by_user_id',
     ];
@@ -27,6 +29,11 @@ class Jadwal extends Model
         'date' => 'datetime:Y-m-d',
         'is_active' => 'boolean',
     ];
+
+    // ✅ STATUS CONSTANTS
+    const STATUS_NORMAL = 'normal';
+    const STATUS_HAS_IJIN = 'has_ijin';
+    const STATUS_CANCELLED = 'cancelled';
 
     // Relationships
     public function karyawan()
@@ -44,18 +51,71 @@ class Jadwal extends Model
         return $this->belongsTo(User::class, 'created_by_user_id', 'user_id');
     }
 
+    // ✅ RELASI KE ABSEN (1:1)
     public function absen()
     {
         return $this->hasOne(Absen::class, 'jadwal_id', 'jadwal_id');
     }
 
-    // Helper method
+    // ✅ RELASI KE IJIN (0:1)
+    public function ijin()
+    {
+        return $this->belongsTo(Ijin::class, 'ijin_id', 'ijin_id');
+    }
+
+    // ✅ HELPER METHODS
+    public function hasIjin()
+    {
+        return !is_null($this->ijin_id);
+    }
+
+    public function isNormal()
+    {
+        return $this->status === self::STATUS_NORMAL;
+    }
+
+    // ✅ UPDATE JADWAL DAN ABSEN DARI IJIN
+    public function applyIjin(Ijin $ijin)
+    {
+        // Update jadwal
+        $this->update([
+            'ijin_id' => $ijin->ijin_id,
+            'status' => self::STATUS_HAS_IJIN,
+            'notes' => "Ijin: {$ijin->ijinType->name} - {$ijin->reason}"
+        ]);
+
+        // Update absen (cascade)
+        if ($this->absen) {
+            $this->absen->update([
+                'ijin_id' => $ijin->ijin_id,
+                'status' => $ijin->ijinType->code,
+                'notes' => "Ijin: {$ijin->ijinType->name} - {$ijin->reason}"
+            ]);
+        }
+    }
+
+    // ✅ HAPUS IJIN DARI JADWAL
+    public function removeIjin()
+    {
+        $this->update([
+            'ijin_id' => null,
+            'status' => self::STATUS_NORMAL,
+            'notes' => null
+        ]);
+
+        // Reset absen
+        if ($this->absen && !$this->absen->clock_in) {
+            $this->absen->update([
+                'ijin_id' => null,
+                'status' => Absen::STATUS_SCHEDULED,
+                'notes' => null
+            ]);
+        }
+    }
+
     public static function generateJadwalId()
     {
         do {
-            // Format: JDW + 12 karakter random alphanumeric = 15 karakter total
-            // Contoh: JDWF9E2D1C8B7A6
-
             $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $randomString = '';
 
@@ -64,15 +124,13 @@ class Jadwal extends Model
             }
 
             $jadwalId = 'JDW' . $randomString;
-
-            // Pastikan unique dengan cek database
             $exists = self::where('jadwal_id', $jadwalId)->exists();
         } while ($exists);
 
         return $jadwalId;
     }
 
-    // Auto create absen saat jadwal dibuat
+    // ✅ BOOT: AUTO CREATE ABSEN
     protected static function boot()
     {
         parent::boot();
@@ -83,7 +141,7 @@ class Jadwal extends Model
                 'karyawan_id' => $jadwal->karyawan_id,
                 'jadwal_id' => $jadwal->jadwal_id,
                 'date' => $jadwal->date,
-                'status' => 'scheduled'
+                'status' => Absen::STATUS_SCHEDULED
             ]);
         });
     }

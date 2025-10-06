@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Absen;
+use App\Models\Ijin;
 use App\Models\Jadwal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -50,6 +51,8 @@ class AbsenController extends BaseApiController
             'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
+
+
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
         }
@@ -58,6 +61,23 @@ class AbsenController extends BaseApiController
         $karyawan = $user->karyawan;
         $today = Carbon::today();
         $now = Carbon::now();
+
+
+                $today = Carbon::today()->toDateString();
+
+        // ✅ CEK IJIN APPROVED
+        $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
+            ->where('status', 'approved')
+            ->where('date_from', '<=', $today)
+            ->where('date_to', '>=', $today)
+            ->first();
+
+        if ($approvedIjin) {
+            return $this->errorResponse(
+                'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi.',
+                403
+            );
+        }
 
         // Cari jadwal hari ini
         $jadwal = Jadwal::with('shift')
@@ -138,6 +158,22 @@ class AbsenController extends BaseApiController
         $karyawan = $user->karyawan;
         $today = Carbon::today();
         $now = Carbon::now();
+
+        $today = Carbon::today()->toDateString();
+
+        // ✅ CEK IJIN APPROVED
+        $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
+            ->where('status', 'approved')
+            ->where('date_from', '<=', $today)
+            ->where('date_to', '>=', $today)
+            ->first();
+
+        if ($approvedIjin) {
+            return $this->errorResponse(
+                'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi.',
+                403
+            );
+        }
 
         // Cari absen hari ini
         $absen = Absen::with('jadwal.shift')
