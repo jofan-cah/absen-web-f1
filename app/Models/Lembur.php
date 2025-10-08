@@ -18,26 +18,27 @@ class Lembur extends Model
     protected $fillable = [
         'lembur_id',
         'karyawan_id',
-        'absen_id', // optional, jika lembur dari absen tertentu
+        'absen_id',
         'tanggal_lembur',
         'jam_mulai',
         'jam_selesai',
-        'total_jam', // dihitung otomatis
-        'kategori_lembur', // 'reguler', 'hari_libur', 'hari_besar'
-        'multiplier', // 1.5x untuk reguler, 2x untuk libur, dst
+        'total_jam',
+        'kategori_lembur',
+        'multiplier',
         'deskripsi_pekerjaan',
-        'bukti_foto', // foto bukti lembur
-        'status', // 'draft', 'submitted', 'approved', 'rejected', 'processed'
+        'bukti_foto',
+        'status',
         'submitted_at',
-        'submitted_via', // 'mobile', 'web'
+        'submitted_via',
         'approved_by_user_id',
         'approved_at',
         'approval_notes',
         'rejected_by_user_id',
         'rejected_at',
         'rejection_reason',
-        'tunjangan_karyawan_id', // reference ke tunjangan yang sudah dibuat
+        'tunjangan_karyawan_id',
         'created_by_user_id',
+        'coordinator_id', // TAMBAHAN BARU
     ];
 
     protected $casts = [
@@ -78,6 +79,12 @@ class Lembur extends Model
     public function tunjanganKaryawan()
     {
         return $this->belongsTo(TunjanganKaryawan::class, 'tunjangan_karyawan_id', 'tunjangan_karyawan_id');
+    }
+
+    // TAMBAHAN BARU: Relationship coordinator
+    public function coordinator()
+    {
+        return $this->belongsTo(Karyawan::class, 'coordinator_id', 'karyawan_id');
     }
 
     // Helper method
@@ -145,6 +152,11 @@ class Lembur extends Model
             return false;
         }
 
+        // VALIDASI BARU: Karyawan harus sudah clock out
+        if (!$this->hasClockOut()) {
+            throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
+        }
+
         $this->update([
             'status' => 'approved',
             'approved_by_user_id' => $userId,
@@ -174,51 +186,93 @@ class Lembur extends Model
         return true;
     }
 
-    // Generate tunjangan dari lembur yang diapprove
-   public function generateTunjangan()
-{
-    if ($this->status !== 'approved' || $this->tunjangan_karyawan_id) {
-        return false;
+    // METODE BARU: Cek apakah sudah clock out
+    public function hasClockOut()
+    {
+        if (!$this->absen) {
+            return false;
+        }
+
+        return !is_null($this->absen->clock_out);
     }
 
-    $karyawan = $this->karyawan;
-    $tunjanganType = TunjanganType::where('code', 'UANG_LEMBUR')->active()->first();
+    // METODE BARU: Validasi waktu pengajuan lembur
+    public static function canSubmitLembur($absenId)
+    {
+        $absen = Absen::with('jadwal.shift')->find($absenId);
 
-    if (!$tunjanganType) {
-        return false;
+        if (!$absen || !$absen->jadwal) {
+            return ['can_submit' => false, 'message' => 'Data absen tidak ditemukan'];
+        }
+
+        $shift = $absen->jadwal->shift;
+        $shiftEndTime = Carbon::parse($absen->jadwal->date->format('Y-m-d') . ' ' . $shift->end_time);
+
+        // Handle overnight shift
+        if ($shift->is_overnight) {
+            $shiftEndTime->addDay();
+        }
+
+        $maxSubmitTime = $shiftEndTime->copy()->addHour(); // Max 1 jam setelah shift
+        $now = Carbon::now();
+
+        if ($now->greaterThan($maxSubmitTime)) {
+            return [
+                'can_submit' => false,
+                'message' => 'Pengajuan lembur hanya dapat dilakukan maksimal 1 jam setelah shift berakhir'
+            ];
+        }
+
+        return ['can_submit' => true];
     }
 
-    $amountPerJam = TunjanganDetail::getAmountByStaffStatus(
-        $tunjanganType->tunjangan_type_id,
-        $karyawan->staff_status
-    );
+    // UBAH TOTAL: Generate tunjangan dengan FLAT AMOUNT (bukan per jam)
+    public function generateTunjangan()
+    {
+        if ($this->status !== 'approved' || $this->tunjangan_karyawan_id) {
+            return false;
+        }
 
-    // Hitung dengan multiplier
-    $finalAmount = $amountPerJam * $this->multiplier;
-    $totalHours = $this->total_jam;
+        $karyawan = $this->karyawan;
+        $tunjanganType = TunjanganType::where('code', 'UANG_LEMBUR')->active()->first();
 
-    $tunjangan = TunjanganKaryawan::create([
-        'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
-        'karyawan_id' => $this->karyawan_id,
-        'tunjangan_type_id' => $tunjanganType->tunjangan_type_id,
-        'absen_id' => $this->absen_id,   // ← TETAP ISI (tracking absen)
-        'lembur_id' => $this->lembur_id, // ← TAMBAH INI (relasi lembur)
-        'period_start' => $this->tanggal_lembur,
-        'period_end' => $this->tanggal_lembur,
-        'amount' => $finalAmount,
-        'quantity' => $totalHours,
-        'status' => 'pending',
-        'notes' => "Lembur {$this->kategori_lembur} - {$totalHours} jam (multiplier {$this->multiplier}x) pada " .
-                  $this->tanggal_lembur->format('d-m-Y'),
-    ]);
+        if (!$tunjanganType) {
+            return false;
+        }
 
-    $this->update([
-        'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
-        'status' => 'processed',
-    ]);
+        // PERUBAHAN: Ambil FLAT amount dari TunjanganDetail berdasarkan staff_status
+        // 20k untuk karyawan/koordinator, 15k untuk pkwtt
+        $flatAmount = TunjanganDetail::getAmountByStaffStatus(
+            $tunjanganType->tunjangan_type_id,
+            $karyawan->staff_status
+        );
 
-    return $tunjangan;
-}
+        // PERUBAHAN: Tidak ada multiplier, tidak ada perhitungan per jam
+        // Langsung FLAT: 1 lembur = 1 tunjangan (20k atau 15k)
+        $tunjangan = TunjanganKaryawan::create([
+            'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
+            'karyawan_id' => $this->karyawan_id,
+            'tunjangan_type_id' => $tunjanganType->tunjangan_type_id,
+            'absen_id' => $this->absen_id,
+            'lembur_id' => $this->lembur_id,
+            'period_start' => $this->tanggal_lembur,
+            'period_end' => $this->tanggal_lembur,
+            'amount' => $flatAmount, // FLAT 20k atau 15k
+            'quantity' => 1, // SELALU 1 (bukan jam)
+            'total_amount' => $flatAmount, // amount × 1
+            'status' => 'pending',
+            'notes' => "Lembur {$this->kategori_lembur} - {$this->total_jam} jam pada " .
+                      $this->tanggal_lembur->format('d-m-Y') .
+                      " (Tunjangan flat Rp " . number_format($flatAmount, 0, ',', '.') . ")",
+        ]);
+
+        $this->update([
+            'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
+            'status' => 'processed',
+        ]);
+
+        return $tunjangan;
+    }
 
     // Check permissions
     public function canSubmit()
@@ -286,4 +340,3 @@ class Lembur extends Model
                   ->sum('total_jam');
     }
 }
-

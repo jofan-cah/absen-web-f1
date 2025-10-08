@@ -22,7 +22,7 @@ class LemburController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Lembur::with(['karyawan.user', 'karyawan.department', 'absen', 'approvedBy', 'rejectedBy', 'tunjanganKaryawan']);
+        $query = Lembur::with(['karyawan.user', 'karyawan.department', 'absen', 'approvedBy', 'rejectedBy', 'tunjanganKaryawan', 'coordinator']);
 
         // Filter by karyawan
         if ($request->filled('karyawan_id')) {
@@ -93,14 +93,15 @@ class LemburController extends Controller
             'approvedBy',
             'rejectedBy',
             'createdBy',
-            'tunjanganKaryawan'
+            'tunjanganKaryawan',
+            'coordinator'
         ]);
 
         return view('admin.lembur.showLembur', compact('lembur'));
     }
 
     /**
-     * Approve lembur - PENTING untuk admin
+     * Approve lembur - DENGAN LOGIC BARU (Koordinator untuk Tim Teknis, Admin untuk lainnya)
      */
     public function approve(Lembur $lembur, Request $request)
     {
@@ -115,6 +116,43 @@ class LemburController extends Controller
             ], 422);
         }
 
+        $user = Auth::user();
+        $karyawan = $lembur->karyawan;
+
+        // LOGIC BARU: Cek department untuk approval
+        $isTimTeknis = $karyawan->department &&
+                       (stripos($karyawan->department->name, 'teknis') !== false ||
+                        stripos($karyawan->department->code, 'teknis') !== false);
+
+        $canApprove = false;
+        $approvalMessage = '';
+
+        if ($isTimTeknis) {
+            // TIM TEKNIS: Harus Koordinator dari department yang sama
+            if ($user->karyawan &&
+                $user->karyawan->department_id === $karyawan->department_id &&
+                in_array($user->karyawan->staff_status, ['koordinator', 'wakil_koordinator'])) {
+                $canApprove = true;
+                $approvalMessage = 'koordinator';
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur Tim Teknis hanya dapat diapprove oleh Koordinator departmentnya'
+                ], 403);
+            }
+        } else {
+            // SELAIN TIM TEKNIS: Admin
+            if ($user->role === 'admin') {
+                $canApprove = true;
+                $approvalMessage = 'admin';
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur hanya dapat diapprove oleh Admin'
+                ], 403);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -122,6 +160,11 @@ class LemburController extends Controller
 
             if (!$result) {
                 throw new \Exception('Gagal menyetujui lembur');
+            }
+
+            // Simpan coordinator_id jika yang approve adalah koordinator
+            if ($approvalMessage === 'koordinator' && $user->karyawan) {
+                $lembur->update(['coordinator_id' => $user->karyawan->karyawan_id]);
             }
 
             DB::commit();
@@ -183,7 +226,7 @@ class LemburController extends Controller
     }
 
     /**
-     * Bulk approve - untuk approve banyak sekaligus
+     * Bulk approve - DENGAN LOGIC VALIDASI PERMISSION BARU
      */
     public function bulkApprove(Request $request)
     {
@@ -196,21 +239,54 @@ class LemburController extends Controller
         try {
             DB::beginTransaction();
 
+            $user = Auth::user();
             $approved = 0;
             $errors = [];
 
             foreach ($request->ids as $id) {
                 try {
-                    $lembur = Lembur::find($id);
+                    $lembur = Lembur::with('karyawan.department')->find($id);
 
                     if ($lembur->status !== 'submitted') {
                         $errors[] = "{$lembur->karyawan->full_name} - Status tidak valid";
                         continue;
                     }
 
+                    // Cek permission berdasarkan department
+                    $karyawan = $lembur->karyawan;
+                    $isTimTeknis = $karyawan->department &&
+                                   (stripos($karyawan->department->name, 'teknis') !== false ||
+                                    stripos($karyawan->department->code, 'teknis') !== false);
+
+                    $canApprove = false;
+                    $approvalType = '';
+
+                    if ($isTimTeknis) {
+                        if ($user->karyawan &&
+                            $user->karyawan->department_id === $karyawan->department_id &&
+                            in_array($user->karyawan->staff_status, ['koordinator', 'wakil_koordinator'])) {
+                            $canApprove = true;
+                            $approvalType = 'koordinator';
+                        }
+                    } else {
+                        if ($user->role === 'admin') {
+                            $canApprove = true;
+                            $approvalType = 'admin';
+                        }
+                    }
+
+                    if (!$canApprove) {
+                        $errors[] = "{$lembur->karyawan->full_name} - Tidak ada permission";
+                        continue;
+                    }
+
                     $result = $lembur->approve(Auth::id(), $request->notes);
 
                     if ($result) {
+                        // Simpan coordinator_id jika koordinator yang approve
+                        if ($approvalType === 'koordinator' && $user->karyawan) {
+                            $lembur->update(['coordinator_id' => $user->karyawan->karyawan_id]);
+                        }
                         $approved++;
                     }
                 } catch (\Exception $e) {
@@ -263,7 +339,7 @@ class LemburController extends Controller
             // Delete photos
             foreach ($lemburs as $lembur) {
                 if ($lembur->bukti_foto) {
-                    Storage::disk('s3')->delete($lembur->bukti_foto);
+                    Storage::disk('public')->delete($lembur->bukti_foto);
                 }
             }
 
@@ -311,70 +387,32 @@ class LemburController extends Controller
             // Get semua lembur approved dalam minggu ini yang belum di-generate
             $lemburs = Lembur::with('karyawan')
                 ->where('status', 'approved')
-                ->whereNull('tunjangan_karyawan_id')
                 ->whereBetween('tanggal_lembur', [$weekStart, $weekEnd])
+                ->whereNull('tunjangan_karyawan_id')
                 ->get();
 
             if ($lemburs->isEmpty()) {
-                throw new \Exception('Tidak ada lembur yang perlu di-generate untuk minggu ini');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada lembur yang perlu di-generate tunjangan untuk periode ini'
+                ], 404);
             }
 
-            // Group by karyawan
-            $lemburByKaryawan = $lemburs->groupBy('karyawan_id');
-
             $generated = 0;
-
-            foreach ($lemburByKaryawan as $karyawanId => $karyawanLemburs) {
-                $karyawan = $karyawanLemburs->first()->karyawan;
-
-                // Hitung total jam dan amount
-                $totalJam = $karyawanLemburs->sum('total_jam');
-
-                // Get amount per jam berdasarkan staff status
-                $amountPerJam = TunjanganDetail::getAmountByStaffStatus(
-                    $tunjanganType->tunjangan_type_id,
-                    $karyawan->staff_status
-                );
-
-                // Hitung weighted amount (karena ada multiplier berbeda)
-                $totalAmount = 0;
-                $details = [];
-                foreach ($karyawanLemburs as $lembur) {
-                    $lemburAmount = $amountPerJam * $lembur->multiplier * $lembur->total_jam;
-                    $totalAmount += $lemburAmount;
-                    $details[] = "{$lembur->kategori_lembur}: {$lembur->total_jam} jam @ {$lembur->multiplier}x";
+            foreach ($lemburs as $lembur) {
+                try {
+                    $lembur->generateTunjangan();
+                    $generated++;
+                } catch (\Exception $e) {
+                    \Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: " . $e->getMessage());
                 }
-
-                // Create tunjangan karyawan
-                $tunjangan = TunjanganKaryawan::create([
-                    'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
-                    'karyawan_id' => $karyawanId,
-                    'tunjangan_type_id' => $tunjanganType->tunjangan_type_id,
-                    'period_start' => $weekStart,
-                    'period_end' => $weekEnd,
-                    'amount' => $amountPerJam,
-                    'quantity' => $totalJam,
-                    'total_amount' => $totalAmount,
-                    'status' => 'pending',
-                    'notes' => "Lembur mingguan (" . $weekStart->format('d/m') . " - " . $weekEnd->format('d/m') . "): " . implode(', ', $details),
-                ]);
-
-                // Update semua lembur dengan tunjangan_id dan status processed
-                foreach ($karyawanLemburs as $lembur) {
-                    $lembur->update([
-                        'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
-                        'status' => 'processed'
-                    ]);
-                }
-
-                $generated++;
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => "Berhasil generate {$generated} tunjangan lembur mingguan untuk periode {$weekStart->format('d/m/Y')} - {$weekEnd->format('d/m/Y')}"
+                'message' => "{$generated} tunjangan berhasil di-generate untuk periode {$weekStart->format('d/m/Y')} - {$weekEnd->format('d/m/Y')}"
             ]);
 
         } catch (\Exception $e) {
@@ -387,173 +425,134 @@ class LemburController extends Controller
     }
 
     /**
-     * Form generate tunjangan mingguan
+     * Form untuk generate tunjangan mingguan
      */
     public function generateTunjanganForm()
     {
-        // Get minggu-minggu yang ada lembur approved belum di-generate
-        $availableWeeks = Lembur::selectRaw('DATE(DATE_SUB(tanggal_lembur, INTERVAL WEEKDAY(tanggal_lembur) DAY)) as week_start')
-            ->where('status', 'approved')
-            ->whereNull('tunjangan_karyawan_id')
-            ->groupBy('week_start')
-            ->orderBy('week_start', 'desc')
-            ->get()
-            ->map(function($item) {
-                $start = Carbon::parse($item->week_start);
-                $end = $start->copy()->endOfWeek(Carbon::SUNDAY);
-                return [
-                    'week_start' => $start->format('Y-m-d'),
-                    'label' => $start->format('d/m/Y') . ' - ' . $end->format('d/m/Y'),
-                    'count' => Lembur::where('status', 'approved')
-                        ->whereNull('tunjangan_karyawan_id')
-                        ->whereBetween('tanggal_lembur', [$start, $end])
-                        ->count()
-                ];
-            });
-
-        return view('admin.lembur.generate-tunjanganLembur', compact('availableWeeks'));
+        return view('admin.lembur.generateTunjangan');
     }
 
     /**
-     * Export report
-     */
-    public function export(Request $request)
-    {
-        try {
-            $query = Lembur::with(['karyawan', 'karyawan.department']);
-
-            // Apply filters
-            if ($request->filled('karyawan_id')) {
-                $query->where('karyawan_id', $request->karyawan_id);
-            }
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-            if ($request->filled('tanggal_dari')) {
-                $query->where('tanggal_lembur', '>=', $request->tanggal_dari);
-            }
-            if ($request->filled('tanggal_sampai')) {
-                $query->where('tanggal_lembur', '<=', $request->tanggal_sampai);
-            }
-
-            $lemburs = $query->orderBy('tanggal_lembur', 'desc')->get();
-
-            $filename = 'lembur_' . date('Y-m-d_H-i-s') . '.csv';
-
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ];
-
-            $callback = function () use ($lemburs) {
-                $file = fopen('php://output', 'w');
-
-                // Header CSV
-                fputcsv($file, [
-                    'ID Lembur',
-                    'Karyawan',
-                    'Department',
-                    'Tanggal',
-                    'Jam Mulai',
-                    'Jam Selesai',
-                    'Total Jam',
-                    'Kategori',
-                    'Multiplier',
-                    'Deskripsi',
-                    'Status',
-                    'Disetujui Oleh',
-                    'Tanggal Approve',
-                    'Ditolak Oleh',
-                    'Tanggal Reject',
-                    'Alasan Ditolak',
-                ]);
-
-                // Data rows
-                foreach ($lemburs as $lembur) {
-                    fputcsv($file, [
-                        $lembur->lembur_id,
-                        $lembur->karyawan->full_name,
-                        $lembur->karyawan->department->name ?? '-',
-                        $lembur->tanggal_lembur->format('d-m-Y'),
-                        $lembur->jam_mulai,
-                        $lembur->jam_selesai,
-                        $lembur->total_jam,
-                        ucfirst(str_replace('_', ' ', $lembur->kategori_lembur)),
-                        $lembur->multiplier . 'x',
-                        $lembur->deskripsi_pekerjaan ?? '-',
-                        ucfirst($lembur->status),
-                        $lembur->approvedBy->name ?? '-',
-                        $lembur->approved_at ? $lembur->approved_at->format('d-m-Y H:i') : '-',
-                        $lembur->rejectedBy->name ?? '-',
-                        $lembur->rejected_at ? $lembur->rejected_at->format('d-m-Y H:i') : '-',
-                        $lembur->rejection_reason ?? '-',
-                    ]);
-                }
-
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
-
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal export data: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Report analytics
+     * Report analytics lembur
      */
     public function report(Request $request)
     {
-        $startDate = $request->get('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->get('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
 
-        $query = Lembur::with(['karyawan', 'karyawan.department'])
-            ->whereBetween('tanggal_lembur', [$startDate, $endDate]);
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
 
-        // Summary
-        $summary = [
-            'total_lembur' => $query->count(),
-            'total_jam' => $query->sum('total_jam'),
-            'approved' => $query->clone()->where('status', 'approved')->count(),
-            'processed' => $query->clone()->where('status', 'processed')->count(),
-            'rejected' => $query->clone()->where('status', 'rejected')->count(),
-            'pending' => $query->clone()->where('status', 'submitted')->count(),
+        // Analytics data
+        $analytics = [
+            'total_lembur' => Lembur::whereBetween('tanggal_lembur', [$startDate, $endDate])->count(),
+            'total_approved' => Lembur::whereBetween('tanggal_lembur', [$startDate, $endDate])
+                ->whereIn('status', ['approved', 'processed'])->count(),
+            'total_jam' => Lembur::whereBetween('tanggal_lembur', [$startDate, $endDate])
+                ->whereIn('status', ['approved', 'processed'])->sum('total_jam'),
+            'by_kategori' => Lembur::whereBetween('tanggal_lembur', [$startDate, $endDate])
+                ->whereIn('status', ['approved', 'processed'])
+                ->selectRaw('kategori_lembur, COUNT(*) as count, SUM(total_jam) as total_jam')
+                ->groupBy('kategori_lembur')
+                ->get(),
+            'by_department' => Lembur::with('karyawan.department')
+                ->whereBetween('tanggal_lembur', [$startDate, $endDate])
+                ->whereIn('status', ['approved', 'processed'])
+                ->get()
+                ->groupBy('karyawan.department.name')
+                ->map(function ($items) {
+                    return [
+                        'count' => $items->count(),
+                        'total_jam' => $items->sum('total_jam')
+                    ];
+                }),
         ];
 
-        // By kategori
-        $byKategori = $query->clone()
-            ->select('kategori_lembur', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_jam) as total_jam'))
-            ->groupBy('kategori_lembur')
+        return view('admin.lembur.report', compact('analytics', 'month', 'year'));
+    }
+
+    /**
+     * Export data lembur
+     */
+    public function export(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        $format = $request->get('format', 'pdf'); // pdf or csv
+
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+
+        $lemburs = Lembur::with(['karyawan.user', 'karyawan.department', 'absen.jadwal.shift', 'approvedBy'])
+            ->whereBetween('tanggal_lembur', [$startDate, $endDate])
+            ->orderBy('tanggal_lembur')
             ->get();
 
-        // By karyawan (top 10)
-        $byKaryawan = $query->clone()
-            ->select('karyawan_id', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_jam) as total_jam'))
-            ->groupBy('karyawan_id')
-            ->with('karyawan')
-            ->orderByDesc('total_jam')
-            ->limit(10)
-            ->get();
+        if ($format === 'csv') {
+            return $this->exportCsv($lemburs, $month, $year);
+        }
 
-        // By department
-        $byDepartment = $query->clone()
-            ->join('karyawans', 'lemburs.karyawan_id', '=', 'karyawans.karyawan_id')
-            ->join('departments', 'karyawans.department_id', '=', 'departments.department_id')
-            ->select('departments.name', DB::raw('COUNT(*) as count'), DB::raw('SUM(lemburs.total_jam) as total_jam'))
-            ->groupBy('departments.name')
-            ->orderByDesc('total_jam')
-            ->get();
+        return $this->exportPdf($lemburs, $month, $year);
+    }
 
-        return view('admin.lembur.reportLembur', compact(
-            'summary',
-            'byKategori',
-            'byKaryawan',
-            'byDepartment',
-            'startDate',
-            'endDate'
-        ));
+    private function exportCsv($lemburs, $month, $year)
+    {
+        $filename = "Laporan_Lembur_{$month}_{$year}.csv";
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($lemburs) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, [
+                'Tanggal',
+                'NIP',
+                'Nama',
+                'Department',
+                'Jam Mulai',
+                'Jam Selesai',
+                'Total Jam',
+                'Kategori',
+                'Status',
+                'Disetujui Oleh'
+            ]);
+
+            foreach ($lemburs as $lembur) {
+                fputcsv($file, [
+                    $lembur->tanggal_lembur->format('d/m/Y'),
+                    $lembur->karyawan->nip,
+                    $lembur->karyawan->full_name,
+                    $lembur->karyawan->department->name ?? '-',
+                    $lembur->jam_mulai,
+                    $lembur->jam_selesai,
+                    $lembur->total_jam,
+                    $lembur->kategori_lembur,
+                    $lembur->status,
+                    $lembur->approvedBy->name ?? '-'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportPdf($lemburs, $month, $year)
+    {
+        $data = [
+            'lemburs' => $lemburs,
+            'month' => $month,
+            'year' => $year,
+            'period' => Carbon::create($year, $month)->format('F Y')
+        ];
+
+        $pdf = Pdf::loadView('admin.lembur.exportPdf', $data);
+        $pdf->setPaper('A4', 'landscape');
+
+        return $pdf->download("Laporan_Lembur_{$month}_{$year}.pdf");
     }
 }
-
-

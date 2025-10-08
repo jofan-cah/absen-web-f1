@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Lembur;
 use App\Models\Karyawan;
+use App\Models\Absen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -24,7 +25,7 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $status = $request->get('status'); // draft, submitted, approved, rejected, processed
+        $status = $request->get('status');
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
         $perPage = $this->getPerPage($request);
@@ -32,12 +33,10 @@ class LemburController extends BaseApiController
         $query = Lembur::with(['absen.jadwal.shift'])
             ->where('karyawan_id', $karyawan->karyawan_id);
 
-        // Filter by status
         if ($status) {
             $query->where('status', $status);
         }
 
-        // Filter by period
         if ($month && $year) {
             $query->whereYear('tanggal_lembur', $year)
                   ->whereMonth('tanggal_lembur', $month);
@@ -47,7 +46,6 @@ class LemburController extends BaseApiController
                         ->orderBy('created_at', 'desc')
                         ->paginate($perPage);
 
-        // Summary
         $summary = [
             'total' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
                 ->whereYear('tanggal_lembur', $year)
@@ -99,7 +97,7 @@ class LemburController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
 
-        $lembur = Lembur::with(['absen.jadwal.shift', 'approvedBy', 'rejectedBy', 'tunjanganKaryawan'])
+        $lembur = Lembur::with(['absen.jadwal.shift', 'tunjanganKaryawan', 'approvedBy', 'rejectedBy'])
             ->where('lembur_id', $id)
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->first();
@@ -108,34 +106,15 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data lembur tidak ditemukan');
         }
 
-        return $this->successResponse([
-            'lembur' => $lembur,
-            'can_edit' => $lembur->canEdit(),
-            'can_submit' => $lembur->canSubmit(),
-            'can_delete' => $lembur->status === 'draft',
-        ], 'Detail lembur berhasil diambil');
+        return $this->successResponse($lembur, 'Detail lembur berhasil diambil');
     }
 
     /**
-     * Submit lembur baru
-     * POST /api/lembur/submit
+     * Create lembur baru
+     * POST /api/lembur
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'tanggal_lembur' => 'required|date',
-            'jam_mulai' => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i',
-            'kategori_lembur' => 'required|in:reguler,hari_libur,hari_besar',
-            'deskripsi_pekerjaan' => 'required|string|max:500',
-            'bukti_foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'absen_id' => 'nullable|string|exists:absens,absen_id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->validationErrorResponse($validator->errors());
-        }
-
         $user = $request->user();
         $karyawan = $user->karyawan;
 
@@ -143,8 +122,50 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
+        $validator = Validator::make($request->all(), [
+            'absen_id' => 'required|exists:absens,absen_id',
+            'tanggal_lembur' => 'required|date',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i',
+            'kategori_lembur' => 'required|in:reguler,hari_libur,hari_besar',
+            'deskripsi_pekerjaan' => 'required|string|max:500',
+            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        // VALIDASI 1: Cek waktu pengajuan (max 1 jam dari habis shift)
+        $validationCheck = Lembur::canSubmitLembur($request->absen_id);
+
+        if (!$validationCheck['can_submit']) {
+            return $this->errorResponse($validationCheck['message'], 422);
+        }
+
+        // VALIDASI 2: Karyawan harus sudah clock out
+        $absen = Absen::find($request->absen_id);
+        if (!$absen || !$absen->clock_out) {
+            return $this->errorResponse(
+                'Anda belum melakukan clock out. Silakan clock out terlebih dahulu sebelum mengajukan lembur.',
+                422
+            );
+        }
+
+        // VALIDASI 3: Cek apakah sudah ada pengajuan lembur untuk absen ini
+        $existingLembur = Lembur::where('absen_id', $request->absen_id)
+            ->whereIn('status', ['draft', 'submitted', 'approved', 'processed'])
+            ->exists();
+
+        if ($existingLembur) {
+            return $this->errorResponse(
+                'Sudah ada pengajuan lembur untuk absen ini',
+                422
+            );
+        }
+
         try {
-            // Upload foto jika ada
+            // Upload photo
             $photoPath = null;
             if ($request->hasFile('bukti_foto')) {
                 $photo = $request->file('bukti_foto');
@@ -178,7 +199,7 @@ class LemburController extends BaseApiController
 
             return $this->createdResponse([
                 'lembur' => $lembur->fresh(),
-                'message_hint' => 'Lembur berhasil dibuat. Silakan submit untuk disetujui admin.'
+                'message_hint' => 'Lembur berhasil dibuat. Silakan submit untuk disetujui.'
             ], 'Lembur berhasil dibuat');
 
         } catch (\Exception $e) {
@@ -226,7 +247,7 @@ class LemburController extends BaseApiController
             if ($request->hasFile('bukti_foto')) {
                 // Delete old photo
                 if ($photoPath) {
-                    Storage::disk('s3')->delete($photoPath);
+                    Storage::disk('public')->delete($photoPath);
                 }
 
                 $photo = $request->file('bukti_foto');
@@ -287,7 +308,7 @@ class LemburController extends BaseApiController
 
             return $this->successResponse(
                 $lembur->fresh(),
-                'Lembur berhasil disubmit. Menunggu persetujuan admin.'
+                'Lembur berhasil disubmit. Menunggu persetujuan.'
             );
 
         } catch (\Exception $e) {
@@ -319,7 +340,7 @@ class LemburController extends BaseApiController
         try {
             // Delete foto if exists
             if ($lembur->bukti_foto) {
-                Storage::disk('s3')->delete($lembur->bukti_foto);
+                Storage::disk('public')->delete($lembur->bukti_foto);
             }
 
             $lembur->delete();
