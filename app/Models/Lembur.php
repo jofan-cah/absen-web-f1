@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class Lembur extends Model
 {
@@ -46,6 +47,24 @@ class Lembur extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
     ];
+
+     protected $appends = ['bukti_foto_url'];
+
+    public function getBuktiFotoUrlAttribute()
+    {
+        if ($this->bukti_foto) {
+            // Jika file-nya di S3 PRIVATE, buat URL sementara 1 jam
+            return Storage::disk('s3')->temporaryUrl(
+                $this->bukti_foto,
+                now()->addMinutes(60)
+            );
+
+            // ATAU jika bucket kamu PUBLIC, cukup:
+            // return Storage::disk('s3')->url($this->bukti_foto);
+        }
+
+        return null;
+    }
 
     // Relationships
     public function karyawan()
