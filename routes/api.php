@@ -100,15 +100,18 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
     });
 
     Route::prefix('lembur')->group(function () {
-        Route::get('/my-list', [LemburController::class, 'myList']); // List lembur karyawan
-        Route::get('/summary', [LemburController::class, 'summary']); // Summary lembur
-        Route::get('/{id}', [LemburController::class, 'show']); // Detail lembur
-        Route::post('/submit', [LemburController::class, 'store']); // Submit lembur baru
-        Route::put('/{id}', [LemburController::class, 'update']); // Update lembur
-        Route::delete('/{id}', [LemburController::class, 'destroy']); // Delete lembur
-        Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']); // Submit untuk approval
-    });
+        Route::get('/my-list', [LemburController::class, 'myList']);
+        Route::get('/summary', [LemburController::class, 'summary']);
+        Route::get('/{id}', [LemburController::class, 'show']);
 
+        // PILIH SALAH SATU (atau support keduanya):
+        // Route::post('/submit', [LemburController::class, 'store']); // Versi lama (backward compatibility)
+        Route::post('/', [LemburController::class, 'store']); // Versi baru (REST standard)
+
+        Route::put('/{id}', [LemburController::class, 'update']);
+        Route::delete('/{id}', [LemburController::class, 'destroy']);
+        Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']);
+    });
     // ========================================
     // TUNJANGAN MANAGEMENT (NEW - BELUM ADA)
     // ========================================
@@ -156,7 +159,6 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::delete('/{id}', [IjinController::class, 'cancel'])
             ->name('ijin.cancel');
     });
-
 });
 
 // ============================================
