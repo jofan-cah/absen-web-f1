@@ -161,6 +161,7 @@
                     @endif
 
                     @if ($lembur->bukti_foto_url)
+                    <h1>{{$lembur->bukti_foto_url}}</h1>
                         <div class="border-t pt-4">
                             <p class="text-sm text-gray-500 mb-2">Bukti Foto</p>
                             <img src="{{ $lembur->bukti_foto_url }}" alt="Bukti Lembur"
