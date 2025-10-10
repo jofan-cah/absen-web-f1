@@ -106,12 +106,17 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data lembur tidak ditemukan');
         }
 
-        return $this->successResponse($lembur, 'Detail lembur berhasil diambil');
+        return $this->successResponse([
+            'lembur' => $lembur,
+            'can_edit' => $lembur->canEdit(),
+            'can_submit' => $lembur->canSubmit(),
+            'can_delete' => $lembur->status === 'draft',
+        ], 'Detail lembur berhasil diambil');
     }
 
     /**
-     * Create lembur baru
-     * POST /api/lembur
+     * Create lembur baru - TANPA kategori & multiplier
+     * POST /api/lembur/submit
      */
     public function store(Request $request)
     {
@@ -127,7 +132,6 @@ class LemburController extends BaseApiController
             'tanggal_lembur' => 'required|date',
             'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i',
-            'kategori_lembur' => 'required|in:reguler,hari_libur,hari_besar',
             'deskripsi_pekerjaan' => 'required|string|max:500',
             'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
@@ -173,14 +177,7 @@ class LemburController extends BaseApiController
                 $photoPath = $photo->storeAs('lembur_photos', $filename, 'public');
             }
 
-            // Set multiplier berdasarkan kategori
-            $multiplier = match($request->kategori_lembur) {
-                'hari_libur' => 2.0,
-                'hari_besar' => 2.5,
-                default => 1.5,
-            };
-
-            // Create lembur
+            // Create lembur - TANPA kategori_lembur & multiplier
             $lembur = Lembur::create([
                 'lembur_id' => Lembur::generateLemburId(),
                 'karyawan_id' => $karyawan->karyawan_id,
@@ -188,8 +185,6 @@ class LemburController extends BaseApiController
                 'tanggal_lembur' => $request->tanggal_lembur,
                 'jam_mulai' => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
-                'kategori_lembur' => $request->kategori_lembur,
-                'multiplier' => $multiplier,
                 'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
                 'bukti_foto' => $photoPath,
                 'status' => 'draft',
@@ -232,7 +227,6 @@ class LemburController extends BaseApiController
             'tanggal_lembur' => 'required|date',
             'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i',
-            'kategori_lembur' => 'required|in:reguler,hari_libur,hari_besar',
             'deskripsi_pekerjaan' => 'required|string|max:500',
             'bukti_foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
@@ -255,19 +249,10 @@ class LemburController extends BaseApiController
                 $photoPath = $photo->storeAs('lembur_photos', $filename, 'public');
             }
 
-            // Update multiplier jika kategori berubah
-            $multiplier = match($request->kategori_lembur) {
-                'hari_libur' => 2.0,
-                'hari_besar' => 2.5,
-                default => 1.5,
-            };
-
             $lembur->update([
                 'tanggal_lembur' => $request->tanggal_lembur,
                 'jam_mulai' => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
-                'kategori_lembur' => $request->kategori_lembur,
-                'multiplier' => $multiplier,
                 'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
                 'bukti_foto' => $photoPath,
             ]);
@@ -381,11 +366,6 @@ class LemburController extends BaseApiController
             'rejected' => $lemburs->where('status', 'rejected')->count(),
             'processed' => $lemburs->where('status', 'processed')->count(),
             'total_jam_approved' => $lemburs->whereIn('status', ['approved', 'processed'])->sum('total_jam'),
-            'kategori' => [
-                'reguler' => $lemburs->where('kategori_lembur', 'reguler')->count(),
-                'hari_libur' => $lemburs->where('kategori_lembur', 'hari_libur')->count(),
-                'hari_besar' => $lemburs->where('kategori_lembur', 'hari_besar')->count(),
-            ]
         ];
 
         return $this->successResponse([

@@ -23,8 +23,6 @@ class Lembur extends Model
         'jam_mulai',
         'jam_selesai',
         'total_jam',
-        'kategori_lembur',
-        'multiplier',
         'deskripsi_pekerjaan',
         'bukti_foto',
         'status',
@@ -38,13 +36,12 @@ class Lembur extends Model
         'rejection_reason',
         'tunjangan_karyawan_id',
         'created_by_user_id',
-        'coordinator_id', // TAMBAHAN BARU
+        'coordinator_id',
     ];
 
     protected $casts = [
         'tanggal_lembur' => 'datetime:Y-m-d',
         'total_jam' => 'decimal:2',
-        'multiplier' => 'decimal:2',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -81,7 +78,6 @@ class Lembur extends Model
         return $this->belongsTo(TunjanganKaryawan::class, 'tunjangan_karyawan_id', 'tunjangan_karyawan_id');
     }
 
-    // TAMBAHAN BARU: Relationship coordinator
     public function coordinator()
     {
         return $this->belongsTo(Karyawan::class, 'coordinator_id', 'karyawan_id');
@@ -118,15 +114,6 @@ class Lembur extends Model
 
                 $lembur->total_jam = $selesai->diffInHours($mulai, true);
             }
-
-            // Set multiplier berdasarkan kategori jika belum ada
-            if (!$lembur->multiplier) {
-                $lembur->multiplier = match($lembur->kategori_lembur) {
-                    'hari_libur' => 2.0,
-                    'hari_besar' => 2.5,
-                    default => 1.5,
-                };
-            }
         });
     }
 
@@ -152,7 +139,7 @@ class Lembur extends Model
             return false;
         }
 
-        // VALIDASI BARU: Karyawan harus sudah clock out
+        // VALIDASI: Karyawan harus sudah clock out
         if (!$this->hasClockOut()) {
             throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
         }
@@ -186,7 +173,7 @@ class Lembur extends Model
         return true;
     }
 
-    // METODE BARU: Cek apakah sudah clock out
+    // Cek apakah sudah clock out
     public function hasClockOut()
     {
         if (!$this->absen) {
@@ -196,7 +183,7 @@ class Lembur extends Model
         return !is_null($this->absen->clock_out);
     }
 
-    // METODE BARU: Validasi waktu pengajuan lembur
+    // Validasi waktu pengajuan lembur
     public static function canSubmitLembur($absenId)
     {
         $absen = Absen::with('jadwal.shift')->find($absenId);
@@ -226,7 +213,7 @@ class Lembur extends Model
         return ['can_submit' => true];
     }
 
-    // UBAH TOTAL: Generate tunjangan dengan FLAT AMOUNT (bukan per jam)
+    // Generate tunjangan FLAT (20k/15k) tanpa kategori & multiplier
     public function generateTunjangan()
     {
         if ($this->status !== 'approved' || $this->tunjangan_karyawan_id) {
@@ -240,15 +227,16 @@ class Lembur extends Model
             return false;
         }
 
-        // PERUBAHAN: Ambil FLAT amount dari TunjanganDetail berdasarkan staff_status
-        // 20k untuk karyawan/koordinator, 15k untuk pkwtt
+        // Ambil FLAT amount dari TunjanganDetail berdasarkan staff_status
+        // 20k untuk karyawan/koordinator/wakil_koordinator
+        // 15k untuk pkwtt
         $flatAmount = TunjanganDetail::getAmountByStaffStatus(
             $tunjanganType->tunjangan_type_id,
             $karyawan->staff_status
         );
 
-        // PERUBAHAN: Tidak ada multiplier, tidak ada perhitungan per jam
-        // Langsung FLAT: 1 lembur = 1 tunjangan (20k atau 15k)
+        // FLAT: 1 lembur = 1 tunjangan (20k atau 15k)
+        // TIDAK ADA kategori, TIDAK ADA multiplier
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
@@ -257,13 +245,13 @@ class Lembur extends Model
             'lembur_id' => $this->lembur_id,
             'period_start' => $this->tanggal_lembur,
             'period_end' => $this->tanggal_lembur,
-            'amount' => $flatAmount, // FLAT 20k atau 15k
-            'quantity' => 1, // SELALU 1 (bukan jam)
-            'total_amount' => $flatAmount, // amount × 1
+            'amount' => $flatAmount,
+            'quantity' => 1,
+            'total_amount' => $flatAmount,
             'status' => 'pending',
-            'notes' => "Lembur {$this->kategori_lembur} - {$this->total_jam} jam pada " .
+            'notes' => "Tunjangan lembur - {$this->total_jam} jam pada " .
                       $this->tanggal_lembur->format('d-m-Y') .
-                      " (Tunjangan flat Rp " . number_format($flatAmount, 0, ',', '.') . ")",
+                      " (Rp " . number_format($flatAmount, 0, ',', '.') . ")",
         ]);
 
         $this->update([
