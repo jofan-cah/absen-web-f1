@@ -213,7 +213,10 @@ class Lembur extends Model
         return ['can_submit' => true];
     }
 
-    // Generate tunjangan FLAT (20k/15k) tanpa kategori & multiplier
+    // Generate tunjangan berdasarkan jam lembur
+    // 0-3.99 jam = 1x uang makan
+    // 4-7.99 jam = 2x uang makan
+    // ≥ 8 jam = 2x uang makan (maksimal)
     public function generateTunjangan()
     {
         if ($this->status !== 'approved' || $this->tunjangan_karyawan_id) {
@@ -227,16 +230,25 @@ class Lembur extends Model
             return false;
         }
 
-        // Ambil FLAT amount dari TunjanganDetail berdasarkan staff_status
+        // Ambil amount per satuan dari TunjanganDetail berdasarkan staff_status
         // 20k untuk karyawan/koordinator/wakil_koordinator
         // 15k untuk pkwtt
-        $flatAmount = TunjanganDetail::getAmountByStaffStatus(
+        $amountPerUnit = TunjanganDetail::getAmountByStaffStatus(
             $tunjanganType->tunjangan_type_id,
             $karyawan->staff_status
         );
 
-        // FLAT: 1 lembur = 1 tunjangan (20k atau 15k)
-        // TIDAK ADA kategori, TIDAK ADA multiplier
+        // HITUNG QUANTITY BERDASARKAN TOTAL JAM
+        $totalJam = $this->total_jam;
+
+        if ($totalJam >= 4) {
+            $quantity = 2; // 2x uang makan (4 jam ke atas)
+        } else {
+            $quantity = 1; // 1x uang makan (0-3.99 jam)
+        }
+
+        $totalAmount = $amountPerUnit * $quantity;
+
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
@@ -245,13 +257,13 @@ class Lembur extends Model
             'lembur_id' => $this->lembur_id,
             'period_start' => $this->tanggal_lembur,
             'period_end' => $this->tanggal_lembur,
-            'amount' => $flatAmount,
-            'quantity' => 1,
-            'total_amount' => $flatAmount,
+            'amount' => $amountPerUnit, // 20k atau 15k per unit
+            'quantity' => $quantity, // 1x atau 2x
+            'total_amount' => $totalAmount, // 20k/15k atau 40k/30k
             'status' => 'pending',
             'notes' => "Tunjangan lembur - {$this->total_jam} jam pada " .
                       $this->tanggal_lembur->format('d-m-Y') .
-                      " (Rp " . number_format($flatAmount, 0, ',', '.') . ")",
+                      " ({$quantity}x uang makan = Rp " . number_format($totalAmount, 0, ',', '.') . ")",
         ]);
 
         $this->update([
