@@ -48,7 +48,7 @@ class Lembur extends Model
         'rejected_at' => 'datetime',
     ];
 
-     protected $appends = ['bukti_foto_url'];
+
 
     public function getBuktiFotoUrlAttribute()
     {
