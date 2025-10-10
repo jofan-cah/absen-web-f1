@@ -39,12 +39,12 @@ class LemburController extends BaseApiController
 
         if ($month && $year) {
             $query->whereYear('tanggal_lembur', $year)
-                  ->whereMonth('tanggal_lembur', $month);
+                ->whereMonth('tanggal_lembur', $month);
         }
 
         $lemburs = $query->orderBy('tanggal_lembur', 'desc')
-                        ->orderBy('created_at', 'desc')
-                        ->paginate($perPage);
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
         $summary = [
             'total' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
@@ -173,9 +173,12 @@ class LemburController extends BaseApiController
             $photoPath = null;
             if ($request->hasFile('bukti_foto')) {
                 $photo = $request->file('bukti_foto');
-                $filename = 'lembur_' . $karyawan->karyawan_id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-                $photoPath = $photo->storeAs('lembur_photos', $filename, 'public');
+                $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+
+                // Simpan ke S3
+                $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
             }
+
 
             // Create lembur - TANPA kategori_lembur & multiplier
             $lembur = Lembur::create([
@@ -196,7 +199,6 @@ class LemburController extends BaseApiController
                 'lembur' => $lembur->fresh(),
                 'message_hint' => 'Lembur berhasil dibuat. Silakan submit untuk disetujui.'
             ], 'Lembur berhasil dibuat');
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal menyimpan data lembur: ' . $e->getMessage());
         }
@@ -261,7 +263,6 @@ class LemburController extends BaseApiController
                 $lembur->fresh(),
                 'Lembur berhasil diupdate'
             );
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal update lembur: ' . $e->getMessage());
         }
@@ -295,7 +296,6 @@ class LemburController extends BaseApiController
                 $lembur->fresh(),
                 'Lembur berhasil disubmit. Menunggu persetujuan.'
             );
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal submit lembur: ' . $e->getMessage());
         }
@@ -331,7 +331,6 @@ class LemburController extends BaseApiController
             $lembur->delete();
 
             return $this->successResponse(null, 'Lembur berhasil dihapus');
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal menghapus lembur: ' . $e->getMessage());
         }
