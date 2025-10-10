@@ -105,8 +105,8 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::get('/{id}', [LemburController::class, 'show']);
 
         // PILIH SALAH SATU (atau support keduanya):
-        // Route::post('/submit', [LemburController::class, 'store']); // Versi lama (backward compatibility)
-        Route::post('/', [LemburController::class, 'store']); // Versi baru (REST standard)
+        Route::post('/submit', [LemburController::class, 'store']); // Versi lama (backward compatibility)
+        // Route::post('/', [LemburController::class, 'store']); // Versi baru (REST standard)
 
         Route::put('/{id}', [LemburController::class, 'update']);
         Route::delete('/{id}', [LemburController::class, 'destroy']);
