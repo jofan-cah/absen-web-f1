@@ -22,7 +22,15 @@ class LemburController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Lembur::with(['karyawan.user', 'karyawan.department', 'absen', 'approvedBy', 'rejectedBy', 'tunjanganKaryawan', 'coordinator']);
+        $query = Lembur::with([
+            'karyawan.user',
+            'karyawan.department',
+            'absen',
+            'approvedBy',
+            'rejectedBy',
+            'tunjanganKaryawan',
+            'coordinator'
+        ]);
 
         // Filter by karyawan
         if ($request->filled('karyawan_id')) {
@@ -34,9 +42,9 @@ class LemburController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter by kategori
-        if ($request->filled('kategori_lembur')) {
-            $query->where('kategori_lembur', $request->kategori_lembur);
+        // 🆕 Filter by koordinator_status
+        if ($request->filled('koordinator_status')) {
+            $query->where('koordinator_status', $request->koordinator_status);
         }
 
         // Filter by tanggal
@@ -59,12 +67,21 @@ class LemburController extends Controller
             ->get();
 
         $statusOptions = ['draft', 'submitted', 'approved', 'rejected', 'processed'];
-        $kategoriOptions = ['reguler', 'hari_libur', 'hari_besar'];
+        $koordinatorStatusOptions = ['pending', 'approved', 'rejected']; // 🆕
 
-        // Summary
+        // Summary dengan breakdown koordinator
         $summary = [
             'total' => Lembur::count(),
             'submitted' => Lembur::where('status', 'submitted')->count(),
+
+            // 🆕 Breakdown submitted
+            'pending_koordinator' => Lembur::where('status', 'submitted')
+                ->where('koordinator_status', 'pending')
+                ->count(),
+            'pending_admin' => Lembur::where('status', 'submitted')
+                ->where('koordinator_status', 'approved')
+                ->count(),
+
             'approved' => Lembur::where('status', 'approved')->count(),
             'rejected' => Lembur::where('status', 'rejected')->count(),
             'total_jam_bulan_ini' => Lembur::whereYear('tanggal_lembur', now()->year)
@@ -76,7 +93,7 @@ class LemburController extends Controller
             'lemburs',
             'karyawans',
             'statusOptions',
-            'kategoriOptions',
+            'koordinatorStatusOptions', // 🆕
             'summary'
         ));
     }
@@ -103,6 +120,10 @@ class LemburController extends Controller
     /**
      * Approve lembur - DENGAN LOGIC BARU (Koordinator untuk Tim Teknis, Admin untuk lainnya)
      */
+    /**
+     * Approve lembur - LEVEL 2 (Admin - FINAL)
+     * Generate tunjangan setelah admin approve
+     */
     public function approve(Lembur $lembur, Request $request)
     {
         $request->validate([
@@ -119,62 +140,46 @@ class LemburController extends Controller
         $user = Auth::user();
         $karyawan = $lembur->karyawan;
 
-        // LOGIC BARU: Cek department untuk approval
-        $isTimTeknis = $karyawan->department &&
-                       (stripos($karyawan->department->name, 'teknis') !== false ||
-                        stripos($karyawan->department->code, 'teknis') !== false);
-
-        $canApprove = false;
-        $approvalMessage = '';
-
-        if ($isTimTeknis) {
-            // TIM TEKNIS: Harus Koordinator dari department yang sama
-            if ($user->karyawan &&
-                $user->karyawan->department_id === $karyawan->department_id &&
-                in_array($user->karyawan->staff_status, ['koordinator', 'wakil_koordinator'])) {
-                $canApprove = true;
-                $approvalMessage = 'koordinator';
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lembur Tim Teknis hanya dapat diapprove oleh Koordinator departmentnya'
-                ], 403);
-            }
-        } else {
-            // SELAIN TIM TEKNIS: Admin
-            if ($user->role === 'admin') {
-                $canApprove = true;
-                $approvalMessage = 'admin';
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lembur hanya dapat diapprove oleh Admin'
-                ], 403);
-            }
+        // VALIDASI 1: User harus admin
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Admin yang dapat melakukan final approval'
+            ], 403);
         }
+
+        // VALIDASI 2: Koordinator harus sudah approve dulu
+        if ($lembur->koordinator_status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lembur belum diapprove oleh Koordinator. Status koordinator: ' . $lembur->koordinator_status
+            ], 422);
+        }
+
+        // INFO: Cek apakah Tim Teknis (untuk logging/info saja, tidak memblokir)
+        $isTimTeknis = $karyawan->department &&
+            (stripos($karyawan->department->name, 'teknis') !== false ||
+                stripos($karyawan->department->code, 'teknis') !== false ||
+                stripos($karyawan->department->name, 'Technical Support') !== false ||
+                stripos($karyawan->department->code, 'TECH') !== false);
 
         try {
             DB::beginTransaction();
 
-            $result = $lembur->approve(Auth::id(), $request->notes);
+            // Approve oleh admin (LEVEL 2 - FINAL + GENERATE TUNJANGAN)
+            $result = $lembur->approveByAdmin($user->user_id, $request->notes);
 
             if (!$result) {
                 throw new \Exception('Gagal menyetujui lembur');
-            }
-
-            // Simpan coordinator_id jika yang approve adalah koordinator
-            if ($approvalMessage === 'koordinator' && $user->karyawan) {
-                $lembur->update(['coordinator_id' => $user->karyawan->karyawan_id]);
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lembur berhasil disetujui dan tunjangan telah dibuat!',
+                'message' => 'Lembur berhasil disetujui oleh Admin dan tunjangan telah dibuat!',
                 'tunjangan_id' => $lembur->tunjangan_karyawan_id
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -186,6 +191,10 @@ class LemburController extends Controller
 
     /**
      * Reject lembur
+     */
+    /**
+     * Reject lembur - LEVEL 2 (Admin)
+     * Admin bisa reject walau koordinator sudah approve
      */
     public function reject(Lembur $lembur, Request $request)
     {
@@ -200,10 +209,21 @@ class LemburController extends Controller
             ], 422);
         }
 
+        $user = Auth::user();
+
+        // VALIDASI: User harus admin
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Admin yang dapat reject lembur'
+            ], 403);
+        }
+
         try {
             DB::beginTransaction();
 
-            $result = $lembur->reject(Auth::id(), $request->rejection_reason);
+            // Reject oleh admin (LEVEL 2)
+            $result = $lembur->rejectByAdmin($user->user_id, $request->rejection_reason);
 
             if (!$result) {
                 throw new \Exception('Gagal menolak lembur');
@@ -213,9 +233,8 @@ class LemburController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lembur berhasil ditolak'
+                'message' => 'Lembur berhasil ditolak oleh Admin'
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -227,6 +246,10 @@ class LemburController extends Controller
 
     /**
      * Bulk approve - DENGAN LOGIC VALIDASI PERMISSION BARU
+     */
+    /**
+     * Bulk approve - LEVEL 2 (Admin)
+     * Hanya approve yang sudah di-approve koordinator
      */
     public function bulkApprove(Request $request)
     {
@@ -240,6 +263,15 @@ class LemburController extends Controller
             DB::beginTransaction();
 
             $user = Auth::user();
+
+            // Validasi: User harus admin
+            if ($user->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya Admin yang dapat melakukan bulk approve'
+                ], 403);
+            }
+
             $approved = 0;
             $errors = [];
 
@@ -252,41 +284,16 @@ class LemburController extends Controller
                         continue;
                     }
 
-                    // Cek permission berdasarkan department
-                    $karyawan = $lembur->karyawan;
-                    $isTimTeknis = $karyawan->department &&
-                                   (stripos($karyawan->department->name, 'teknis') !== false ||
-                                    stripos($karyawan->department->code, 'teknis') !== false);
-
-                    $canApprove = false;
-                    $approvalType = '';
-
-                    if ($isTimTeknis) {
-                        if ($user->karyawan &&
-                            $user->karyawan->department_id === $karyawan->department_id &&
-                            in_array($user->karyawan->staff_status, ['koordinator', 'wakil_koordinator'])) {
-                            $canApprove = true;
-                            $approvalType = 'koordinator';
-                        }
-                    } else {
-                        if ($user->role === 'admin') {
-                            $canApprove = true;
-                            $approvalType = 'admin';
-                        }
-                    }
-
-                    if (!$canApprove) {
-                        $errors[] = "{$lembur->karyawan->full_name} - Tidak ada permission";
+                    // VALIDASI: Koordinator harus sudah approve
+                    if ($lembur->koordinator_status !== 'approved') {
+                        $errors[] = "{$lembur->karyawan->full_name} - Belum diapprove koordinator";
                         continue;
                     }
 
-                    $result = $lembur->approve(Auth::id(), $request->notes);
+                    // Approve oleh admin (LEVEL 2)
+                    $result = $lembur->approveByAdmin($user->user_id, $request->notes);
 
                     if ($result) {
-                        // Simpan coordinator_id jika koordinator yang approve
-                        if ($approvalType === 'koordinator' && $user->karyawan) {
-                            $lembur->update(['coordinator_id' => $user->karyawan->karyawan_id]);
-                        }
                         $approved++;
                     }
                 } catch (\Exception $e) {
@@ -296,16 +303,17 @@ class LemburController extends Controller
 
             DB::commit();
 
-            $message = "{$approved} lembur berhasil disetujui";
+            $message = "{$approved} lembur berhasil disetujui oleh Admin";
             if (!empty($errors)) {
-                $message .= ". Error: " . implode(', ', array_slice($errors, 0, 3));
+                $message .= ". Error: " . implode(', ', $errors);
             }
 
             return response()->json([
-                'success' => $approved > 0,
-                'message' => $message
+                'success' => true,
+                'message' => $message,
+                'approved_count' => $approved,
+                'error_count' => count($errors)
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -351,7 +359,6 @@ class LemburController extends Controller
                 'success' => true,
                 'message' => count($request->ids) . ' data lembur berhasil dihapus!'
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -414,7 +421,6 @@ class LemburController extends Controller
                 'success' => true,
                 'message' => "{$generated} tunjangan berhasil di-generate untuk periode {$weekStart->format('d/m/Y')} - {$weekEnd->format('d/m/Y')}"
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -504,7 +510,7 @@ class LemburController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($lemburs) {
+        $callback = function () use ($lemburs) {
             $file = fopen('php://output', 'w');
 
             fputcsv($file, [

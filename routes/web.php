@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\TunjanganDetailController;
 use App\Http\Controllers\Admin\TunjanganKaryawanController;
 use App\Http\Controllers\Admin\TunjanganTypeController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Koordinator\LemburKoorController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to admin login
@@ -52,6 +53,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/jadwal/{jadwal}', [JadwalController::class, 'update'])->name('jadwal.update');
             Route::delete('/jadwal/{jadwal}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
         });
+
+
 
         // Routes yang HANYA bisa diakses ADMIN
         Route::middleware(['role:admin'])->group(function () {
@@ -154,7 +157,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::get('/report/analytics', [LemburController::class, 'report'])->name('report');
                 Route::get('/export/data', [LemburController::class, 'export'])->name('export');
             });
-
         }); // End Admin only routes
 
         // Ijin Type Management - Admin only
@@ -195,7 +197,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::post('/{ijin}/admin/review', [IjinController::class, 'adminReview'])
                     ->name('admin-review');
             });
-
         });
     }); // End authenticated routes
+});
+Route::middleware(['auth', 'role:koordinator'])->prefix('koordinator')->name('koordinator.')->group(function () {
+
+    // Lembur Management untuk Koordinator
+    Route::prefix('lembur')->name('lembur.')->group(function () {
+        Route::get('/', [LemburKoorController::class, 'index'])->name('index');
+        Route::get('/{lembur}', [LemburKoorController::class, 'show'])->name('show');
+        Route::post('/{lembur}/approve', [LemburKoorController::class, 'approve'])->name('approve');
+        Route::post('/{lembur}/reject', [LemburKoorController::class, 'reject'])->name('reject');
+    });
 });

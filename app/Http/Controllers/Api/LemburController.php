@@ -30,7 +30,7 @@ class LemburController extends BaseApiController
         $year = $request->get('year', now()->year);
         $perPage = $this->getPerPage($request);
 
-        $query = Lembur::with(['absen.jadwal.shift'])
+        $query = Lembur::with(['absen.jadwal.shift', 'coordinator'])
             ->where('karyawan_id', $karyawan->karyawan_id);
 
         if ($status) {
@@ -39,43 +39,26 @@ class LemburController extends BaseApiController
 
         if ($month && $year) {
             $query->whereYear('tanggal_lembur', $year)
-                  ->whereMonth('tanggal_lembur', $month);
+                ->whereMonth('tanggal_lembur', $month);
         }
 
         $lemburs = $query->orderBy('tanggal_lembur', 'desc')
-                        ->orderBy('created_at', 'desc')
-                        ->paginate($perPage);
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
+        $baseQuery = Lembur::where('karyawan_id', $karyawan->karyawan_id)
+            ->whereYear('tanggal_lembur', $year)
+            ->whereMonth('tanggal_lembur', $month);
 
         $summary = [
-            'total' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->count(),
-            'draft' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->where('status', 'draft')
-                ->count(),
-            'submitted' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->where('status', 'submitted')
-                ->count(),
-            'approved' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->where('status', 'approved')
-                ->count(),
-            'rejected' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->where('status', 'rejected')
-                ->count(),
-            'total_jam' => Lembur::where('karyawan_id', $karyawan->karyawan_id)
-                ->whereYear('tanggal_lembur', $year)
-                ->whereMonth('tanggal_lembur', $month)
-                ->approved()
-                ->sum('total_jam'),
+            'total' => (clone $baseQuery)->count(),
+            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
+            'submitted' => (clone $baseQuery)->where('status', 'submitted')->count(),
+            'pending_koordinator' => (clone $baseQuery)->where('status', 'submitted')->where('koordinator_status', 'pending')->count(),
+            'pending_admin' => (clone $baseQuery)->where('status', 'submitted')->where('koordinator_status', 'approved')->count(),
+            'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
+            'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
+            'total_jam' => (clone $baseQuery)->approved()->sum('total_jam'),
         ];
 
         return $this->paginatedResponse($lemburs, 'Data lembur berhasil diambil', [
@@ -97,7 +80,13 @@ class LemburController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
 
-        $lembur = Lembur::with(['absen.jadwal.shift', 'tunjanganKaryawan', 'approvedBy', 'rejectedBy'])
+        $lembur = Lembur::with([
+            'absen.jadwal.shift',
+            'tunjanganKaryawan',
+            'approvedBy',
+            'rejectedBy',
+            'coordinator'
+        ])
             ->where('lembur_id', $id)
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->first();
@@ -111,14 +100,29 @@ class LemburController extends BaseApiController
             'can_edit' => $lembur->canEdit(),
             'can_submit' => $lembur->canSubmit(),
             'can_delete' => $lembur->status === 'draft',
+            'can_finish' => $lembur->status === 'draft' && $lembur->started_at && !$lembur->completed_at,
+            'is_in_progress' => $lembur->started_at && !$lembur->completed_at,
+            'koordinator_status' => $lembur->koordinator_status,
+            'koordinator_info' => $lembur->coordinator ? [
+                'name' => $lembur->coordinator->full_name ?? $lembur->coordinator->user->name ?? null,
+                'approved_at' => $lembur->koordinator_approved_at?->format('Y-m-d H:i:s'),
+                'notes' => $lembur->koordinator_notes,
+            ] : null,
+            'tracking' => [
+                'started_at' => $lembur->started_at?->format('Y-m-d H:i:s'),
+                'completed_at' => $lembur->completed_at?->format('Y-m-d H:i:s'),
+                'duration_minutes' => $lembur->started_at && $lembur->completed_at
+                    ? $lembur->started_at->diffInMinutes($lembur->completed_at)
+                    : null,
+            ],
         ], 'Detail lembur berhasil diambil');
     }
 
     /**
-     * Create lembur baru - TANPA kategori & multiplier
-     * POST /api/lembur/submit
+     * 🆕 Mulai lembur - buat draft dengan started_at
+     * POST /api/lembur/start
      */
-    public function store(Request $request)
+    public function start(Request $request)
     {
         $user = $request->user();
         $karyawan = $user->karyawan;
@@ -129,37 +133,32 @@ class LemburController extends BaseApiController
 
         $validator = Validator::make($request->all(), [
             'absen_id' => 'required|exists:absens,absen_id',
-            'tanggal_lembur' => 'required|date',
-            'jam_mulai' => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i',
-            'deskripsi_pekerjaan' => 'required|string|max:500',
-            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
         }
 
-        // VALIDASI 1: Cek waktu pengajuan (max 1 jam dari habis shift)
-        $validationCheck = Lembur::canSubmitLembur($request->absen_id);
+        // Get absen data
+        $absen = Absen::with('jadwal.shift')->find($request->absen_id);
 
-        if (!$validationCheck['can_submit']) {
-            return $this->errorResponse($validationCheck['message'], 422);
-        }
-
-        // VALIDASI 2: Karyawan harus sudah clock out
-        $absen = Absen::find($request->absen_id);
+        // VALIDASI 1: Karyawan harus sudah clock out
         if (!$absen || !$absen->clock_out) {
             return $this->errorResponse(
-                'Anda belum melakukan clock out. Silakan clock out terlebih dahulu sebelum mengajukan lembur.',
+                'Anda belum melakukan clock out. Silakan clock out terlebih dahulu sebelum memulai lembur.',
                 422
             );
+        }
+
+        // VALIDASI 2: Absen harus milik karyawan yang login
+        if ($absen->karyawan_id !== $karyawan->karyawan_id) {
+            return $this->forbiddenResponse('Absensi bukan milik Anda');
         }
 
         // VALIDASI 3: Cek apakah sudah ada pengajuan lembur untuk absen ini
         $existingLembur = Lembur::where('absen_id', $request->absen_id)
             ->whereIn('status', ['draft', 'submitted', 'approved', 'processed'])
-            ->exists();
+            ->first();
 
         if ($existingLembur) {
             return $this->errorResponse(
@@ -168,39 +167,281 @@ class LemburController extends BaseApiController
             );
         }
 
-        try {
-            // Upload photo
-            $photoPath = null;
-            if ($request->hasFile('bukti_foto')) {
-                $photo = $request->file('bukti_foto');
-                $filename = 'lembur_' . $karyawan->karyawan_id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-                $photoPath = $photo->storeAs('lembur_photos', $filename, 'public');
-            }
+        // Get shift end time
+        if (!$absen->jadwal || !$absen->jadwal->shift) {
+            return $this->errorResponse('Data jadwal shift tidak ditemukan', 404);
+        }
 
-            // Create lembur - TANPA kategori_lembur & multiplier
+        $shiftEnd = $absen->jadwal->shift->end_time;
+
+        // ✅ VALIDASI +1 JAM HANYA PAS START (cek waktu pengajuan)
+        $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+        $maxStartTime = $shiftEndCarbon->copy()->addHour(); // Maksimal 1 jam dari shift end
+        $now = Carbon::now();
+
+        // Cek apakah pengajuan masih dalam waktu +1 jam dari shift end
+        $tanggalAbsen = Carbon::parse($absen->date);
+        $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
+
+        if ($now->greaterThan($maxStartDateTime)) {
+            return $this->errorResponse(
+                "Waktu pengajuan lembur sudah melewati batas maksimal (shift end + 1 jam). Batas: {$maxStartDateTime->format('d/m/Y H:i')}",
+                422
+            );
+        }
+
+        try {
+            // Create lembur draft dengan started_at
             $lembur = Lembur::create([
                 'lembur_id' => Lembur::generateLemburId(),
                 'karyawan_id' => $karyawan->karyawan_id,
                 'absen_id' => $request->absen_id,
-                'tanggal_lembur' => $request->tanggal_lembur,
-                'jam_mulai' => $request->jam_mulai,
-                'jam_selesai' => $request->jam_selesai,
-                'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
-                'bukti_foto' => $photoPath,
+                'tanggal_lembur' => $absen->date->format('Y-m-d'),
+                'jam_mulai' => $shiftEnd, // Otomatis dari shift_end
+                'jam_selesai' => null, // Belum diisi
+                'deskripsi_pekerjaan' => null,
+                'bukti_foto' => null,
                 'status' => 'draft',
+                'koordinator_status' => 'pending',
                 'submitted_via' => 'mobile',
+                'started_at' => now(), // Timestamp mulai
+                'completed_at' => null, // Belum selesai
                 'created_by_user_id' => $user->user_id,
             ]);
 
             return $this->createdResponse([
-                'lembur' => $lembur->fresh(),
-                'message_hint' => 'Lembur berhasil dibuat. Silakan submit untuk disetujui.'
-            ], 'Lembur berhasil dibuat');
-
+                'lembur' => $lembur->fresh(['absen.jadwal.shift']),
+                'shift_info' => [
+                    'shift_name' => $absen->jadwal->shift->name,
+                    'shift_end' => substr($shiftEnd, 0, 5),
+                ],
+                'message_hint' => 'Lembur dimulai. Klik "Selesai Lembur" setelah pekerjaan selesai.'
+            ], 'Lembur berhasil dimulai');
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal menyimpan data lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal memulai lembur: ' . $e->getMessage());
         }
     }
+
+    /**
+     * 🆕 Selesai lembur - update jam selesai, deskripsi, dan bukti foto
+     * POST /api/lembur/{id}/finish
+     *
+     * ✅ TIDAK ADA VALIDASI +1 JAM - Fleksibel input jam selesai kapan saja
+     */
+    public function finish(Request $request, $id)
+    {
+        $user = $request->user();
+        $karyawan = $user->karyawan;
+
+        $lembur = Lembur::with('absen.jadwal.shift')
+            ->where('lembur_id', $id)
+            ->where('karyawan_id', $karyawan->karyawan_id)
+            ->first();
+
+        if (!$lembur) {
+            return $this->notFoundResponse('Data lembur tidak ditemukan');
+        }
+
+        // VALIDASI 1: Harus status draft
+        if ($lembur->status !== 'draft') {
+            return $this->forbiddenResponse('Hanya lembur dengan status draft yang dapat diselesaikan');
+        }
+
+        // VALIDASI 2: Harus sudah started
+        if (!$lembur->started_at) {
+            return $this->errorResponse('Lembur belum dimulai', 422);
+        }
+
+        // VALIDASI 3: Belum completed
+        if ($lembur->completed_at) {
+            return $this->errorResponse('Lembur sudah diselesaikan sebelumnya', 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'jam_selesai' => 'nullable|date_format:H:i', // Optional, default NOW
+            'deskripsi_pekerjaan' => 'required|string|max:500',
+            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        try {
+            // Get shift info
+            if (!$lembur->absen->jadwal || !$lembur->absen->jadwal->shift) {
+                return $this->errorResponse('Data jadwal shift tidak ditemukan', 404);
+            }
+
+            $shiftEnd = $lembur->absen->jadwal->shift->end_time;
+            $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+
+            // Jam selesai: dari input atau NOW
+            if ($request->filled('jam_selesai')) {
+                $jamSelesai = $request->jam_selesai;
+            } else {
+                // Default: gunakan waktu sekarang
+                $jamSelesai = now()->format('H:i');
+            }
+
+            $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $jamSelesai);
+
+            // ✅ VALIDASI MINIMAL: Jam selesai harus lebih besar dari shift end
+            if ($jamSelesaiCarbon->lessThanOrEqualTo($shiftEndCarbon)) {
+                return $this->errorResponse(
+                    "Jam selesai lembur harus lebih dari jam shift berakhir (" . substr($shiftEnd, 0, 5) . ")",
+                    422
+                );
+            }
+
+            // ❌ TIDAK ADA VALIDASI +1 JAM - Karyawan bebas input jam selesai kapan saja
+
+            // Upload bukti foto
+            $photoPath = null;
+            if ($request->hasFile('bukti_foto')) {
+                $photo = $request->file('bukti_foto');
+                $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+                $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
+            }
+
+            // Update lembur
+            $lembur->update([
+                'jam_selesai' => $jamSelesai . ':00',
+                'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
+                'bukti_foto' => $photoPath,
+                'completed_at' => now(), // Timestamp selesai
+            ]);
+
+            return $this->successResponse([
+                'lembur' => $lembur->fresh(['absen.jadwal.shift']),
+                'duration_info' => [
+                    'started_at' => $lembur->started_at->format('H:i'),
+                    'completed_at' => $lembur->completed_at->format('H:i'),
+                    'duration_minutes' => $lembur->started_at->diffInMinutes($lembur->completed_at),
+                    'duration_hours' => round($lembur->started_at->diffInMinutes($lembur->completed_at) / 60, 2),
+                ],
+                'message_hint' => 'Lembur selesai. Silakan submit untuk approval.'
+            ], 'Lembur berhasil diselesaikan');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('Gagal menyelesaikan lembur: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create lembur baru - VERSI LAMA (backward compatibility)
+     * POST /api/lembur/submit
+     */
+    // public function store(Request $request)
+    // {
+    //     $user = $request->user();
+    //     $karyawan = $user->karyawan;
+
+    //     if (!$karyawan) {
+    //         return $this->notFoundResponse('Data karyawan tidak ditemukan');
+    //     }
+
+    //     $validator = Validator::make($request->all(), [
+    //         'absen_id' => 'required|exists:absens,absen_id',
+    //         'tanggal_lembur' => 'required|date',
+    //         'jam_selesai' => 'required|date_format:H:i',
+    //         'deskripsi_pekerjaan' => 'required|string|max:500',
+    //         'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return $this->validationErrorResponse($validator->errors());
+    //     }
+
+    //     // VALIDASI 1: Karyawan harus sudah clock out
+    //     $absen = Absen::with('jadwal.shift')->find($request->absen_id);
+    //     if (!$absen || !$absen->clock_out) {
+    //         return $this->errorResponse(
+    //             'Anda belum melakukan clock out. Silakan clock out terlebih dahulu sebelum mengajukan lembur.',
+    //             422
+    //         );
+    //     }
+
+    //     // VALIDASI 2: Cek apakah sudah ada pengajuan lembur untuk absen ini
+    //     $existingLembur = Lembur::where('absen_id', $request->absen_id)
+    //         ->whereIn('status', ['draft', 'submitted', 'approved', 'processed'])
+    //         ->exists();
+
+    //     if ($existingLembur) {
+    //         return $this->errorResponse(
+    //             'Sudah ada pengajuan lembur untuk absen ini',
+    //             422
+    //         );
+    //     }
+
+    //     // VALIDASI 3: Get shift end time
+    //     if (!$absen->jadwal || !$absen->jadwal->shift) {
+    //         return $this->errorResponse('Data jadwal shift tidak ditemukan', 404);
+    //     }
+
+    //     $shiftEnd = $absen->jadwal->shift->end_time;
+
+    //     // Jam mulai otomatis dari shift_end
+    //     $jamMulai = $shiftEnd;
+
+    //     // VALIDASI 4: Waktu pengajuan maksimal +1 jam dari shift end
+    //     $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+    //     $maxStartTime = $shiftEndCarbon->copy()->addHour();
+    //     $now = Carbon::now();
+
+    //     $tanggalAbsen = Carbon::parse($absen->date);
+    //     $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
+
+    //     if ($now->greaterThan($maxStartDateTime)) {
+    //         return $this->errorResponse(
+    //             "Waktu pengajuan lembur sudah melewati batas maksimal (shift end + 1 jam). Batas: {$maxStartDateTime->format('d/m/Y H:i')}",
+    //             422
+    //         );
+    //     }
+
+    //     // VALIDASI 5: Jam selesai harus lebih besar dari shift end
+    //     $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $request->jam_selesai);
+    //     if ($jamSelesaiCarbon->lessThanOrEqualTo($shiftEndCarbon)) {
+    //         return $this->errorResponse(
+    //             "Jam selesai lembur harus lebih dari jam shift berakhir (" . substr($shiftEnd, 0, 5) . ")",
+    //             422
+    //         );
+    //     }
+
+    //     try {
+    //         // Upload photo
+    //         $photoPath = null;
+    //         if ($request->hasFile('bukti_foto')) {
+    //             $photo = $request->file('bukti_foto');
+    //             $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+    //             $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
+    //         }
+
+    //         // Create lembur
+    //         $lembur = Lembur::create([
+    //             'lembur_id' => Lembur::generateLemburId(),
+    //             'karyawan_id' => $karyawan->karyawan_id,
+    //             'absen_id' => $request->absen_id,
+    //             'tanggal_lembur' => $request->tanggal_lembur,
+    //             'jam_mulai' => $jamMulai,
+    //             'jam_selesai' => $request->jam_selesai,
+    //             'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
+    //             'bukti_foto' => $photoPath,
+    //             'status' => 'draft',
+    //             'koordinator_status' => 'pending',
+    //             'submitted_via' => 'mobile',
+    //             'started_at' => now(), // Set started_at
+    //             'completed_at' => now(), // Set completed_at (langsung selesai)
+    //             'created_by_user_id' => $user->user_id,
+    //         ]);
+
+    //         return $this->createdResponse([
+    //             'lembur' => $lembur->fresh(['absen.jadwal.shift']),
+    //             'message_hint' => 'Lembur berhasil dibuat. Silakan submit untuk disetujui.'
+    //         ], 'Lembur berhasil dibuat');
+    //     } catch (\Exception $e) {
+    //         return $this->serverErrorResponse('Gagal menyimpan data lembur: ' . $e->getMessage());
+    //     }
+    // }
 
     /**
      * Update lembur (hanya draft atau rejected)
@@ -211,7 +452,8 @@ class LemburController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
 
-        $lembur = Lembur::where('lembur_id', $id)
+        $lembur = Lembur::with('absen.jadwal.shift')
+            ->where('lembur_id', $id)
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->first();
 
@@ -225,7 +467,6 @@ class LemburController extends BaseApiController
 
         $validator = Validator::make($request->all(), [
             'tanggal_lembur' => 'required|date',
-            'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i',
             'deskripsi_pekerjaan' => 'required|string|max:500',
             'bukti_foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -235,33 +476,47 @@ class LemburController extends BaseApiController
             return $this->validationErrorResponse($validator->errors());
         }
 
+        // VALIDASI: Jam selesai harus lebih besar dari shift end
+        if (!$lembur->absen->jadwal || !$lembur->absen->jadwal->shift) {
+            return $this->errorResponse('Data jadwal shift tidak ditemukan', 404);
+        }
+
+        $shiftEnd = $lembur->absen->jadwal->shift->end_time;
+        $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+        $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $request->jam_selesai);
+
+        if ($jamSelesaiCarbon->lessThanOrEqualTo($shiftEndCarbon)) {
+            return $this->errorResponse(
+                "Jam selesai lembur harus lebih dari jam shift berakhir (" . substr($shiftEnd, 0, 5) . ")",
+                422
+            );
+        }
+
         try {
             // Upload foto baru jika ada
             $photoPath = $lembur->bukti_foto;
             if ($request->hasFile('bukti_foto')) {
                 // Delete old photo
                 if ($photoPath) {
-                    Storage::disk('public')->delete($photoPath);
+                    Storage::disk('s3')->delete($photoPath);
                 }
 
                 $photo = $request->file('bukti_foto');
-                $filename = 'lembur_' . $karyawan->karyawan_id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-                $photoPath = $photo->storeAs('lembur_photos', $filename, 'public');
+                $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+                $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
             }
 
             $lembur->update([
                 'tanggal_lembur' => $request->tanggal_lembur,
-                'jam_mulai' => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
                 'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
                 'bukti_foto' => $photoPath,
             ]);
 
             return $this->successResponse(
-                $lembur->fresh(),
+                $lembur->fresh(['absen.jadwal.shift']),
                 'Lembur berhasil diupdate'
             );
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal update lembur: ' . $e->getMessage());
         }
@@ -288,14 +543,21 @@ class LemburController extends BaseApiController
             return $this->forbiddenResponse('Lembur dengan status ' . $lembur->status . ' tidak dapat disubmit');
         }
 
+        // VALIDASI: Harus sudah completed (ada jam_selesai, deskripsi, bukti foto)
+        if (!$lembur->jam_selesai || !$lembur->deskripsi_pekerjaan || !$lembur->bukti_foto) {
+            return $this->errorResponse(
+                'Lembur belum lengkap. Pastikan sudah mengisi jam selesai, deskripsi pekerjaan, dan upload bukti foto.',
+                422
+            );
+        }
+
         try {
             $lembur->submit('mobile');
 
             return $this->successResponse(
                 $lembur->fresh(),
-                'Lembur berhasil disubmit. Menunggu persetujuan.'
+                'Lembur berhasil disubmit. Menunggu persetujuan Koordinator.'
             );
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal submit lembur: ' . $e->getMessage());
         }
@@ -325,13 +587,12 @@ class LemburController extends BaseApiController
         try {
             // Delete foto if exists
             if ($lembur->bukti_foto) {
-                Storage::disk('public')->delete($lembur->bukti_foto);
+                Storage::disk('s3')->delete($lembur->bukti_foto);
             }
 
             $lembur->delete();
 
             return $this->successResponse(null, 'Lembur berhasil dihapus');
-
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal menghapus lembur: ' . $e->getMessage());
         }
@@ -361,7 +622,12 @@ class LemburController extends BaseApiController
         $summary = [
             'total_lembur' => $lemburs->count(),
             'draft' => $lemburs->where('status', 'draft')->count(),
+            'in_progress' => $lemburs->where('status', 'draft')
+                ->filter(fn($l) => $l->started_at && !$l->completed_at)
+                ->count(),
             'submitted' => $lemburs->where('status', 'submitted')->count(),
+            'pending_koordinator' => $lemburs->where('status', 'submitted')->where('koordinator_status', 'pending')->count(),
+            'pending_admin' => $lemburs->where('status', 'submitted')->where('koordinator_status', 'approved')->count(),
             'approved' => $lemburs->where('status', 'approved')->count(),
             'rejected' => $lemburs->where('status', 'rejected')->count(),
             'processed' => $lemburs->where('status', 'processed')->count(),
@@ -376,5 +642,71 @@ class LemburController extends BaseApiController
                 'month_name' => Carbon::createFromDate($year, $month)->format('F Y')
             ]
         ], 'Summary lembur berhasil diambil');
+    }
+
+    /**
+     * Get info untuk form lembur (shift end, max start time)
+     * GET /api/lembur/form-info/{absenId}
+     */
+    public function getFormInfo(Request $request, $absenId)
+    {
+        $user = $request->user();
+        $karyawan = $user->karyawan;
+
+        $absen = Absen::with('jadwal.shift')->find($absenId);
+
+        if (!$absen) {
+            return $this->notFoundResponse('Data absensi tidak ditemukan');
+        }
+
+        // Validasi ownership
+        if ($absen->karyawan_id !== $karyawan->karyawan_id) {
+            return $this->forbiddenResponse('Absensi bukan milik Anda');
+        }
+
+        // Cek clock out
+        if (!$absen->clock_out) {
+            return $this->errorResponse('Anda belum melakukan clock out', 422);
+        }
+
+        // Get shift info
+        if (!$absen->jadwal || !$absen->jadwal->shift) {
+            return $this->notFoundResponse('Data jadwal shift tidak ditemukan');
+        }
+
+        $shift = $absen->jadwal->shift;
+        $shiftEnd = $shift->end_time;
+        $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+        $maxStartTime = $shiftEndCarbon->copy()->addHour(); // Maksimal +1 jam untuk START
+
+        // Cek existing lembur
+        $existingLembur = Lembur::where('absen_id', $absen->absen_id)
+            ->where('karyawan_id', $karyawan->karyawan_id)
+            ->whereIn('status', ['draft', 'submitted', 'approved'])
+            ->first();
+
+        // Cek apakah masih dalam waktu pengajuan (+1 jam dari shift end)
+        $tanggalAbsen = Carbon::parse($absen->date);
+        $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
+        $now = Carbon::now();
+        $canStart = $now->lessThanOrEqualTo($maxStartDateTime);
+
+        return $this->successResponse([
+            'can_create_lembur' => !$existingLembur && $canStart,
+            'has_existing_lembur' => (bool) $existingLembur,
+            'existing_lembur_id' => $existingLembur->lembur_id ?? null,
+            'can_start' => $canStart,
+            'max_start_datetime' => $maxStartDateTime->format('Y-m-d H:i:s'),
+            'shift_name' => $shift->name,
+            'shift_start' => substr($shift->start_time, 0, 5),
+            'shift_end' => substr($shiftEnd, 0, 5),
+            'jam_mulai_lembur' => substr($shiftEnd, 0, 5), // Otomatis dari shift_end
+            'clock_in' => $absen->clock_in,
+            'clock_out' => $absen->clock_out,
+            'work_hours' => $absen->work_hours,
+            'info_message' => $canStart
+                ? "Anda dapat memulai lembur hingga " . $maxStartDateTime->format('d/m/Y H:i')
+                : "Waktu pengajuan lembur sudah melewati batas (shift end + 1 jam)"
+        ], 'Info form lembur berhasil diambil');
     }
 }

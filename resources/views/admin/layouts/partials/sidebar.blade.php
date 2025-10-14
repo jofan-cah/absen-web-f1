@@ -281,6 +281,129 @@
                 </div>
             </div>
 
+            <!-- Lembur Section - BARU untuk Koordinator -->
+            @if (auth()->user()->role === 'koordinator'))
+                <div class="mb-1.5">
+                    <div class="flex items-center px-2.5 py-1.5 mb-1">
+                        <div
+                            class="w-1.5 h-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mr-2 animate-pulse">
+                        </div>
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Lembur</h3>
+                    </div>
+                    <div class="space-y-1">
+
+                        <!-- Menu Lembur Department -->
+                        <a href="{{ route('koordinator.lembur.index') }}"
+                            class="nav-item {{ request()->routeIs('koordinator.lembur.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                            <div
+                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-orange-400 to-red-500 text-white shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="flex-1 truncate text-gray-700 group-hover:text-orange-700">Lembur Dept</span>
+                            @php
+                                $koordinator = auth()->user()->karyawan;
+                                $pendingLemburCount = 0;
+                                if ($koordinator) {
+                                    $pendingLemburCount = \App\Models\Lembur::where('status', 'submitted')
+                                        ->whereHas('karyawan', function ($q) use ($koordinator) {
+                                            $q->where('department_id', $koordinator->department_id)->whereHas(
+                                                'department',
+                                                function ($dept) {
+                                                    $dept->where(function ($d) {
+                                                        $d->where('name', 'LIKE', '%teknis%')->orWhere(
+                                                            'code',
+                                                            'LIKE',
+                                                            '%teknis%',
+                                                        );
+                                                    });
+                                                },
+                                            );
+                                        })
+                                        ->count();
+                                }
+                            @endphp
+                            @if ($pendingLemburCount > 0)
+                                <span
+                                    class="text-xs bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded-full">{{ $pendingLemburCount }}</span>
+                            @endif
+                        </a>
+
+                    </div>
+                </div>
+            @endif
+
+            <!-- Transaksi Section - Admin + Koordinator -->
+            @if ($isAdmin )
+                <div class="mb-1.5">
+                    <div class="flex items-center px-2.5 py-1.5 mb-1">
+                        <div
+                            class="w-1.5 h-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mr-2 animate-pulse">
+                        </div>
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Transaksi</h3>
+                    </div>
+                    <div class="space-y-1">
+                        @if ($isAdmin)
+                            <a href="{{ route('admin.karyawan.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.karyawan.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                                @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                                <div
+                                    class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-indigo-400 to-purple-500 text-white shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                                <span class="flex-1 truncate text-gray-700 group-hover:text-indigo-700">Karyawan</span>
+                            </a>
+                        @endif
+                        @if ($isAdmin)
+                            <!-- Menu Lembur - Admin & Koordinator bisa lihat -->
+                            <a href="{{ route('admin.lembur.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.lembur.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                                @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                                <div
+                                    class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-orange-400 to-red-500 text-white shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <span class="flex-1 truncate text-gray-700 group-hover:text-orange-700">Lembur</span>
+                                @php
+                                    $pendingCount = \App\Models\Lembur::where('status', 'submitted')->count();
+                                @endphp
+                                @if ($pendingCount > 0)
+                                    <span
+                                        class="text-xs bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded-full">{{ $pendingCount }}</span>
+                                @endif
+                            </a>
+                        @endif
+                        @if ($isAdmin)
+                            <!-- Menu Tunjangan Generate & Report (Admin only) -->
+                            <a href="{{ route('admin.tunjangan-karyawan.generate.form') }}"
+                                class="nav-item {{ request()->routeIs('admin.tunjangan-karyawan.generate.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                                @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                                <div
+                                    class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                </div>
+                                <span class="flex-1 truncate text-gray-700 group-hover:text-cyan-700">Generate</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <!-- Monitoring - ADMIN ONLY -->
             @if ($isAdmin)
                 <div class="mb-1.5">
@@ -386,44 +509,7 @@
                             @endif
                         </a>
 
-                        <a href="{{ route('admin.tunjangan-karyawan.index') }}"
-                            class="nav-item {{ request()->routeIs('admin.tunjangan-karyawan.index') || request()->routeIs('admin.tunjangan-karyawan.show') || request()->routeIs('admin.tunjangan-karyawan.edit') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
-                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
-                            <div
-                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-indigo-400 to-purple-500 text-white shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                            <span class="flex-1 truncate text-gray-700 group-hover:text-indigo-700">Karyawan</span>
-                        </a>
 
-                        <a href="{{ route('admin.lembur.index') }}"
-                            class="nav-item {{ request()->routeIs('admin.lembur.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
-                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
-                            <div
-                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-orange-400 to-red-500 text-white shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <span class="flex-1 truncate text-gray-700 group-hover:text-orange-700">Lembur</span>
-                        </a>
-
-                        <a href="{{ route('admin.tunjangan-karyawan.generate.form') }}"
-                            class="nav-item {{ request()->routeIs('admin.tunjangan-karyawan.generate.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
-                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
-                            <div
-                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                            </div>
-                            <span class="flex-1 truncate text-gray-700 group-hover:text-cyan-700">Generate</span>
-                        </a>
 
                         <a href="{{ route('admin.tunjangan-karyawan.report') }}"
                             class="nav-item {{ request()->routeIs('admin.tunjangan-karyawan.report') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
