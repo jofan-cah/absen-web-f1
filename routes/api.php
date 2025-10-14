@@ -100,17 +100,23 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
     });
 
     Route::prefix('lembur')->group(function () {
+        // List & Summary
         Route::get('/my-list', [LemburController::class, 'myList']);
         Route::get('/summary', [LemburController::class, 'summary']);
+        Route::get('/form-info/{absenId}', [LemburController::class, 'getFormInfo']);
         Route::get('/{id}', [LemburController::class, 'show']);
 
-        // PILIH SALAH SATU (atau support keduanya):
-        Route::post('/submit', [LemburController::class, 'store']); // Versi lama (backward compatibility)
-        // Route::post('/', [LemburController::class, 'store']); // Versi baru (REST standard)
+        // 🆕 OPSI 3 - HYBRID FLOW (RECOMMENDED)
+        Route::post('/start', [LemburController::class, 'start']);                    // Mulai lembur
+        Route::post('/{id}/finish', [LemburController::class, 'finish']);             // Selesai lembur
+        Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']);  // Submit
 
+        // ✅ BACKWARD COMPATIBILITY (untuk app lama yang belum update)
+        // Route::post('/submit', [LemburController::class, 'store']);                   // Versi lama
+
+        // Update & Delete
         Route::put('/{id}', [LemburController::class, 'update']);
         Route::delete('/{id}', [LemburController::class, 'destroy']);
-        Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']);
     });
     // ========================================
     // TUNJANGAN MANAGEMENT (NEW - BELUM ADA)
