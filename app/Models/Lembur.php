@@ -163,13 +163,13 @@ class Lembur extends Model
     public function scopePendingKoordinator($query)
     {
         return $query->where('status', 'submitted')
-                     ->where('koordinator_status', 'pending');
+            ->where('koordinator_status', 'pending');
     }
 
     public function scopePendingAdmin($query)
     {
         return $query->where('status', 'submitted')
-                     ->where('koordinator_status', 'approved');
+            ->where('koordinator_status', 'approved');
     }
 
     // ============================================
@@ -399,20 +399,32 @@ class Lembur extends Model
         $amountPerUnit = $this->calculateAmountPerUnit();
         $totalAmount = $this->calculateTunjanganAmount();
 
+        // Log untuk debug
+        \Log::info("Generate Tunjangan Lembur", [
+            'lembur_id' => $this->lembur_id,
+            'karyawan_id' => $this->karyawan_id,
+            'staff_status' => $this->karyawan->staff_status ?? 'unknown',
+            'total_jam' => $this->total_jam,
+            'quantity' => $quantity,
+            'amount_per_unit' => $amountPerUnit,
+            'total_amount' => $totalAmount,
+        ]);
+
         // Create tunjangan karyawan
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
             'tunjangan_type_id' => $tunjanganType->tunjangan_type_id,
+            'absen_id' => $this->absen_id,
+            'lembur_id' => $this->lembur_id,
             'period_start' => $this->tanggal_lembur,
             'period_end' => $this->tanggal_lembur,
+            'amount' => $amountPerUnit,
             'quantity' => $quantity,
-            'amount_per_unit' => $amountPerUnit,
             'total_amount' => $totalAmount,
             'status' => 'pending',
-            'notes' => "Tunjangan lembur {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
-            'reference_type' => 'lembur',
-            'reference_id' => $this->lembur_id,
+            'notes' => "Tunjangan lembur {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam ({$quantity}x uang makan)",
+            'hari_kerja_final' => 1, // Sesuaikan dengan logic
         ]);
 
         // Update lembur dengan tunjangan_karyawan_id
@@ -420,7 +432,13 @@ class Lembur extends Model
             'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
         ]);
 
-        \Log::info("Tunjangan berhasil dibuat untuk Lembur ID: {$this->lembur_id}, Tunjangan ID: {$tunjangan->tunjangan_karyawan_id}");
+        \Log::info("Tunjangan berhasil dibuat", [
+            'lembur_id' => $this->lembur_id,
+            'tunjangan_id' => $tunjangan->tunjangan_karyawan_id,
+            'amount' => $amountPerUnit,
+            'quantity' => $quantity,
+            'total_amount' => $totalAmount,
+        ]);
 
         return $tunjangan;
     }
@@ -458,13 +476,13 @@ class Lembur extends Model
         $tunjanganDetail = TunjanganDetail::where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
             ->where('staff_status', $staffStatus)
             ->where('is_active', true)
-            ->where(function($query) {
+            ->where(function ($query) {
                 // Cek effective_date dan end_date
                 $query->where('effective_date', '<=', now())
-                      ->where(function($q) {
-                          $q->whereNull('end_date')
+                    ->where(function ($q) {
+                        $q->whereNull('end_date')
                             ->orWhere('end_date', '>=', now());
-                      });
+                    });
             })
             ->first();
 
