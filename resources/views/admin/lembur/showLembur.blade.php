@@ -294,9 +294,9 @@
                 @if ($lembur->bukti_foto)
                     <div class="border-t pt-4 mt-4">
                         <p class="text-sm text-gray-500 mb-2">Bukti Foto</p>
-                        <img src="{{ Storage::disk('public')->url($lembur->bukti_foto) }}" alt="Bukti Lembur"
+                        <img src="{{ $lembur->bukti_foto_url }}" alt="Bukti Lembur"
                             class="w-full max-w-md rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity shadow-md"
-                            onclick="openImageModal(this.src)">
+                            onclick="openImageModal('{{ $lembur->bukti_foto_url }}')">
                     </div>
                 @endif
             </div>

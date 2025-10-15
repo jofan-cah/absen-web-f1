@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Lembur extends Model
 {
@@ -632,6 +633,17 @@ class Lembur extends Model
             return $this->tunjanganKaryawan->status ?? 'unknown';
         }
 
+        return null;
+    }
+
+    public function getBuktiFotoUrlAttribute()
+    {
+        if ($this->bukti_foto) {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->bukti_foto,
+                now()->addMinutes(60)
+            );
+        }
         return null;
     }
 }
