@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class Lembur extends Model
 {
@@ -248,6 +249,12 @@ class Lembur extends Model
     // APPROVAL - KOORDINATOR (LEVEL 1)
     // ============================================
 
+    /**
+     * Approve by Koordinator (Level 1)
+     *
+     * @param string $userId - User ID dari Auth::user()->user_id
+     * @param string|null $notes
+     */
     public function approveByKoordinator($userId, $notes = null)
     {
         if ($this->status !== 'submitted') {
@@ -263,16 +270,29 @@ class Lembur extends Model
             throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
         }
 
+        // ✅ FIX: Ambil karyawan_id dari user_id
+        $koordinator = \App\Models\Karyawan::where('user_id', $userId)->first();
+
+        if (!$koordinator) {
+            throw new \Exception('Data koordinator tidak ditemukan');
+        }
+
         $this->update([
             'koordinator_status' => 'approved',
             'koordinator_approved_at' => now(),
             'koordinator_notes' => $notes,
-            'coordinator_id' => $userId,
+            'coordinator_id' => $koordinator->karyawan_id, // ✅ PAKAI karyawan_id
         ]);
 
         return true;
     }
 
+    /**
+     * Reject by Koordinator (Level 1)
+     *
+     * @param string $userId - User ID dari Auth::user()->user_id
+     * @param string $reason
+     */
     public function rejectByKoordinator($userId, $reason)
     {
         if ($this->status !== 'submitted') {
@@ -283,6 +303,9 @@ class Lembur extends Model
             throw new \Exception('Koordinator sudah melakukan review sebelumnya');
         }
 
+        // ✅ FIX: Ambil karyawan_id dari user_id
+        $koordinator = \App\Models\Karyawan::where('user_id', $userId)->first();
+
         $this->update([
             'status' => 'rejected',
             'koordinator_status' => 'rejected',
@@ -291,6 +314,7 @@ class Lembur extends Model
             'rejected_by_user_id' => $userId,
             'rejected_at' => now(),
             'rejection_reason' => $reason,
+            'coordinator_id' => $koordinator ? $koordinator->karyawan_id : null, // ✅ PAKAI karyawan_id
         ]);
 
         return true;
@@ -383,7 +407,7 @@ class Lembur extends Model
     public function generateTunjangan()
     {
         if ($this->tunjangan_karyawan_id) {
-            \Log::info("Tunjangan sudah pernah dibuat untuk Lembur ID: {$this->lembur_id}");
+            Log::info("Tunjangan sudah pernah dibuat untuk Lembur ID: {$this->lembur_id}");
             return false;
         }
 
@@ -400,7 +424,7 @@ class Lembur extends Model
         $totalAmount = $this->calculateTunjanganAmount();
 
         // Log untuk debug
-        \Log::info("Generate Tunjangan Lembur", [
+        Log::info("Generate Tunjangan Lembur", [
             'lembur_id' => $this->lembur_id,
             'karyawan_id' => $this->karyawan_id,
             'staff_status' => $this->karyawan->staff_status ?? 'unknown',
@@ -432,7 +456,7 @@ class Lembur extends Model
             'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
         ]);
 
-        \Log::info("Tunjangan berhasil dibuat", [
+        Log::info("Tunjangan berhasil dibuat", [
             'lembur_id' => $this->lembur_id,
             'tunjangan_id' => $tunjangan->tunjangan_karyawan_id,
             'amount' => $amountPerUnit,
@@ -465,7 +489,7 @@ class Lembur extends Model
         $tunjanganType = $this->getLemburTunjanganType();
 
         if (!$tunjanganType) {
-            \Log::warning("Tunjangan Type UANG_LEMBUR tidak ditemukan");
+            Log::warning("Tunjangan Type UANG_LEMBUR tidak ditemukan");
             return null;
         }
 
@@ -513,7 +537,7 @@ class Lembur extends Model
         // Fallback ke default jika tidak ada di database
         $staffStatus = $this->karyawan->staff_status ?? 'karyawan';
 
-        \Log::warning("Tunjangan Detail UANG_LEMBUR untuk staff_status {$staffStatus} tidak ditemukan, menggunakan default");
+        Log::warning("Tunjangan Detail UANG_LEMBUR untuk staff_status {$staffStatus} tidak ditemukan, menggunakan default");
 
         // Default fallback
         return in_array($staffStatus, ['karyawan', 'koordinator', 'wakil_koordinator'])
