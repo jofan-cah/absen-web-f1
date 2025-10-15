@@ -12,12 +12,12 @@
             <option value="">Semua Karyawan</option>
             @foreach($karyawans as $karyawan)
                 <option value="{{ $karyawan->karyawan_id }}" {{ request('karyawan_id') == $karyawan->karyawan_id ? 'selected' : '' }}>
-                    {{ $karyawan->full_name }}
+                    {{ $karyawan->full_name }} - {{ $karyawan->nip }}
                 </option>
             @endforeach
         </select>
 
-        <!-- Filter Status -->
+        <!-- Filter Status Final -->
         <select id="filter-status" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">Semua Status</option>
             @foreach($statusOptions as $status)
@@ -27,12 +27,12 @@
             @endforeach
         </select>
 
-        <!-- 🆕 Filter Status Koordinator -->
+        <!-- Filter Status Koordinator -->
         <select id="filter-koordinator-status" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">Semua Status Koordinator</option>
             @foreach($koordinatorStatusOptions as $koorStatus)
                 <option value="{{ $koorStatus }}" {{ request('koordinator_status') == $koorStatus ? 'selected' : '' }}>
-                    {{ $koorStatus == 'pending' ? 'Pending Koordinator' : ($koorStatus == 'approved' ? 'Approved Koordinator (Tunggu Admin)' : 'Rejected Koordinator') }}
+                    {{ $koorStatus == 'pending' ? 'Pending Koordinator' : ($koorStatus == 'approved' ? 'Approved Koordinator' : 'Rejected Koordinator') }}
                 </option>
             @endforeach
         </select>
@@ -68,16 +68,17 @@
         <div class="flex-1">
             <h3 class="text-sm font-semibold text-blue-900 mb-1">Informasi Admin - Final Approval</h3>
             <p class="text-xs text-blue-700">
-                Sebagai <strong>Admin</strong>, Anda melakukan <strong>final approval</strong> untuk lembur yang sudah di-approve oleh Koordinator.
-                Setelah Anda approve, sistem akan otomatis generate tunjangan untuk karyawan.
-                Filter berdasarkan <strong>"Approved Koordinator"</strong> untuk melihat lembur yang perlu Anda review.
+                Sebagai <strong>Admin</strong>, Anda dapat:
+                <br>• <strong>Approve Langsung (Bypass Koordinator)</strong> - Untuk lembur yang belum di-review koordinator
+                <br>• <strong>Final Approval</strong> - Untuk lembur yang sudah di-approve koordinator
+                <br>• Setelah approve, sistem otomatis generate tunjangan
             </p>
         </div>
     </div>
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
     <!-- Total -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between">
@@ -95,21 +96,16 @@
         </div>
     </div>
 
-    <!-- Submitted / Pending Review -->
-    <div class="bg-white rounded-lg shadow-sm border-2 border-yellow-400 p-4">
+    <!-- Pending Koordinator -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-sm text-gray-600 mb-1 flex items-center gap-1">
-                    Menunggu Review
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Anda
-                    </span>
-                </p>
-                <p class="text-2xl font-bold text-gray-900">{{ $summary['submitted'] }}</p>
+                <p class="text-sm text-gray-600 mb-1">Pending Koordinator</p>
+                <p class="text-2xl font-bold text-gray-900">{{ $summary['pending_koordinator'] }}</p>
             </div>
             <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -117,11 +113,33 @@
         </div>
     </div>
 
-    <!-- Approved (by Coordinator) -->
+    <!-- Pending Admin (Priority) -->
+    <div class="bg-white rounded-lg shadow-sm border-2 border-yellow-400 p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex-1">
+                <p class="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    Pending Admin
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Anda
+                    </span>
+                </p>
+                <p class="text-2xl font-bold text-gray-900">{{ $summary['pending_admin'] }}</p>
+            </div>
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approved -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-sm text-gray-600 mb-1">Anda Setujui</p>
+                <p class="text-sm text-gray-600 mb-1">Disetujui</p>
                 <p class="text-2xl font-bold text-gray-900">{{ $summary['approved'] }}</p>
             </div>
             <div class="flex-shrink-0">
@@ -134,11 +152,11 @@
         </div>
     </div>
 
-    <!-- Rejected (by Coordinator) -->
+    <!-- Rejected -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-sm text-gray-600 mb-1">Anda Tolak</p>
+                <p class="text-sm text-gray-600 mb-1">Ditolak</p>
                 <p class="text-2xl font-bold text-gray-900">{{ $summary['rejected'] }}</p>
             </div>
             <div class="flex-shrink-0">
@@ -180,17 +198,17 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jam</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">🆕 Status Koor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Koor</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Final</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($lemburs as $lembur)
-                <tr class="hover:bg-blue-50 transition-colors duration-150">
+                <tr class="hover:bg-blue-50 transition-colors duration-150" data-koordinator-status="{{ $lembur->koordinator_status }}">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        @if($lembur->status == 'submitted' && $lembur->koordinator_status == 'approved')
-                            <input type="checkbox" name="selected_lemburs[]" value="{{ $lembur->lembur_id }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        @if($lembur->status == 'submitted')
+                            <input type="checkbox" name="selected_lemburs[]" value="{{ $lembur->lembur_id }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 row-checkbox">
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -211,13 +229,16 @@
                         <div class="text-xs text-gray-500">{{ $lembur->tanggal_lembur->format('l') }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">{{ substr($lembur->jam_mulai, 0, 5) }} - {{ substr($lembur->jam_selesai, 0, 5) }}</div>
+                        <div class="text-sm text-gray-900">{{ substr($lembur->jam_mulai, 0, 5) }} - {{ substr($lembur->jam_selesai ?? '00:00', 0, 5) }}</div>
+                        @if($lembur->started_at)
+                            <div class="text-xs text-gray-400">Started: {{ $lembur->started_at->format('H:i') }}</div>
+                        @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="text-sm font-bold text-indigo-600">{{ number_format($lembur->total_jam, 1) }} jam</span>
                     </td>
 
-                    <!-- 🆕 Status Koordinator -->
+                    <!-- Status Koordinator -->
                     <td class="px-6 py-4 whitespace-nowrap">
                         @php
                             $koorStatusConfig = [
@@ -268,11 +289,11 @@
                                 </svg>
                             </a>
 
-                            {{-- 🆕 Hanya tampil jika koordinator sudah approve --}}
-                            @if($lembur->status == 'submitted' && $lembur->koordinator_status == 'approved')
-                                <button onclick="approveLembur('{{ $lembur->lembur_id }}')"
+                            {{-- Admin bisa approve (bypass atau final) --}}
+                            @if($lembur->status == 'submitted')
+                                <button onclick="approveLembur('{{ $lembur->lembur_id }}', '{{ $lembur->koordinator_status }}')"
                                         class="text-green-600 hover:text-green-700 p-2 rounded-lg hover:bg-green-50 transition-colors"
-                                        title="Approve (Admin - Final)">
+                                        title="{{ $lembur->koordinator_status == 'pending' ? 'Approve (Bypass Koordinator)' : 'Approve (Admin Final)' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
@@ -379,12 +400,26 @@ function resetFilter() {
     window.location.href = '{{ route("admin.lembur.index") }}';
 }
 
-// Approve lembur
-function approveLembur(id) {
-    const notes = prompt('💬 Catatan persetujuan (opsional):\n\nSetelah Anda approve, sistem akan otomatis generate tunjangan untuk karyawan.');
+// Approve lembur (bypass atau final)
+function approveLembur(id, koorStatus) {
+    const notes = prompt('💬 Catatan persetujuan (opsional):');
     if (notes === null) return;
 
-    if (!confirm('✅ Final Approve lembur ini?\n\n⚠️ Pastikan koordinator sudah approve!\n\nSetelah approve:\n- Status menjadi APPROVED (final)\n- Tunjangan otomatis dibuat\n- Karyawan bisa claim tunjangan')) return;
+    let confirmMessage = '';
+    if (koorStatus === 'pending') {
+        confirmMessage = '⚡ BYPASS APPROVAL\n\n' +
+                        'Anda akan approve lembur ini LANGSUNG (melewati Koordinator).\n\n' +
+                        '✅ Koordinator status akan di-set sebagai approved otomatis\n' +
+                        '✅ Tunjangan akan langsung dibuat\n\n' +
+                        'Lanjutkan?';
+    } else {
+        confirmMessage = '✅ FINAL APPROVAL\n\n' +
+                        'Koordinator sudah approve lembur ini.\n' +
+                        'Anda akan melakukan approval final dan generate tunjangan.\n\n' +
+                        'Lanjutkan?';
+    }
+
+    if (!confirm(confirmMessage)) return;
 
     showLoading();
 
@@ -437,7 +472,7 @@ function rejectLembur(id) {
     .then(data => {
         hideLoading();
         if (data.success) {
-       alert('✅ ' + data.message);
+            alert('✅ ' + data.message);
             setTimeout(() => window.location.reload(), 1000);
         } else {
             alert('❌ ' + data.message);
@@ -460,10 +495,21 @@ function bulkApprove() {
         return;
     }
 
-    const notes = prompt(`💬 Catatan persetujuan untuk ${ids.length} lembur (opsional):`);
+    // Cek apakah ada yang pending koordinator
+    const rows = Array.from(checkedBoxes).map(cb => cb.closest('tr'));
+    const hasPendingKoor = rows.some(row => row.dataset.koordinatorStatus === 'pending');
+
+    let message = `💬 Catatan persetujuan untuk ${ids.length} lembur (opsional):`;
+    const notes = prompt(message);
     if (notes === null) return;
 
-    if (!confirm(`✅ Bulk Approve ${ids.length} lembur?\n\n⚠️ PASTIKAN:\n- Semua sudah di-approve koordinator\n- Data sudah dicek\n\nSistem akan generate tunjangan untuk semua lembur yang di-approve.`)) return;
+    let confirmMsg = `✅ Bulk Approve ${ids.length} lembur?\n\n`;
+    if (hasPendingKoor) {
+        confirmMsg += '⚠️ PERHATIAN:\n- Ada lembur yang akan di-BYPASS (koordinator belum approve)\n- Koordinator status akan di-set approved otomatis\n\n';
+    }
+    confirmMsg += 'Sistem akan generate tunjangan untuk semua lembur yang di-approve.\n\nLanjutkan?';
+
+    if (!confirm(confirmMsg)) return;
 
     showLoading();
 

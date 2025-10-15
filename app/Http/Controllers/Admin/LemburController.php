@@ -117,13 +117,6 @@ class LemburController extends Controller
         return view('admin.lembur.showLembur', compact('lembur'));
     }
 
-    /**
-     * Approve lembur - DENGAN LOGIC BARU (Koordinator untuk Tim Teknis, Admin untuk lainnya)
-     */
-    /**
-     * Approve lembur - LEVEL 2 (Admin - FINAL)
-     * Generate tunjangan setelah admin approve
-     */
     public function approve(Lembur $lembur, Request $request)
     {
         $request->validate([
@@ -138,36 +131,28 @@ class LemburController extends Controller
         }
 
         $user = Auth::user();
-        $karyawan = $lembur->karyawan;
 
-        // VALIDASI 1: User harus admin
+        // VALIDASI: User harus admin
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya Admin yang dapat melakukan final approval'
+                'message' => 'Hanya Admin yang dapat melakukan approval'
             ], 403);
         }
-
-        // VALIDASI 2: Koordinator harus sudah approve dulu
-        if ($lembur->koordinator_status !== 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lembur belum diapprove oleh Koordinator. Status koordinator: ' . $lembur->koordinator_status
-            ], 422);
-        }
-
-        // INFO: Cek apakah Tim Teknis (untuk logging/info saja, tidak memblokir)
-        $isTimTeknis = $karyawan->department &&
-            (stripos($karyawan->department->name, 'teknis') !== false ||
-                stripos($karyawan->department->code, 'teknis') !== false ||
-                stripos($karyawan->department->name, 'Technical Support') !== false ||
-                stripos($karyawan->department->code, 'TECH') !== false);
 
         try {
             DB::beginTransaction();
 
-            // Approve oleh admin (LEVEL 2 - FINAL + GENERATE TUNJANGAN)
-            $result = $lembur->approveByAdmin($user->user_id, $request->notes);
+            // 🆕 CEK: Apakah koordinator sudah approve atau admin bypass?
+            if ($lembur->koordinator_status === 'approved') {
+                // NORMAL FLOW: Koordinator sudah approve, admin approve level 2
+                $result = $lembur->approveByAdmin($user->user_id, $request->notes);
+                $message = 'Lembur berhasil disetujui oleh Admin dan tunjangan telah dibuat!';
+            } else {
+                // 🔥 BYPASS FLOW: Admin langsung approve (skip koordinator)
+                $result = $lembur->approveByAdminDirect($user->user_id, $request->notes);
+                $message = 'Lembur berhasil disetujui langsung oleh Admin (bypass koordinator) dan tunjangan telah dibuat!';
+            }
 
             if (!$result) {
                 throw new \Exception('Gagal menyetujui lembur');
@@ -177,7 +162,7 @@ class LemburController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lembur berhasil disetujui oleh Admin dan tunjangan telah dibuat!',
+                'message' => $message,
                 'tunjangan_id' => $lembur->tunjangan_karyawan_id
             ]);
         } catch (\Exception $e) {
