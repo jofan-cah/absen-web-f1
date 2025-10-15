@@ -168,7 +168,7 @@ class LemburKoorController extends Controller
         }
 
         // VALIDASI 3: Department harus sama
-        if ($koordinator->department_id !== $karyawan->department_id) {
+        if ($koordinator->department_id !== $karyawan->department_id || $user->status == 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda hanya dapat approve lembur di department Anda'

@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 class Lembur extends Model
 {
@@ -27,8 +27,14 @@ class Lembur extends Model
         'deskripsi_pekerjaan',
         'bukti_foto',
         'status',
+        'koordinator_status',
+        'koordinator_approved_at',
+        'koordinator_notes',
+        'koordinator_rejected_at',
         'submitted_at',
         'submitted_via',
+        'started_at',
+        'completed_at',
         'approved_by_user_id',
         'approved_at',
         'approval_notes',
@@ -36,48 +42,26 @@ class Lembur extends Model
         'rejected_at',
         'rejection_reason',
         'tunjangan_karyawan_id',
-        'created_by_user_id',
         'coordinator_id',
-        'koordinator_status',
-        'koordinator_approved_at',
-        'koordinator_notes',
-        'koordinator_rejected_at',
-        'started_at',
-        'completed_at',
+        'created_by_user_id',
     ];
 
     protected $casts = [
         'tanggal_lembur' => 'datetime:Y-m-d',
         'total_jam' => 'decimal:2',
         'submitted_at' => 'datetime',
-        'approved_at' => 'datetime',
-        'rejected_at' => 'datetime',
-        'koordinator_approved_at' => 'datetime',
-        'koordinator_rejected_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-
+        'koordinator_approved_at' => 'datetime',
+        'koordinator_rejected_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
+    // ============================================
+    // RELATIONSHIPS
+    // ============================================
 
-
-    public function getBuktiFotoUrlAttribute()
-    {
-        if ($this->bukti_foto) {
-            // Jika file-nya di S3 PRIVATE, buat URL sementara 1 jam
-            return Storage::disk('s3')->temporaryUrl(
-                $this->bukti_foto,
-                now()->addMinutes(60)
-            );
-
-            // ATAU jika bucket kamu PUBLIC, cukup:
-            // return Storage::disk('s3')->url($this->bukti_foto);
-        }
-
-        return null;
-    }
-
-    // Relationships
     public function karyawan()
     {
         return $this->belongsTo(Karyawan::class, 'karyawan_id', 'karyawan_id');
@@ -86,6 +70,11 @@ class Lembur extends Model
     public function absen()
     {
         return $this->belongsTo(Absen::class, 'absen_id', 'absen_id');
+    }
+
+    public function coordinator()
+    {
+        return $this->belongsTo(Karyawan::class, 'coordinator_id', 'karyawan_id');
     }
 
     public function approvedBy()
@@ -108,54 +97,146 @@ class Lembur extends Model
         return $this->belongsTo(TunjanganKaryawan::class, 'tunjangan_karyawan_id', 'tunjangan_karyawan_id');
     }
 
-    public function coordinator()
-    {
-        return $this->belongsTo(Karyawan::class, 'coordinator_id', 'karyawan_id');
-    }
+    // ============================================
+    // BOOT & ID GENERATION
+    // ============================================
 
-    // Helper method
-    public static function generateLemburId()
-    {
-        $lastLembur = self::orderByDesc('lembur_id')->first();
-        if (!$lastLembur) {
-            return 'LBR001';
-        }
-
-        $lastNumber = (int) substr($lastLembur->lembur_id, 3);
-        $newNumber = $lastNumber + 1;
-
-        return 'LBR' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-    }
-
-    // Auto calculate total jam
     protected static function boot()
     {
         parent::boot();
 
-        static::saving(function ($lembur) {
-            if ($lembur->jam_mulai && $lembur->jam_selesai) {
-                $mulai = Carbon::parse($lembur->jam_mulai);
-                $selesai = Carbon::parse($lembur->jam_selesai);
+        static::creating(function ($model) {
+            if (empty($model->lembur_id)) {
+                $model->lembur_id = self::generateLemburId();
+            }
+        });
 
-                // Handle overnight overtime
-                if ($selesai->lt($mulai)) {
+        static::saving(function ($model) {
+            // Auto calculate total_jam jika jam_mulai dan jam_selesai ada
+            if ($model->jam_mulai && $model->jam_selesai) {
+                $mulai = Carbon::createFromFormat('H:i:s', $model->jam_mulai);
+                $selesai = Carbon::createFromFormat('H:i:s', $model->jam_selesai);
+
+                // Handle jika jam selesai melewati tengah malam
+                if ($selesai->lessThan($mulai)) {
                     $selesai->addDay();
                 }
 
-                $lembur->total_jam = $selesai->diffInHours($mulai, true);
+                $model->total_jam = $mulai->diffInMinutes($selesai) / 60;
             }
         });
     }
 
-    // Workflow methods
-    public function submit($via = 'mobile')
+    public static function generateLemburId()
     {
-        if ($this->status !== 'draft') {
-            return false;
+        $prefix = 'LMB';
+        $date = now()->format('Ymd');
+        $random = strtoupper(Str::random(4));
+
+        return $prefix . $date . $random;
+    }
+
+    // ============================================
+    // SCOPES
+    // ============================================
+
+    public function scopeDraft($query)
+    {
+        return $query->where('status', 'draft');
+    }
+
+    public function scopeSubmitted($query)
+    {
+        return $query->where('status', 'submitted');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
+    }
+
+    public function scopePendingKoordinator($query)
+    {
+        return $query->where('status', 'submitted')
+                     ->where('koordinator_status', 'pending');
+    }
+
+    public function scopePendingAdmin($query)
+    {
+        return $query->where('status', 'submitted')
+                     ->where('koordinator_status', 'approved');
+    }
+
+    // ============================================
+    // STATUS CHECKERS
+    // ============================================
+
+    public function canEdit()
+    {
+        return in_array($this->status, ['draft', 'rejected']);
+    }
+
+    public function canSubmit()
+    {
+        return $this->status === 'draft'
+            && $this->jam_selesai
+            && $this->deskripsi_pekerjaan
+            && $this->bukti_foto;
+    }
+
+    public function hasClockOut()
+    {
+        return $this->absen && $this->absen->clock_out;
+    }
+
+    public function isApprovedByKoordinator()
+    {
+        return $this->koordinator_status === 'approved';
+    }
+
+    public function isRejectedByKoordinator()
+    {
+        return $this->koordinator_status === 'rejected';
+    }
+
+    public function isPendingKoordinator()
+    {
+        return $this->status === 'submitted' && $this->koordinator_status === 'pending';
+    }
+
+    public function isPendingAdmin()
+    {
+        return $this->status === 'submitted' && $this->koordinator_status === 'approved';
+    }
+
+    public function canApproveByKoordinator()
+    {
+        return $this->status === 'submitted' && $this->koordinator_status === 'pending';
+    }
+
+    public function canApproveByAdmin()
+    {
+        return $this->status === 'submitted' && $this->koordinator_status === 'approved';
+    }
+
+    // ============================================
+    // SUBMIT
+    // ============================================
+
+    public function submit($via = 'web')
+    {
+        if (!$this->canSubmit()) {
+            throw new \Exception('Lembur tidak dapat disubmit. Pastikan semua data sudah lengkap.');
         }
 
         $this->update([
             'status' => 'submitted',
+            'koordinator_status' => 'pending',
             'submitted_at' => now(),
             'submitted_via' => $via,
         ]);
@@ -163,10 +244,10 @@ class Lembur extends Model
         return true;
     }
 
-    /**
-     * Approve oleh KOORDINATOR (Level 1)
-     * TIDAK generate tunjangan, hanya update koordinator_status
-     */
+    // ============================================
+    // APPROVAL - KOORDINATOR (LEVEL 1)
+    // ============================================
+
     public function approveByKoordinator($userId, $notes = null)
     {
         if ($this->status !== 'submitted') {
@@ -186,16 +267,39 @@ class Lembur extends Model
             'koordinator_status' => 'approved',
             'koordinator_approved_at' => now(),
             'koordinator_notes' => $notes,
-            'coordinator_id' => $userId, // Simpan user_id koordinator (bukan karyawan_id)
+            'coordinator_id' => $userId,
         ]);
 
         return true;
     }
 
-    /**
-     * Approve oleh ADMIN (Level 2 - FINAL)
-     * Generate tunjangan setelah admin approve
-     */
+    public function rejectByKoordinator($userId, $reason)
+    {
+        if ($this->status !== 'submitted') {
+            return false;
+        }
+
+        if ($this->koordinator_status !== 'pending') {
+            throw new \Exception('Koordinator sudah melakukan review sebelumnya');
+        }
+
+        $this->update([
+            'status' => 'rejected',
+            'koordinator_status' => 'rejected',
+            'koordinator_rejected_at' => now(),
+            'koordinator_notes' => $reason,
+            'rejected_by_user_id' => $userId,
+            'rejected_at' => now(),
+            'rejection_reason' => $reason,
+        ]);
+
+        return true;
+    }
+
+    // ============================================
+    // APPROVAL - ADMIN (LEVEL 2)
+    // ============================================
+
     public function approveByAdmin($userId, $notes = null)
     {
         if ($this->status !== 'submitted') {
@@ -219,66 +323,49 @@ class Lembur extends Model
             'approval_notes' => $notes,
         ]);
 
-        // 🎯 Generate tunjangan lembur otomatis (HANYA di admin approve)
+        // Generate tunjangan lembur otomatis
         $this->generateTunjangan();
 
         return true;
     }
 
-    /**
-     * Cek apakah koordinator sudah approve
-     */
-    public function isApprovedByKoordinator()
-    {
-        return $this->koordinator_status === 'approved';
-    }
-
-    /**
-     * Cek apakah koordinator sudah reject
-     */
-    public function isRejectedByKoordinator()
-    {
-        return $this->koordinator_status === 'rejected';
-    }
-
-    /**
-     * Cek apakah menunggu approval koordinator
-     */
-    public function isPendingKoordinator()
-    {
-        return $this->status === 'submitted' && $this->koordinator_status === 'pending';
-    }
-
-    /**
-     * Cek apakah menunggu approval admin
-     */
-    public function isPendingAdmin()
-    {
-        return $this->status === 'submitted' && $this->koordinator_status === 'approved';
-    }
-
-    /**
-     * Cek apakah bisa di-approve oleh koordinator
-     */
-    public function canApproveByKoordinator()
-    {
-        return $this->status === 'submitted' && $this->koordinator_status === 'pending';
-    }
-
-    /**
-     * Cek apakah bisa di-approve oleh admin
-     */
-    public function canApproveByAdmin()
-    {
-        return $this->status === 'submitted' && $this->koordinator_status === 'approved';
-    }
-
-    public function reject($userId, $reason)
+    public function approveByAdminDirect($userId, $notes = null)
     {
         if ($this->status !== 'submitted') {
             return false;
         }
 
+        // VALIDASI: Karyawan harus sudah clock out
+        if (!$this->hasClockOut()) {
+            throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
+        }
+
+        $this->update([
+            // Update koordinator status sekalian (auto-approved by admin)
+            'koordinator_status' => 'approved',
+            'koordinator_approved_at' => now(),
+            'koordinator_notes' => 'Auto-approved by admin (bypass)',
+
+            // Update status final
+            'status' => 'approved',
+            'approved_by_user_id' => $userId,
+            'approved_at' => now(),
+            'approval_notes' => $notes,
+        ]);
+
+        // Generate tunjangan lembur otomatis
+        $this->generateTunjangan();
+
+        return true;
+    }
+
+    public function rejectByAdmin($userId, $reason)
+    {
+        if ($this->status !== 'submitted') {
+            return false;
+        }
+
+        // Admin bisa reject walau koordinator sudah approve
         $this->update([
             'status' => 'rejected',
             'rejected_by_user_id' => $userId,
@@ -289,170 +376,220 @@ class Lembur extends Model
         return true;
     }
 
-    // Cek apakah sudah clock out
-    public function hasClockOut()
-    {
-        if (!$this->absen) {
-            return false;
-        }
+    // ============================================
+    // GENERATE TUNJANGAN
+    // ============================================
 
-        return !is_null($this->absen->clock_out);
-    }
-
-    // Validasi waktu pengajuan lembur
-    public static function canSubmitLembur($absenId)
-    {
-        $absen = Absen::with('jadwal.shift')->find($absenId);
-
-        if (!$absen || !$absen->jadwal) {
-            return ['can_submit' => false, 'message' => 'Data absen tidak ditemukan'];
-        }
-
-        $shift = $absen->jadwal->shift;
-        $shiftEndTime = Carbon::parse($absen->jadwal->date->format('Y-m-d') . ' ' . $shift->end_time);
-
-        // Handle overnight shift
-        if ($shift->is_overnight) {
-            $shiftEndTime->addDay();
-        }
-
-        $maxSubmitTime = $shiftEndTime->copy()->addHour(); // Max 1 jam setelah shift
-        $now = Carbon::now();
-
-        if ($now->greaterThan($maxSubmitTime)) {
-            return [
-                'can_submit' => false,
-                'message' => 'Pengajuan lembur hanya dapat dilakukan maksimal 1 jam setelah shift berakhir'
-            ];
-        }
-
-        return ['can_submit' => true];
-    }
-
-    // Generate tunjangan berdasarkan jam lembur
-    // 0-3.99 jam = 1x uang makan
-    // 4-7.99 jam = 2x uang makan
-    // ≥ 8 jam = 2x uang makan (maksimal)
     public function generateTunjangan()
     {
-        if ($this->status !== 'approved' || $this->tunjangan_karyawan_id) {
+        if ($this->tunjangan_karyawan_id) {
+            \Log::info("Tunjangan sudah pernah dibuat untuk Lembur ID: {$this->lembur_id}");
             return false;
         }
 
-        $karyawan = $this->karyawan;
-        $tunjanganType = TunjanganType::where('code', 'UANG_LEMBUR')->active()->first();
+        // Get tunjangan type UANG_LEMBUR
+        $tunjanganType = $this->getLemburTunjanganType();
 
         if (!$tunjanganType) {
-            return false;
+            throw new \Exception('Tunjangan Type UANG_LEMBUR tidak ditemukan');
         }
 
-        // Ambil amount per satuan dari TunjanganDetail berdasarkan staff_status
-        // 20k untuk karyawan/koordinator/wakil_koordinator
-        // 15k untuk pkwtt
-        $amountPerUnit = TunjanganDetail::getAmountByStaffStatus(
-            $tunjanganType->tunjangan_type_id,
-            $karyawan->staff_status
-        );
+        // Calculate tunjangan
+        $quantity = $this->calculateQuantity();
+        $amountPerUnit = $this->calculateAmountPerUnit();
+        $totalAmount = $this->calculateTunjanganAmount();
 
-        // HITUNG QUANTITY BERDASARKAN TOTAL JAM
-        $totalJam = $this->total_jam;
-
-        if ($totalJam >= 4) {
-            $quantity = 2; // 2x uang makan (4 jam ke atas)
-        } else {
-            $quantity = 1; // 1x uang makan (0-3.99 jam)
-        }
-
-        $totalAmount = $amountPerUnit * $quantity;
-
+        // Create tunjangan karyawan
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
             'tunjangan_type_id' => $tunjanganType->tunjangan_type_id,
-            'absen_id' => $this->absen_id,
-            'lembur_id' => $this->lembur_id,
             'period_start' => $this->tanggal_lembur,
             'period_end' => $this->tanggal_lembur,
-            'amount' => $amountPerUnit, // 20k atau 15k per unit
-            'quantity' => $quantity, // 1x atau 2x
-            'total_amount' => $totalAmount, // 20k/15k atau 40k/30k
+            'quantity' => $quantity,
+            'amount_per_unit' => $amountPerUnit,
+            'total_amount' => $totalAmount,
             'status' => 'pending',
-            'notes' => "Tunjangan lembur - {$this->total_jam} jam pada " .
-                $this->tanggal_lembur->format('d-m-Y') .
-                " ({$quantity}x uang makan = Rp " . number_format($totalAmount, 0, ',', '.') . ")",
+            'notes' => "Tunjangan lembur {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
+            'reference_type' => 'lembur',
+            'reference_id' => $this->lembur_id,
         ]);
 
+        // Update lembur dengan tunjangan_karyawan_id
         $this->update([
             'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
-            'status' => 'processed',
         ]);
+
+        \Log::info("Tunjangan berhasil dibuat untuk Lembur ID: {$this->lembur_id}, Tunjangan ID: {$tunjangan->tunjangan_karyawan_id}");
 
         return $tunjangan;
     }
 
-    // Check permissions
-    public function canSubmit()
+    // ============================================
+    // TUNJANGAN CALCULATION
+    // ============================================
+
+    /**
+     * Get tunjangan type untuk UANG_LEMBUR
+     */
+    public function getLemburTunjanganType()
     {
-        return $this->status === 'draft';
+        return TunjanganType::where('code', 'UANG_LEMBUR')
+            ->where('is_active', true)
+            ->first();
     }
 
-    public function canApprove()
+    /**
+     * Get tunjangan detail berdasarkan staff_status karyawan
+     */
+    public function getLemburTunjanganDetail()
     {
-        return $this->status === 'submitted';
+        $tunjanganType = $this->getLemburTunjanganType();
+
+        if (!$tunjanganType) {
+            \Log::warning("Tunjangan Type UANG_LEMBUR tidak ditemukan");
+            return null;
+        }
+
+        // Ambil staff_status dari karyawan
+        $staffStatus = $this->karyawan->staff_status ?? 'karyawan';
+
+        // Cari tunjangan detail berdasarkan staff_status
+        $tunjanganDetail = TunjanganDetail::where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
+            ->where('staff_status', $staffStatus)
+            ->where('is_active', true)
+            ->where(function($query) {
+                // Cek effective_date dan end_date
+                $query->where('effective_date', '<=', now())
+                      ->where(function($q) {
+                          $q->whereNull('end_date')
+                            ->orWhere('end_date', '>=', now());
+                      });
+            })
+            ->first();
+
+        return $tunjanganDetail;
     }
 
-    public function canEdit()
+    /**
+     * Calculate quantity tunjangan berdasarkan total jam
+     * < 4 jam = 1x uang makan
+     * >= 4 jam = 2x uang makan
+     */
+    public function calculateQuantity()
     {
-        return in_array($this->status, ['draft', 'rejected']);
+        return $this->total_jam >= 4 ? 2 : 1;
     }
 
-    // Scopes
-    public function scopeDraft($query)
+    /**
+     * Calculate amount per unit dari database tunjangan_detail
+     */
+    public function calculateAmountPerUnit()
     {
-        return $query->where('status', 'draft');
+        $tunjanganDetail = $this->getLemburTunjanganDetail();
+
+        if ($tunjanganDetail && $tunjanganDetail->amount) {
+            return (int) $tunjanganDetail->amount;
+        }
+
+        // Fallback ke default jika tidak ada di database
+        $staffStatus = $this->karyawan->staff_status ?? 'karyawan';
+
+        \Log::warning("Tunjangan Detail UANG_LEMBUR untuk staff_status {$staffStatus} tidak ditemukan, menggunakan default");
+
+        // Default fallback
+        return in_array($staffStatus, ['karyawan', 'koordinator', 'wakil_koordinator'])
+            ? 20000
+            : 15000;
     }
 
-    public function scopeSubmitted($query)
+    /**
+     * Calculate total tunjangan amount
+     * Total = Quantity × Amount Per Unit
+     */
+    public function calculateTunjanganAmount()
     {
-        return $query->where('status', 'submitted');
+        return $this->calculateQuantity() * $this->calculateAmountPerUnit();
     }
 
-    public function scopeApproved($query)
+    /**
+     * Get description tunjangan
+     */
+    public function getTunjanganDescription()
     {
-        return $query->where('status', 'approved');
+        $quantity = $this->calculateQuantity();
+
+        if ($this->total_jam >= 4) {
+            return "Lembur ≥ 4 jam mendapat {$quantity}x uang makan";
+        } else {
+            return "Lembur < 4 jam mendapat {$quantity}x uang makan";
+        }
     }
 
-    public function scopeRejected($query)
+    /**
+     * Get tunjangan breakdown lengkap dengan info dari database
+     */
+    public function getTunjanganBreakdown()
     {
-        return $query->where('status', 'rejected');
+        $tunjanganType = $this->getLemburTunjanganType();
+        $tunjanganDetail = $this->getLemburTunjanganDetail();
+
+        $staffStatus = $this->karyawan->staff_status ?? 'karyawan';
+        $quantity = $this->calculateQuantity();
+        $amountPerUnit = $this->calculateAmountPerUnit();
+        $totalAmount = $this->calculateTunjanganAmount();
+
+        return [
+            // Info Lembur
+            'total_jam' => $this->total_jam,
+            'quantity' => $quantity,
+            'amount_per_unit' => $amountPerUnit,
+            'total_amount' => $totalAmount,
+            'description' => $this->getTunjanganDescription(),
+            'calculation' => "{$quantity} × Rp " . number_format($amountPerUnit, 0, ',', '.') . " = Rp " . number_format($totalAmount, 0, ',', '.'),
+
+            // Info Karyawan
+            'staff_status' => $staffStatus,
+            'karyawan_name' => $this->karyawan->full_name ?? '-',
+
+            // Info dari Database
+            'tunjangan_type' => $tunjanganType ? [
+                'id' => $tunjanganType->tunjangan_type_id,
+                'name' => $tunjanganType->name,
+                'code' => $tunjanganType->code,
+            ] : null,
+
+            'tunjangan_detail' => $tunjanganDetail ? [
+                'id' => $tunjanganDetail->tunjangan_detail_id,
+                'staff_status' => $tunjanganDetail->staff_status,
+                'amount' => $tunjanganDetail->amount,
+                'effective_date' => $tunjanganDetail->effective_date,
+                'end_date' => $tunjanganDetail->end_date,
+                'is_active' => $tunjanganDetail->is_active,
+            ] : null,
+
+            // Source info
+            'source' => $tunjanganDetail ? 'database' : 'fallback_default',
+        ];
     }
 
-    public function scopeProcessed($query)
+    /**
+     * Check apakah tunjangan sudah dibuat
+     */
+    public function hasTunjangan()
     {
-        return $query->where('status', 'processed');
+        return !is_null($this->tunjangan_karyawan_id) && !is_null($this->tunjanganKaryawan);
     }
 
-    public function scopeForKaryawan($query, $karyawanId)
+    /**
+     * Get tunjangan status
+     */
+    public function getTunjanganStatus()
     {
-        return $query->where('karyawan_id', $karyawanId);
-    }
+        if ($this->hasTunjangan()) {
+            return $this->tunjanganKaryawan->status ?? 'unknown';
+        }
 
-    public function scopeByDate($query, $date)
-    {
-        return $query->whereDate('tanggal_lembur', $date);
-    }
-
-    public function scopeByPeriod($query, $startDate, $endDate)
-    {
-        return $query->whereBetween('tanggal_lembur', [$startDate, $endDate]);
-    }
-
-    // Get total jam lembur dalam periode
-    public static function getTotalJamLembur($karyawanId, $startDate, $endDate)
-    {
-        return self::where('karyawan_id', $karyawanId)
-            ->approved()
-            ->whereBetween('tanggal_lembur', [$startDate, $endDate])
-            ->sum('total_jam');
+        return null;
     }
 }
