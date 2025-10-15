@@ -95,9 +95,12 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data lembur tidak ditemukan');
         }
 
+        // ✅ OPTION 1: Tambahkan bukti_foto_url ke array lembur
+        $lemburArray = $lembur->toArray();
+        $lemburArray['bukti_foto_url'] = $lembur->bukti_foto_url;
+
         return $this->successResponse([
-            'lembur' => $lembur,
-            'bukti_foto_url' => $lembur->bukti_foto_url, // ✅ TAMBAH INI AJA
+            'lembur' => $lemburArray, // ✅ Sekarang bukti_foto_url ada di dalam
             'can_edit' => $lembur->canEdit(),
             'can_submit' => $lembur->canSubmit(),
             'can_delete' => $lembur->status === 'draft',
