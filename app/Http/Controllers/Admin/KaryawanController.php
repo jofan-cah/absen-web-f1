@@ -202,7 +202,7 @@ class KaryawanController extends Controller
             'hire_date' => 'required|date',
             'birth_date' => 'nullable|date|before:hire_date',
             'gender' => 'required|in:L,P',
-            'staff_status' => 'required|in:staff,koordinator,wakil_koordinator',
+            'staff_status' => 'required',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg',
         ]);
 
