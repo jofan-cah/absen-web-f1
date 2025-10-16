@@ -59,6 +59,7 @@ class Lembur extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
     ];
+     protected $appends = ['bukti_foto_url'];
 
     // ============================================
     // RELATIONSHIPS
