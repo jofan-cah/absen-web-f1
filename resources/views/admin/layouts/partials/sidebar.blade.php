@@ -347,8 +347,8 @@
                     </div>
                     <div class="space-y-1">
                         @if ($isAdmin)
-                            <a href="{{ route('admin.karyawan.index') }}"
-                                class="nav-item {{ request()->routeIs('admin.karyawan.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                            <a href="{{ route('admin.tunjangan-karyawan.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.tunjangan-karyawan.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
                                 @click="window.innerWidth < 1024 && (sidebarOpen = false)">
                                 <div
                                     class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-indigo-400 to-purple-500 text-white shadow-sm">
