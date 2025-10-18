@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 
 class LemburController extends Controller
 {
@@ -396,7 +397,7 @@ class LemburController extends Controller
                     $lembur->generateTunjangan();
                     $generated++;
                 } catch (\Exception $e) {
-                    \Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: " . $e->getMessage());
+                    Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: " . $e->getMessage());
                 }
             }
 
