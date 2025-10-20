@@ -199,6 +199,11 @@ class TunjanganKaryawanController extends Controller
     private function generateTunjanganHarian($karyawanId, $tunjanganTypeId, $startDate, $endDate)
     {
         $karyawan = Karyawan::find($karyawanId);
+        $tunjanganType = TunjanganType::find($tunjanganTypeId);
+
+        if (!$karyawan || !$tunjanganType) {
+            throw new \Exception("Karyawan atau tunjangan type tidak ditemukan");
+        }
 
         // Get nominal berdasarkan staff status
         $amount = TunjanganDetail::getAmountByStaffStatus($tunjanganTypeId, $karyawan->staff_status);
@@ -207,7 +212,7 @@ class TunjanganKaryawanController extends Controller
             throw new \Exception("Nominal tunjangan tidak ditemukan untuk status {$karyawan->staff_status}");
         }
 
-        // Hitung hari kerja dari absensi
+        // Hitung hari kerja dari absensi (yang ada clock_in)
         $hariKerjaAsli = Absen::where('karyawan_id', $karyawanId)
             ->whereBetween('date', [$startDate, $endDate])
             ->whereNotNull('clock_in')
@@ -216,6 +221,39 @@ class TunjanganKaryawanController extends Controller
         // Hitung penalti jika ada
         $hariPotongPenalti = Penalti::getTotalHariPotongan($karyawanId, $startDate, $endDate);
 
+        // ============================================
+        // ✅ DELAY SYSTEM - HANYA UNTUK UANG_MAKAN
+        // ============================================
+        $delayDays = 0;
+        $availableRequestDate = null;
+
+        if ($tunjanganType->code === 'UANG_MAKAN') {
+
+            // ✅ HITUNG: Hari yang TIDAK logout (tidak ada clock_out)
+            // Logicnya: Hari yang ada clock_in TAPI tidak ada clock_out
+            $hariTidakLogout = Absen::where('karyawan_id', $karyawanId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereNotNull('clock_in')        // ✅ Ada masuk
+                ->whereNull('clock_out')          // ❌ TAPI tidak ada clock out
+                ->count();
+
+            // ✅ DELAY = Jumlah hari tidak logout
+            // Setiap hari tidak logout = +1 hari delay
+            $delayDays = $hariTidakLogout;
+
+            // ✅ AVAILABLE DATE = period_end + delay_days
+            $availableRequestDate = Carbon::parse($endDate)->addDays($delayDays);
+
+            Log::info("Generate UANG_MAKAN - Delay Check", [
+                'karyawan_id' => $karyawan->karyawan_id,
+                'periode' => "$startDate - $endDate",
+                'hari_kerja_asli' => $hariKerjaAsli,
+                'hari_tidak_logout' => $hariTidakLogout,
+                'delay_days' => $delayDays,
+                'available_date' => $availableRequestDate->format('Y-m-d'),
+            ]);
+        }
+
         return TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $karyawanId,
@@ -223,9 +261,11 @@ class TunjanganKaryawanController extends Controller
             'period_start' => $startDate,
             'period_end' => $endDate,
             'amount' => $amount,
-            'quantity' => $hariKerjaAsli,
+            'quantity' => $hariKerjaAsli,           // ✅ Tetap FULL
             'hari_kerja_asli' => $hariKerjaAsli,
             'hari_potong_penalti' => $hariPotongPenalti,
+            'delay_days' => $delayDays,             // ✅ Delay berdasarkan tidak logout
+            'available_request_date' => $availableRequestDate, // ✅ Tanggal bisa request
             'status' => 'pending',
         ]);
     }
