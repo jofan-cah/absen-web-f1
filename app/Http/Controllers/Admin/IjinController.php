@@ -160,77 +160,7 @@ class IjinController extends Controller
         return view('admin.ijin.coordinator-review', compact('ijin'));
     }
 
-    /**
-     * Process coordinator review
-     */
-    public function coordinatorReview(Request $request, Ijin $ijin)
-    {
-        $request->validate([
-            'action' => 'required|in:approve,reject',
-            'note' => 'nullable|string|max:500',
-        ]);
 
-        $user = auth()->user();
-
-        // Validasi akses
-        if ($ijin->coordinator_id !== $user->user_id && $user->role !== 'admin') {
-            return redirect()->back()->withErrors([
-                'access' => 'Anda tidak berwenang mereview ijin ini'
-            ]);
-        }
-
-        if ($ijin->coordinator_status !== 'pending' || $ijin->status !== 'pending') {
-            return redirect()->back()->withErrors([
-                'status' => 'Ijin ini sudah direview'
-            ]);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $action = $request->action;
-
-            // Update status koordinator
-            $ijin->coordinator_status = $action === 'approve' ? 'approved' : 'rejected';
-            $ijin->coordinator_note = $request->note;
-            $ijin->coordinator_reviewed_at = now();
-            $ijin->coordinator_reviewed_by = $user->user_id;
-
-            // ⚡ PERUBAHAN UTAMA: KOORDINATOR ACC = LANGSUNG APPROVED
-            if ($action === 'approve') {
-                // Langsung set status ijin jadi approved
-                $ijin->status = 'approved';
-                $ijin->approved_at = now();
-
-                // Set admin status juga sebagai approved (otomatis)
-                $ijin->admin_status = 'approved';
-                $ijin->admin_note = 'Approved otomatis setelah koordinator approve';
-                $ijin->admin_reviewed_at = now();
-                $ijin->admin_reviewed_by = $user->user_id;
-
-                $message = 'Ijin berhasil di-approve dan langsung disetujui!';
-            } else {
-                // Kalau reject, langsung reject keseluruhan
-                $ijin->status = 'rejected';
-                $ijin->rejected_at = now();
-
-                // Admin status juga di-set rejected
-                $ijin->admin_status = 'rejected';
-
-                $message = 'Ijin berhasil ditolak';
-            }
-
-            $ijin->save();
-
-            DB::commit();
-
-            return redirect()->route('admin.ijin.show', $ijin->ijin_id)
-                ->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => 'Gagal mereview ijin: ' . $e->getMessage()]);
-        }
-    }
 
 
 
@@ -257,78 +187,156 @@ class IjinController extends Controller
      * Process admin review
      * BISA BYPASS coordinator jika belum approve
      */
-    public function adminReview(Request $request, Ijin $ijin)
-    {
-        $request->validate([
-            'action' => 'required|in:approve,reject',
-            'note' => 'nullable|string|max:500',
-            'bypass_coordinator' => 'nullable|boolean',
+public function coordinatorReview(Request $request, Ijin $ijin)
+{
+    $request->validate([
+        'action' => 'required|in:approve,reject',
+        'note' => 'nullable|string|max:500',
+    ]);
+
+    $user = auth()->user();
+
+    // Validasi akses
+    if ($ijin->coordinator_id !== $user->user_id && $user->role !== 'admin') {
+        return redirect()->back()->withErrors([
+            'access' => 'Anda tidak berwenang mereview ijin ini'
         ]);
+    }
 
-        $user = auth()->user();
+    if ($ijin->coordinator_status !== 'pending' || $ijin->status !== 'pending') {
+        return redirect()->back()->withErrors([
+            'status' => 'Ijin ini sudah direview'
+        ]);
+    }
 
-        if ($ijin->status !== 'pending') {
-            return redirect()->back()->withErrors([
-                'status' => 'Ijin ini sudah direview'
-            ]);
+    try {
+        DB::beginTransaction();
+
+        $action = $request->action;
+
+        // Update status koordinator
+        $ijin->coordinator_status = $action === 'approve' ? 'approved' : 'rejected';
+        $ijin->coordinator_note = $request->note;
+        $ijin->coordinator_reviewed_at = now();
+        // ❌ HAPUS BARIS INI: $ijin->coordinator_reviewed_by = $user->user_id;
+
+        // Kalau approve
+        if ($action === 'approve') {
+            // Set status ijin jadi approved
+            $ijin->status = 'approved';
+            $ijin->approved_at = now();
+
+            // Set admin status juga
+            $ijin->admin_status = 'approved';
+            $ijin->admin_note = 'Approved otomatis setelah koordinator approve';
+            $ijin->admin_reviewed_at = now();
+            // ❌ HAPUS BARIS INI: $ijin->admin_reviewed_by = $user->user_id;
+
+            $message = 'Ijin berhasil di-approve dan langsung disetujui!';
+        } else {
+            // Kalau reject
+            $ijin->status = 'rejected';
+            $ijin->rejected_at = now();
+
+            $ijin->admin_status = 'rejected';
+
+            $message = 'Ijin berhasil ditolak';
         }
 
-        try {
-            DB::beginTransaction();
+        $ijin->save();
 
-            $action = $request->action;
-            $bypassCoordinator = $request->boolean('bypass_coordinator');
+        // Log activity
 
-            // Update status admin
-            $ijin->admin_status = $action === 'approve' ? 'approved' : 'rejected';
-            $ijin->admin_note = $request->note;
-            $ijin->admin_reviewed_at = now();
-            $ijin->admin_reviewed_by = $user->user_id;
 
-            // ⚡ PERUBAHAN: ADMIN BYPASS = LANGSUNG APPROVED
-            if ($action === 'approve') {
-                // Langsung approved
-                $ijin->status = 'approved';
-                $ijin->approved_at = now();
+        DB::commit();
 
-                // Jika bypass, set koordinator status jadi approved otomatis
-                if ($bypassCoordinator && $ijin->coordinator_status === 'pending') {
-                    $ijin->coordinator_status = 'approved';
-                    $ijin->coordinator_note = 'Approved otomatis (bypassed by admin)';
-                    $ijin->coordinator_reviewed_at = now();
-                    $ijin->coordinator_reviewed_by = $user->user_id;
-                }
+        return redirect()->route('admin.ijin.show', $ijin->ijin_id)
+            ->with('success', $message);
 
-                $message = $bypassCoordinator ?
-                    'Ijin berhasil di-approve dengan bypass koordinator!' :
-                    'Ijin berhasil di-approve!';
-            } else {
-                // Reject
-                $ijin->status = 'rejected';
-                $ijin->rejected_at = now();
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withErrors(['error' => 'Gagal mereview ijin: ' . $e->getMessage()]);
+    }
+}
 
-                // Set koordinator juga rejected kalau masih pending
-                if ($ijin->coordinator_status === 'pending') {
-                    $ijin->coordinator_status = 'rejected';
-                    $ijin->coordinator_note = 'Rejected by admin';
-                }
 
-                $message = 'Ijin berhasil ditolak';
+// =============================================
+// METHOD: adminReview()
+// =============================================
+
+public function adminReview(Request $request, Ijin $ijin)
+{
+    $request->validate([
+        'action' => 'required|in:approve,reject',
+        'note' => 'nullable|string|max:500',
+        'bypass_coordinator' => 'nullable|boolean',
+    ]);
+
+    $user = auth()->user();
+
+    if ($ijin->status !== 'pending') {
+        return redirect()->back()->withErrors([
+            'status' => 'Ijin ini sudah direview'
+        ]);
+    }
+
+    try {
+        DB::beginTransaction();
+
+        $action = $request->action;
+        $bypassCoordinator = $request->boolean('bypass_coordinator');
+
+        // Update status admin
+        $ijin->admin_status = $action === 'approve' ? 'approved' : 'rejected';
+        $ijin->admin_note = $request->note;
+        $ijin->admin_reviewed_at = now();
+        // ❌ HAPUS BARIS INI: $ijin->admin_reviewed_by = $user->user_id;
+
+        if ($action === 'approve') {
+            // Langsung approved
+            $ijin->status = 'approved';
+            $ijin->approved_at = now();
+
+            // Jika bypass
+            if ($bypassCoordinator && $ijin->coordinator_status === 'pending') {
+                $ijin->coordinator_status = 'approved';
+                $ijin->coordinator_note = 'Approved otomatis (bypassed by admin)';
+                $ijin->coordinator_reviewed_at = now();
+                // ❌ HAPUS BARIS INI: $ijin->coordinator_reviewed_by = $user->user_id;
             }
 
-            $ijin->save();
+            $message = $bypassCoordinator ?
+                'Ijin berhasil di-approve dengan bypass koordinator!' :
+                'Ijin berhasil di-approve!';
 
+        } else {
+            // Reject
+            $ijin->status = 'rejected';
+            $ijin->rejected_at = now();
 
+            if ($ijin->coordinator_status === 'pending') {
+                $ijin->coordinator_status = 'rejected';
+                $ijin->coordinator_note = 'Rejected by admin';
+            }
 
-            DB::commit();
-
-            return redirect()->route('admin.ijin.show', $ijin->ijin_id)
-                ->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => 'Gagal mereview ijin: ' . $e->getMessage()]);
+            $message = 'Ijin berhasil ditolak';
         }
+
+        $ijin->save();
+
+        // Log activity
+
+
+        DB::commit();
+
+        return redirect()->route('admin.ijin.show', $ijin->ijin_id)
+            ->with('success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withErrors(['error' => 'Gagal mereview ijin: ' . $e->getMessage()]);
     }
+}
 
 
     /**
