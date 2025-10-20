@@ -224,7 +224,7 @@ public function coordinatorReview(Request $request, Ijin $ijin)
         if ($action === 'approve') {
             // Set status ijin jadi approved
             $ijin->status = 'approved';
-            $ijin->approved_at = now();
+            // $ijin->approved_at = now();
 
             // Set admin status juga
             $ijin->admin_status = 'approved';
@@ -295,7 +295,7 @@ public function adminReview(Request $request, Ijin $ijin)
         if ($action === 'approve') {
             // Langsung approved
             $ijin->status = 'approved';
-            $ijin->approved_at = now();
+            // $ijin->approved_at = now();
 
             // Jika bypass
             if ($bypassCoordinator && $ijin->coordinator_status === 'pending') {
