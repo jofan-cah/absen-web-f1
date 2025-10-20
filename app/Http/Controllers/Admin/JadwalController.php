@@ -90,9 +90,9 @@ class JadwalController extends Controller
         // Get accessible departments
         $accessibleDepts = $this->getAccessibleDepartments();
 
-        \Log::info('=== CALENDAR METHOD ===');
-        \Log::info('Accessible Departments: ' . json_encode($accessibleDepts));
-        \Log::info('Selected Department Filter: ' . ($departmentId ?? 'none'));
+        // \Log::info('=== CALENDAR METHOD ===');
+        // \Log::info('Accessible Departments: ' . json_encode($accessibleDepts));
+        // \Log::info('Selected Department Filter: ' . ($departmentId ?? 'none'));
 
         // ===== QUERY KARYAWAN =====
         $karyawansQuery = Karyawan::where('employment_status', 'active')
@@ -171,6 +171,7 @@ class JadwalController extends Controller
                 'department_name' => $jadwal->karyawan->department->name ?? '-',
                 'shift_id' => $jadwal->shift_id,
                 'shift_name' => $jadwal->shift->name,
+                'ijin_id' => $jadwal->ijin_id ?? false,
                 'shift_time' => $jadwal->shift->start_time . ' - ' . $jadwal->shift->end_time,
                 'absen_status' => $jadwal->absen ? $jadwal->absen->status : 'scheduled',
                 'is_editable' => $jadwal->absen ? $jadwal->absen->isEditable() : true,
