@@ -421,52 +421,6 @@
         </div>
     </div>
 
-    <!-- Enhanced Quick Actions -->
-    <div class="glass-card rounded-2xl p-6 shadow-lg border border-white/20">
-        <h3 class="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <a href="{{ route('admin.karyawan.create') }}" class="quick-action flex items-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl hover:from-blue-100 hover:to-indigo-200 transition-all duration-300 group">
-                <div class="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <i class="fas fa-user-plus text-white text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="font-semibold text-blue-900">Tambah Karyawan</p>
-                    <p class="text-xs text-blue-700 mt-1">Daftarkan karyawan baru</p>
-                </div>
-            </a>
-
-            <a href="{{ route('admin.jadwal.calendar') }}" class="quick-action flex items-center p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl hover:from-green-100 hover:to-emerald-200 transition-all duration-300 group">
-                <div class="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <i class="fas fa-calendar-plus text-white text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="font-semibold text-green-900">Buat Jadwal</p>
-                    <p class="text-xs text-green-700 mt-1">Atur jadwal kerja</p>
-                </div>
-            </a>
-
-            <a href="{{ route('admin.absen.report') }}" class="quick-action flex items-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl hover:from-purple-100 hover:to-pink-200 transition-all duration-300 group">
-                <div class="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <i class="fas fa-chart-bar text-white text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="font-semibold text-purple-900">Lihat Laporan</p>
-                    <p class="text-xs text-purple-700 mt-1">Analisis kehadiran</p>
-                </div>
-            </a>
-
-            <a href="{{ route('admin.shift.create') }}" class="quick-action flex items-center p-6 bg-gradient-to-br from-orange-50 to-red-100 rounded-xl hover:from-orange-100 hover:to-red-200 transition-all duration-300 group">
-                <div class="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <i class="fas fa-clock text-white text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="font-semibold text-orange-900">Tambah Shift</p>
-                    <p class="text-xs text-orange-700 mt-1">Buat shift baru</p>
-                </div>
-            </a>
-        </div>
-    </div>
 
 </div>
 @endsection
