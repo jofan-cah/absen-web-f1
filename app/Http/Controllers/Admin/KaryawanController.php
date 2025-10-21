@@ -194,7 +194,7 @@ class KaryawanController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
             'department_id' => 'required|exists:departments,department_id',
-            'nip' => 'required|string|max:50|unique:karyawans',
+            // 'nip' => 'required|string|max:50|unique:karyawans',
             'full_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -208,12 +208,13 @@ class KaryawanController extends Controller
 
         try {
             DB::beginTransaction();
+            $nip = Karyawan::generateNIP($request->hire_date);
 
             // Create User first
             $user = User::create([
 
                 'user_id' => User::generateUserId(),
-                'nip' => $request->nip,
+                'nip' =>   $nip,
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
@@ -234,7 +235,7 @@ class KaryawanController extends Controller
                 'karyawan_id' => Karyawan::generateKaryawanId(),
                 'user_id' => $user->user_id,
                 'department_id' => $request->department_id,
-                'nip' => $request->nip,
+                'nip' =>   $nip,
                 'full_name' => $request->full_name,
                 'position' => $request->position,
                 'phone' => $request->phone,

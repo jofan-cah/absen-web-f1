@@ -127,7 +127,7 @@
                         </div>
 
                         <!-- NIP -->
-                        <div>
+                        {{-- <div>
                             <label for="nip" class="block text-sm font-medium text-gray-700 mb-2">
                                 NIP <span class="text-red-500">*</span>
                             </label>
@@ -136,7 +136,7 @@
                             @error('nip')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
-                        </div>
+                        </div> --}}
 
                         <!-- Email -->
                         <div>
@@ -454,7 +454,7 @@
             let isValid = true;
 
             if (step === 1) {
-                const requiredFields = ['full_name', 'nip', 'email', 'gender'];
+                const requiredFields = ['full_name',  'email', 'gender'];
                 requiredFields.forEach(field => {
                     const input = document.getElementById(field);
                     if (!input.value.trim()) {

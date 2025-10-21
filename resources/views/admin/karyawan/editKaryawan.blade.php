@@ -165,7 +165,7 @@
                     </div>
 
                     <!-- NIP -->
-                    <div>
+                    {{-- <div>
                         <label for="nip" class="block text-sm font-medium text-gray-700 mb-2">
                             NIP <span class="text-red-500">*</span>
                         </label>
@@ -174,7 +174,7 @@
                         @error('nip')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                    </div> --}}
 
                     <!-- Phone -->
                     <div>
