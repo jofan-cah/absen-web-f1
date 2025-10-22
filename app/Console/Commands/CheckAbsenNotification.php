@@ -94,7 +94,7 @@ class CheckAbsenNotification extends Command
 
             // Buat notifikasi
             $notification = Notification::create([
-                'karyawan_id' => $jadwal->karyawan_id,
+                'user_id' => $jadwal->user_id,
                 'type' => 'reminder_clock_in',
                 'title' => 'Reminder Absen Masuk',
                 'message' => "Jangan lupa absen masuk ya! Shift {$jadwal->shift->name} sudah dimulai.",
@@ -171,7 +171,7 @@ class CheckAbsenNotification extends Command
 
             // Buat notifikasi
             $notification = Notification::create([
-                'karyawan_id' => $absen->karyawan_id,
+                'user_id' => $absen->user_id,
                 'type' => 'reminder_clock_out',
                 'title' => 'Reminder Absen Pulang',
                 'message' => "Jangan lupa absen pulang ya! Shift {$absen->jadwal->shift->name} sudah selesai.",
@@ -248,7 +248,7 @@ class CheckAbsenNotification extends Command
 
             // Buat notifikasi
             $notification = Notification::create([
-                'karyawan_id' => $jadwal->karyawan_id,
+                'user_id' => $jadwal->user_id,
                 'type' => 'absent_alert',
                 'title' => 'Kamu Belum Absen!',
                 'message' => 'Kamu belum absen hari ini. Segera hubungi koordinator untuk konfirmasi.',
