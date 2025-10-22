@@ -18,15 +18,15 @@ class NotificationController extends BaseApiController
     public function index(Request $request)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
-            if (!$nip) {
+            if (!$user_id) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
             $perPage = $this->getPerPage($request);
 
-            $notifications = Notification::where('nip', $nip)
+            $notifications = Notification::where('user_id', $user_id)
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
@@ -45,13 +45,13 @@ class NotificationController extends BaseApiController
     public function unread(Request $request)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
-            if (!$nip) {
+            if (!$user_id) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            $notifications = Notification::where('nip', $nip)
+            $notifications = Notification::where('user_id', $user_id)
                 ->where('is_read', false)
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -75,13 +75,13 @@ class NotificationController extends BaseApiController
     public function unreadCount(Request $request)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
-            if (!$nip) {
+            if (!$user_id) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            $count = Notification::where('nip', $nip)
+            $count = Notification::where('user_id', $user_id)
                 ->where('is_read', false)
                 ->count();
 
@@ -99,10 +99,10 @@ class NotificationController extends BaseApiController
     public function show($id)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
             $notification = Notification::where('notification_id', $id)
-                ->where('nip', $nip)
+                ->where('user_id', $user_id)
                 ->first();
 
             if (!$notification) {
@@ -123,10 +123,10 @@ class NotificationController extends BaseApiController
     public function markAsRead($id)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
             $notification = Notification::where('notification_id', $id)
-                ->where('nip', $nip)
+                ->where('user_id', $user_id)
                 ->first();
 
             if (!$notification) {
@@ -137,7 +137,7 @@ class NotificationController extends BaseApiController
 
             Log::info('Notification marked as read', [
                 'notification_id' => $id,
-                'nip' => $nip
+                'user_id' => $user_id
             ]);
 
             return $this->successResponse($notification, 'Notifikasi berhasil ditandai sudah dibaca');
@@ -159,9 +159,9 @@ class NotificationController extends BaseApiController
     public function markAllAsRead(Request $request)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
-            $updated = Notification::where('nip', $nip)
+            $updated = Notification::where('user_id', $user_id)
                 ->where('is_read', false)
                 ->update([
                     'is_read' => true,
@@ -169,7 +169,7 @@ class NotificationController extends BaseApiController
                 ]);
 
             Log::info('All notifications marked as read', [
-                'nip' => $nip,
+                'user_id' => $user_id,
                 'count' => $updated
             ]);
 
@@ -191,10 +191,10 @@ class NotificationController extends BaseApiController
     public function destroy($id)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
             $notification = Notification::where('notification_id', $id)
-                ->where('nip', $nip)
+                ->where('user_id', $user_id)
                 ->first();
 
             if (!$notification) {
@@ -205,7 +205,7 @@ class NotificationController extends BaseApiController
 
             Log::info('Notification deleted', [
                 'notification_id' => $id,
-                'nip' => $nip
+                'user_id' => $user_id
             ]);
 
             return $this->noContentResponse('Notifikasi berhasil dihapus');
@@ -222,14 +222,14 @@ class NotificationController extends BaseApiController
     public function clearRead(Request $request)
     {
         try {
-            $nip = auth()->user()->nip;
+            $user_id = auth()->user()->user_id;
 
-            $deleted = Notification::where('nip', $nip)
+            $deleted = Notification::where('user_id', $user_id)
                 ->where('is_read', true)
                 ->delete();
 
             Log::info('Read notifications cleared', [
-                'nip' => $nip,
+                'user_id' => $user_id,
                 'count' => $deleted
             ]);
 
