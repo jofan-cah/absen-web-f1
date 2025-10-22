@@ -721,122 +721,122 @@ class TunjanganKaryawanController extends Controller
 
     // Update method generateAllEmployeeWeeklyReport di controller
 
-    // private function generateAllEmployeeWeeklyReport($tunjanganType, $month, $year)
-    // {
-    //     $startDate = Carbon::create($year, $month, 1);
-    //     $endDate = $startDate->copy()->endOfMonth();
+    private function generateAllEmployeeWeeklyReport($tunjanganType, $month, $year)
+    {
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
 
-    //     // Get semua karyawan aktif
-    //     $karyawans = Karyawan::with(['department'])
-    //         ->where('employment_status', 'active')
-    //         ->orderBy('full_name')
-    //         ->get();
+        // Get semua karyawan aktif
+        $karyawans = Karyawan::with(['department'])
+            ->where('employment_status', 'active')
+            ->orderBy('full_name')
+            ->get();
 
-    //     // Bagi bulan jadi minggu-minggu PROPER (Senin-Minggu)
-    //     $weeks = [];
-    //     $currentDate = $startDate->copy();
-    //     $weekNumber = 1;
+        // Bagi bulan jadi minggu-minggu PROPER (Senin-Minggu)
+        $weeks = [];
+        $currentDate = $startDate->copy();
+        $weekNumber = 1;
 
-    //     // Mulai dari Senin pertama dalam bulan (atau awal bulan kalau bukan Senin)
-    //     while ($currentDate <= $endDate) {
-    //         // Cari awal minggu (Senin)
-    //         $weekStart = $currentDate->copy();
-    //         if ($weekStart->dayOfWeek != Carbon::MONDAY) {
-    //             // Kalau bukan Senin, mundur ke Senin sebelumnya (tapi tetap dalam bulan)
-    //             if ($weekStart->day <= 7) {
-    //                 // Kalau masih minggu pertama, tetep pake tanggal 1
-    //                 $weekStart = $startDate->copy();
-    //             } else {
-    //                 // Mundur ke Senin
-    //                 $weekStart = $weekStart->startOfWeek(Carbon::MONDAY);
-    //             }
-    //         }
+        // Mulai dari Senin pertama dalam bulan (atau awal bulan kalau bukan Senin)
+        while ($currentDate <= $endDate) {
+            // Cari awal minggu (Senin)
+            $weekStart = $currentDate->copy();
+            if ($weekStart->dayOfWeek != Carbon::MONDAY) {
+                // Kalau bukan Senin, mundur ke Senin sebelumnya (tapi tetap dalam bulan)
+                if ($weekStart->day <= 7) {
+                    // Kalau masih minggu pertama, tetep pake tanggal 1
+                    $weekStart = $startDate->copy();
+                } else {
+                    // Mundur ke Senin
+                    $weekStart = $weekStart->startOfWeek(Carbon::MONDAY);
+                }
+            }
 
-    //         // Akhir minggu (Minggu)
-    //         $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+            // Akhir minggu (Minggu)
+            $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
 
-    //         // Pastikan tidak melebihi akhir bulan
-    //         if ($weekEnd > $endDate) {
-    //             $weekEnd = $endDate->copy();
-    //         }
+            // Pastikan tidak melebihi akhir bulan
+            if ($weekEnd > $endDate) {
+                $weekEnd = $endDate->copy();
+            }
 
-    //         // Pastikan tidak sebelum awal bulan
-    //         if ($weekStart < $startDate) {
-    //             $weekStart = $startDate->copy();
-    //         }
+            // Pastikan tidak sebelum awal bulan
+            if ($weekStart < $startDate) {
+                $weekStart = $startDate->copy();
+            }
 
-    //         $weeks[] = [
-    //             'number' => $weekNumber,
-    //             'start' => $weekStart,
-    //             'end' => $weekEnd,
-    //             'label' => $weekStart->format('d') . '-' . $weekEnd->format('d'),
-    //             'full_label' => $weekStart->format('d/m') . ' - ' . $weekEnd->format('d/m'),
-    //             'day_names' => $this->getWeekDayNames($weekStart, $weekEnd),
-    //             'is_full_week' => $weekStart->diffInDays($weekEnd) >= 6 // 7 hari = 6 diff
-    //         ];
+            $weeks[] = [
+                'number' => $weekNumber,
+                'start' => $weekStart,
+                'end' => $weekEnd,
+                'label' => $weekStart->format('d') . '-' . $weekEnd->format('d'),
+                'full_label' => $weekStart->format('d/m') . ' - ' . $weekEnd->format('d/m'),
+                'day_names' => $this->getWeekDayNames($weekStart, $weekEnd),
+                'is_full_week' => $weekStart->diffInDays($weekEnd) >= 6 // 7 hari = 6 diff
+            ];
 
-    //         // Lompat ke minggu berikutnya
-    //         $currentDate = $weekEnd->copy()->addDay();
-    //         $weekNumber++;
-    //     }
+            // Lompat ke minggu berikutnya
+            $currentDate = $weekEnd->copy()->addDay();
+            $weekNumber++;
+        }
 
-    //     // Get data tunjangan untuk semua karyawan
-    //     $employeeData = [];
-    //     foreach ($karyawans as $karyawan) {
-    //         $weeklyData = [];
+        // Get data tunjangan untuk semua karyawan
+        $employeeData = [];
+        foreach ($karyawans as $karyawan) {
+            $weeklyData = [];
 
-    //         foreach ($weeks as $week) {
-    //             // Cari tunjangan untuk minggu ini berdasarkan periode yang overlap
-    //             $tunjangan = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
-    //                 ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
-    //                 ->where(function ($query) use ($week) {
-    //                     $query->whereBetween('period_start', [$week['start'], $week['end']])
-    //                         ->orWhereBetween('period_end', [$week['start'], $week['end']])
-    //                         ->orWhere(function ($q) use ($week) {
-    //                             $q->where('period_start', '<=', $week['start'])
-    //                                 ->where('period_end', '>=', $week['end']);
-    //                         });
-    //                 })
-    //                 ->first();
+            foreach ($weeks as $week) {
+                // Cari tunjangan untuk minggu ini berdasarkan periode yang overlap
+                $tunjangan = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+                    ->where('tunjangan_type_id', $tunjanganType->tunjangan_type_id)
+                    ->where(function ($query) use ($week) {
+                        $query->whereBetween('period_start', [$week['start'], $week['end']])
+                            ->orWhereBetween('period_end', [$week['start'], $week['end']])
+                            ->orWhere(function ($q) use ($week) {
+                                $q->where('period_start', '<=', $week['start'])
+                                    ->where('period_end', '>=', $week['end']);
+                            });
+                    })
+                    ->first();
 
-    //             $weeklyData[] = [
-    //                 'week' => $week,
-    //                 'tunjangan' => $tunjangan,
-    //                 'is_taken' => $tunjangan ? in_array($tunjangan->status, ['approved', 'received']) : false,
-    //                 'status' => $tunjangan ? $tunjangan->status : 'no_data',
-    //                 'amount' => $tunjangan ? $tunjangan->total_amount : 0,
-    //             ];
-    //         }
+                $weeklyData[] = [
+                    'week' => $week,
+                    'tunjangan' => $tunjangan,
+                    'is_taken' => $tunjangan ? in_array($tunjangan->status, ['approved', 'received']) : false,
+                    'status' => $tunjangan ? $tunjangan->status : 'no_data',
+                    'amount' => $tunjangan ? $tunjangan->total_amount : 0,
+                ];
+            }
 
-    //         $employeeData[] = [
-    //             'karyawan' => $karyawan,
-    //             'weeks' => $weeklyData,
-    //             'total_taken' => collect($weeklyData)->where('is_taken', true)->count(),
-    //             'total_amount' => collect($weeklyData)->sum('amount'),
-    //         ];
-    //     }
+            $employeeData[] = [
+                'karyawan' => $karyawan,
+                'weeks' => $weeklyData,
+                'total_taken' => collect($weeklyData)->where('is_taken', true)->count(),
+                'total_amount' => collect($weeklyData)->sum('amount'),
+            ];
+        }
 
-    //     $data = [
-    //         'tunjanganType' => $tunjanganType,
-    //         'month' => $month,
-    //         'year' => $year,
-    //         'month_name' => $startDate->format('F Y'),
-    //         'weeks' => $weeks,
-    //         'employees' => $employeeData,
-    //         'report_type' => 'mingguan',
-    //         'generated_at' => now()->format('d/m/Y H:i:s'),
-    //         'summary' => [
-    //             'total_employees' => count($employeeData),
-    //             'total_weeks' => count($weeks),
-    //         ],
-    //     ];
+        $data = [
+            'tunjanganType' => $tunjanganType,
+            'month' => $month,
+            'year' => $year,
+            'month_name' => $startDate->format('F Y'),
+            'weeks' => $weeks,
+            'employees' => $employeeData,
+            'report_type' => 'mingguan',
+            'generated_at' => now()->format('d/m/Y H:i:s'),
+            'summary' => [
+                'total_employees' => count($employeeData),
+                'total_weeks' => count($weeks),
+            ],
+        ];
 
-    //     $pdf = Pdf::loadView('admin.reports.all-employee-universal', $data);
-    //     $pdf->setPaper('A4', 'landscape');
+        $pdf = Pdf::loadView('admin.reports.all-employee-universal', $data);
+        $pdf->setPaper('A4', 'landscape');
 
-    //     $filename = "Laporan_Tunjangan_Mingguan_Semua_Karyawan_{$month}_{$year}.pdf";
-    //     return $pdf->download($filename);
-    // }
+        $filename = "Laporan_Tunjangan_Mingguan_Semua_Karyawan_{$month}_{$year}.pdf";
+        return $pdf->download($filename);
+    }
 
     // Helper method untuk nama hari
     private function getWeekDayNames($startDate, $endDate)
@@ -1241,7 +1241,6 @@ class TunjanganKaryawanController extends Controller
 
         return view('admin.reports.tunjangan-form', compact('tunjanganTypes'));
     }
-
 
     public function singleWeekReportForm()
     {

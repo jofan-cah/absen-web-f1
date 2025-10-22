@@ -31,13 +31,13 @@ class Karyawan extends Model
         'photo',
         'employment_status',
         'staff_status',
-          'uang_kuota',
+        'uang_kuota',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
         'birth_date' => 'date',
-          'uang_kuota'=> 'boolean'
+        'uang_kuota' => 'boolean'
     ];
 
     // Relationships
@@ -84,9 +84,9 @@ class Karyawan extends Model
 
         // Cari nomor urut terakhir dari bulan dan tahun yang sama
         $lastKaryawan = self::whereYear('hire_date', $date->year)
-                            ->whereMonth('hire_date', $date->month)
-                            ->orderByDesc('nip')
-                            ->first();
+            ->whereMonth('hire_date', $date->month)
+            ->orderByDesc('nip')
+            ->first();
 
         if (!$lastKaryawan) {
             $sequence = 1;
@@ -114,7 +114,7 @@ class Karyawan extends Model
         $lastNumber = (int) substr($lastKaryawan->karyawan_id, 3);
         $newNumber = $lastNumber + 1;
 
-        return 'KAR'.str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return 'KAR' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
 
     // Boot method - Auto generate saat create
@@ -164,5 +164,19 @@ class Karyawan extends Model
             ->where('date_to', '>=', $today)
             ->with('ijinType')
             ->first();
+    }
+
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class, 'karyawan_id', 'karyawan_id')
+            ->where('is_active', true);
+    }
+
+    /**
+     * Get array of active device tokens (untuk kirim FCM)
+     */
+    public function getActiveDeviceTokens()
+    {
+        return $this->deviceTokens()->pluck('device_token')->toArray();
     }
 }
