@@ -246,6 +246,7 @@ class KaryawanController extends Controller
                 'photo' => $photoPath,
                 'employment_status' => 'active',
                 'staff_status' => $request->staff_status,
+                 'uang_kuota' => true,
             ]);
 
             DB::commit();
@@ -375,7 +376,7 @@ class KaryawanController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $karyawan->user->user_id . ',user_id',
             'department_id' => 'required|exists:departments,department_id',
-            'nip' => 'required|string|max:50|unique:karyawans,nip,' . $karyawan->karyawan_id . ',karyawan_id',
+            // 'nip' => 'required|string|max:50|unique:karyawans,nip,' . $karyawan->karyawan_id . ',karyawan_id',
             'full_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -410,10 +411,11 @@ class KaryawanController extends Controller
                 $photoPath = $photo->storeAs('karyawan_photos', $filename, 'public');
             }
 
+            // dd( $request->input('uang_kuota'));
             // Update Karyawan
             $karyawan->update([
                 'department_id' => $request->department_id,
-                'nip' => $request->nip,
+                // 'nip' => $request->nip,
                 'full_name' => $request->full_name,
                 'position' => $request->position,
                 'phone' => $request->phone,
@@ -424,6 +426,7 @@ class KaryawanController extends Controller
                 'employment_status' => $request->employment_status,
                 'staff_status' => $request->staff_status,
                 'photo' => $photoPath,
+             'uang_kuota' => $request->boolean('uang_kuota') ? 1 : 0,
             ]);
 
             DB::commit();
