@@ -31,11 +31,13 @@ class Karyawan extends Model
         'photo',
         'employment_status',
         'staff_status',
+          'uang_kuota',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
         'birth_date' => 'date',
+          'uang_kuota'=> 'boolean'
     ];
 
     // Relationships
