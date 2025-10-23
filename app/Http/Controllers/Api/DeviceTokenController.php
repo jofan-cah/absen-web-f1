@@ -32,7 +32,7 @@ class DeviceTokenController extends BaseApiController
 
             // Cek apakah token sudah ada untuk karyawan ini
             $deviceToken = DeviceToken::where('device_token', $request->device_token)
-                                      ->where('karyawan_id', $karyawanId)
+                                    //   ->where('karyawan_id', $karyawanId)
                                       ->first();
 
             // ============================================
