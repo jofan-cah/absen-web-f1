@@ -35,6 +35,22 @@ class DeviceTokenController extends BaseApiController
                                       ->where('karyawan_id', $karyawanId)
                                       ->first();
 
+            // ============================================
+            // DEACTIVATE TOKEN USER LAIN DI HP YANG SAMA
+            // ============================================
+            if (!$deviceToken) {
+                // Kalau ini token baru untuk karyawan ini,
+                // non-aktifkan token user lain di HP yang sama
+                DeviceToken::where('device_token', $request->device_token)
+                           ->where('karyawan_id', '!=', $karyawanId)
+                           ->update(['is_active' => false]);
+
+                Log::info('Deactivated other user tokens on this device', [
+                    'device_token' => substr($request->device_token, 0, 20) . '...',
+                    'current_karyawan_id' => $karyawanId
+                ]);
+            }
+
             if ($deviceToken) {
                 // Update existing
                 $deviceToken->update([
