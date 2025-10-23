@@ -1,10 +1,5 @@
 <?php
 
-// ============================================
-// 1. DeviceTokenController - UPDATED
-// app/Http/Controllers/Api/DeviceTokenController.php
-// ============================================
-
 namespace App\Http\Controllers\Api;
 
 use App\Models\DeviceToken;
@@ -27,15 +22,17 @@ class DeviceTokenController extends BaseApiController
             ]);
 
             $user = auth()->user();
-            $user_id = $user->user_id;
 
-            if (!$user_id) {
+            // Ambil karyawan_id dari relasi user->karyawan
+            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+
+            if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            // Cek apakah token sudah ada
+            // Cek apakah token sudah ada untuk karyawan ini
             $deviceToken = DeviceToken::where('device_token', $request->device_token)
-                                      ->where('user_id', $user_id)
+                                      ->where('karyawan_id', $karyawanId)
                                       ->first();
 
             if ($deviceToken) {
@@ -48,7 +45,8 @@ class DeviceTokenController extends BaseApiController
                 ]);
 
                 Log::info('Device token updated', [
-                    'user_id' => $user_id,
+                    'user_id' => $user->user_id,
+                    'karyawan_id' => $karyawanId,
                     'device_type' => $request->device_type
                 ]);
 
@@ -57,7 +55,7 @@ class DeviceTokenController extends BaseApiController
                 // Create new
                 $deviceToken = DeviceToken::create([
                     'user_id' => $user->user_id,
-                    'user_id' => $user_id,
+                    'karyawan_id' => $karyawanId,  // ✅ INI YANG PENTING!
                     'device_token' => $request->device_token,
                     'device_type' => $request->device_type,
                     'device_name' => $request->device_name,
@@ -66,7 +64,8 @@ class DeviceTokenController extends BaseApiController
                 ]);
 
                 Log::info('New device token registered', [
-                    'user_id' => $user_id,
+                    'user_id' => $user->user_id,
+                    'karyawan_id' => $karyawanId,
                     'device_type' => $request->device_type
                 ]);
 
@@ -92,9 +91,14 @@ class DeviceTokenController extends BaseApiController
     public function index(Request $request)
     {
         try {
-            $user_id = auth()->user()->user_id;
+            $user = auth()->user();
+            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
 
-            $tokens = DeviceToken::where('user_id', $user_id)
+            if (!$karyawanId) {
+                return $this->errorResponse('User tidak memiliki data karyawan', 400);
+            }
+
+            $tokens = DeviceToken::where('karyawan_id', $karyawanId)
                                  ->orderBy('last_used_at', 'desc')
                                  ->get();
 
@@ -116,15 +120,20 @@ class DeviceTokenController extends BaseApiController
                 'device_token' => 'required|string'
             ]);
 
-            $user_id = auth()->user()->user_id;
+            $user = auth()->user();
+            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+
+            if (!$karyawanId) {
+                return $this->errorResponse('User tidak memiliki data karyawan', 400);
+            }
 
             $deleted = DeviceToken::where('device_token', $request->device_token)
-                                  ->where('user_id', $user_id)
+                                  ->where('karyawan_id', $karyawanId)
                                   ->delete();
 
             if ($deleted) {
                 Log::info('Device token deleted', [
-                    'user_id' => $user_id,
+                    'karyawan_id' => $karyawanId,
                     'device_token' => substr($request->device_token, 0, 20) . '...'
                 ]);
 
@@ -153,16 +162,21 @@ class DeviceTokenController extends BaseApiController
                 'device_token' => 'required|string'
             ]);
 
-            $user_id = auth()->user()->user_id;
+            $user = auth()->user();
+            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+
+            if (!$karyawanId) {
+                return $this->errorResponse('User tidak memiliki data karyawan', 400);
+            }
 
             $deviceToken = DeviceToken::where('device_token', $request->device_token)
-                                      ->where('user_id', $user_id)
+                                      ->where('karyawan_id', $karyawanId)
                                       ->first();
 
             if ($deviceToken) {
                 $deviceToken->update(['is_active' => false]);
 
-                Log::info('Device token deactivated', ['user_id' => $user_id]);
+                Log::info('Device token deactivated', ['karyawan_id' => $karyawanId]);
 
                 return $this->successResponse($deviceToken, 'Device token berhasil dinonaktifkan');
             } else {
@@ -185,10 +199,15 @@ class DeviceTokenController extends BaseApiController
                 'device_token' => 'required|string'
             ]);
 
-            $user_id = auth()->user()->user_id;
+            $user = auth()->user();
+            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+
+            if (!$karyawanId) {
+                return $this->errorResponse('User tidak memiliki data karyawan', 400);
+            }
 
             $deviceToken = DeviceToken::where('device_token', $request->device_token)
-                                      ->where('user_id', $user_id)
+                                      ->where('karyawan_id', $karyawanId)
                                       ->first();
 
             if ($deviceToken) {
@@ -197,7 +216,7 @@ class DeviceTokenController extends BaseApiController
                     'last_used_at' => now()
                 ]);
 
-                Log::info('Device token activated', ['user_id' => $user_id]);
+                Log::info('Device token activated', ['karyawan_id' => $karyawanId]);
 
                 return $this->successResponse($deviceToken, 'Device token berhasil diaktifkan');
             } else {
