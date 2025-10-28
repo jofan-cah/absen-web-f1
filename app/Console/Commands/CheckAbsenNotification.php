@@ -58,28 +58,21 @@ class CheckAbsenNotification extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Cek karyawan yang belum clock in
+     * Untuk dijalankan pagi hari (misal jam 08:30)
+     */
     protected function checkClockIn()
     {
         $this->info('🔍 Mengecek karyawan yang belum clock in...');
 
-        $now = now();
-        $timeWindow = 30; // Menit setelah shift dimulai
-
-        // Ambil jadwal hari ini yang shift-nya sudah dimulai tapi belum clock in
+        // Ambil jadwal hari ini yang statusnya normal (tidak ada ijin)
         $jadwals = Jadwal::where('date', today())
             ->where('status', 'normal')
-            ->whereHas('shift', function ($query) use ($now, $timeWindow) {
-                // Shift yang start_time-nya sudah lewat 15-30 menit
-                $startFrom = $now->copy()->subMinutes($timeWindow)->format('H:i:s');
-                $startTo = $now->copy()->subMinutes(15)->format('H:i:s');
-
-                $query->whereTime('start_time', '>=', $startFrom)
-                    ->whereTime('start_time', '<=', $startTo);
-            })
             ->with(['karyawan.deviceTokens', 'shift', 'absen'])
             ->get();
 
-        $this->info("👥 Total jadwal yang perlu dicek: {$jadwals->count()}");
+        $this->info("👥 Total jadwal hari ini: {$jadwals->count()}");
 
         $sentCount = 0;
         $skipCount = 0;
@@ -91,19 +84,6 @@ class CheckAbsenNotification extends Command
                 continue;
             }
 
-            // Cek apakah sudah pernah kirim notif hari ini untuk jadwal ini
-            $alreadySent = \App\Models\Notification::where('karyawan_id', $jadwal->karyawan_id)
-                ->where('type', 'reminder_clock_in')
-                ->whereDate('created_at', today())
-                ->whereJsonContains('data->jadwal_id', $jadwal->jadwal_id)
-                ->exists();
-
-            if ($alreadySent) {
-                $this->warn("⚠️  {$jadwal->karyawan->full_name} - Already notified");
-                $skipCount++;
-                continue;
-            }
-
             // Skip kalau karyawan tidak ada device token
             $deviceTokens = $jadwal->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
@@ -111,18 +91,16 @@ class CheckAbsenNotification extends Command
                 $skipCount++;
                 continue;
             }
+
             // Buat notifikasi
-            $notification = \App\Models\Notification::create([
+            $notification = Notification::create([
                 'karyawan_id' => $jadwal->karyawan_id,
                 'type' => 'reminder_clock_in',
                 'title' => 'Reminder Absen Masuk',
                 'message' => "Jangan lupa absen masuk ya! Shift {$jadwal->shift->name} sudah dimulai.",
-                // 'message' => "Wayahe Kerjo njir Absent e yo di pikir {$jadwal->shift->name} sudah dmulai.",
                 'data' => [
                     'jadwal_id' => $jadwal->jadwal_id,
                     'shift_id' => $jadwal->shift_id,
-                    'shift_name' => $jadwal->shift->name,
-                    'shift_time' => $jadwal->shift->start_time,
                     'date' => today()->format('Y-m-d')
                 ]
             ]);
@@ -148,7 +126,7 @@ class CheckAbsenNotification extends Command
 
             if ($fcmSuccess) {
                 $notification->markFCMSent();
-                $this->info("✅ {$jadwal->karyawan->full_name} (Shift: {$jadwal->shift->name} - {$jadwal->shift->start_time})");
+                $this->info("✅ {$jadwal->karyawan->full_name} (NIP: {$jadwal->karyawan->nip})");
                 $sentCount++;
             } else {
                 $this->error("❌ {$jadwal->karyawan->full_name} - FCM failed");
@@ -162,25 +140,18 @@ class CheckAbsenNotification extends Command
         $this->info("🎉 Selesai!");
     }
 
+    /**
+     * Cek karyawan yang belum clock out
+     * Untuk dijalankan sore hari (misal jam 17:30)
+     */
     protected function checkClockOut()
     {
         $this->info('🔍 Mengecek karyawan yang belum clock out...');
 
-        $now = now();
-        $timeWindow = 30; // Menit setelah shift selesai
-
-        // Ambil absen yang shift-nya sudah selesai tapi belum clock out
+        // Ambil absen hari ini yang sudah clock_in tapi belum clock_out
         $absens = Absen::where('date', today())
             ->whereNotNull('clock_in')
             ->whereNull('clock_out')
-            ->whereHas('jadwal.shift', function ($query) use ($now, $timeWindow) {
-                // Shift yang end_time-nya sudah lewat 15-30 menit
-                $endFrom = $now->copy()->subMinutes($timeWindow)->format('H:i:s');
-                $endTo = $now->copy()->subMinutes(15)->format('H:i:s');
-
-                $query->whereTime('end_time', '>=', $endFrom)
-                    ->whereTime('end_time', '<=', $endTo);
-            })
             ->with(['karyawan.deviceTokens', 'jadwal.shift'])
             ->get();
 
@@ -190,19 +161,6 @@ class CheckAbsenNotification extends Command
         $skipCount = 0;
 
         foreach ($absens as $absen) {
-            // Cek apakah sudah pernah kirim notif hari ini
-            $alreadySent = \App\Models\Notification::where('karyawan_id', $absen->karyawan_id)
-                ->where('type', 'reminder_clock_out')
-                ->whereDate('created_at', today())
-                ->whereJsonContains('data->absen_id', $absen->absen_id)
-                ->exists();
-
-            if ($alreadySent) {
-                $this->warn("⚠️  {$absen->karyawan->full_name} - Already notified");
-                $skipCount++;
-                continue;
-            }
-
             // Skip kalau karyawan tidak ada device token
             $deviceTokens = $absen->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
@@ -212,7 +170,7 @@ class CheckAbsenNotification extends Command
             }
 
             // Buat notifikasi
-            $notification = \App\Models\Notification::create([
+            $notification = Notification::create([
                 'karyawan_id' => $absen->karyawan_id,
                 'type' => 'reminder_clock_out',
                 'title' => 'Reminder Absen Pulang',
@@ -220,8 +178,6 @@ class CheckAbsenNotification extends Command
                 'data' => [
                     'absen_id' => $absen->absen_id,
                     'jadwal_id' => $absen->jadwal_id,
-                    'shift_name' => $absen->jadwal->shift->name,
-                    'shift_time' => $absen->jadwal->shift->end_time,
                     'date' => today()->format('Y-m-d')
                 ]
             ]);
@@ -247,7 +203,7 @@ class CheckAbsenNotification extends Command
 
             if ($fcmSuccess) {
                 $notification->markFCMSent();
-                $this->info("✅ {$absen->karyawan->full_name} (Shift: {$absen->jadwal->shift->name} - {$absen->jadwal->shift->end_time})");
+                $this->info("✅ {$absen->karyawan->full_name} (NIP: {$absen->karyawan->nip})");
                 $sentCount++;
             } else {
                 $this->error("❌ {$absen->karyawan->full_name} - FCM failed");
