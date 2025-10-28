@@ -111,7 +111,6 @@ class CheckAbsenNotification extends Command
                 $skipCount++;
                 continue;
             }
-
             // Buat notifikasi
             $notification = \App\Models\Notification::create([
                 'karyawan_id' => $jadwal->karyawan_id,
