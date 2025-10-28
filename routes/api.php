@@ -165,6 +165,29 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::delete('/{id}', [IjinController::class, 'cancel'])
             ->name('ijin.cancel');
     });
+
+
+    // Device Token Management (FCM)
+    Route::prefix('device')->group(function () {
+        Route::post('/device-token', [App\Http\Controllers\Api\DeviceTokenController::class, 'store']);
+        Route::get('/device-tokens', [App\Http\Controllers\Api\DeviceTokenController::class, 'index']);
+        Route::delete('/device-token', [App\Http\Controllers\Api\DeviceTokenController::class, 'destroy']);
+        Route::post('/device-token/activate', [App\Http\Controllers\Api\DeviceTokenController::class, 'activate']);
+        Route::post('/device-token/deactivate', [App\Http\Controllers\Api\DeviceTokenController::class, 'deactivate']);
+    });
+
+    // Notification Management
+    Route::prefix('notif')->group(function () {
+        // Notifications
+        Route::get('/notifications', [App\Http\Controllers\Api\NotificationController::class, 'index']);
+        Route::get('/notifications/unread', [App\Http\Controllers\Api\NotificationController::class, 'unread']);
+        Route::get('/notifications/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+        Route::get('/notifications/{id}', [App\Http\Controllers\Api\NotificationController::class, 'show']);
+        Route::post('/notifications/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{id}', [App\Http\Controllers\Api\NotificationController::class, 'destroy']);
+        Route::delete('/notifications/clear-read', [App\Http\Controllers\Api\NotificationController::class, 'clearRead']);
+    });
 });
 
 // ============================================

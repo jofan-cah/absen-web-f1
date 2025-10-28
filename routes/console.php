@@ -7,6 +7,21 @@ use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
+
+// Cek clock in setiap 15 menit (06:00 - 22:00)
+Schedule::command('notif:check-absen --type=clock_in')
+    ->everyFifteenMinutes()
+    ->between('06:00', '22:00');
+
+// Cek clock out setiap 15 menit (12:00 - 04:00 next day)
+Schedule::command('notif:check-absen --type=clock_out')
+    ->everyFifteenMinutes()
+    ->between('12:00', '04:00');
+
+// Cek absent sekali di malam (22:00)
+Schedule::command('notif:check-absen --type=absent')
+    ->dailyAt('22:00');
+    
 // Generate uang kuota setiap Senin pertama di bulan berjalan
 Schedule::command('tunjangan:generate-kuota')
     ->monthlyOn(1, '00:01') // Tanggal 1 setiap bulan jam 00:01
@@ -20,6 +35,21 @@ Schedule::command('tunjangan:generate-kuota')
     ->onFailure(function () {
         Log::error('❌ Scheduled job: Generate uang kuota gagal');
     });
+
+
+// Check absen clock in (TAMBAH INI)
+Schedule::command('notif:check-absen --type=clock_in')
+    ->everyFifteenMinutes()
+    ->between('06:00', '22:00');
+
+// Check absen clock out (TAMBAH INI)
+Schedule::command('notif:check-absen --type=clock_out')
+    ->everyFifteenMinutes()
+    ->between('12:00', '04:00');
+
+// Check absent (TAMBAH INI)
+Schedule::command('notif:check-absen --type=absent')
+    ->dailyAt('22:00');
 
 
 Artisan::command('inspire', function () {
