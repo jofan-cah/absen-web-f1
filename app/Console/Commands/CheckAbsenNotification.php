@@ -118,10 +118,7 @@ class CheckAbsenNotification extends Command
                 'type' => 'reminder_clock_in',
                 'title' => 'Reminder Absen Masuk',
                 'message' => "Jangan lupa absen masuk ya! Shift {$jadwal->shift->name} sudah dimulai.",
-<<<<<<< HEAD
-                // 'message' => "Wayahe Kerjo njir Absent e yo di pikir {$jadwal->shift->name} sudah dimulai.",
-=======
->>>>>>> 102dc8769235d80fb96f59f173c613875e5b1fd2
+                // 'message' => "Wayahe Kerjo njir Absent e yo di pikir {$jadwal->shift->name} sudah dmulai.",
                 'data' => [
                     'jadwal_id' => $jadwal->jadwal_id,
                     'shift_id' => $jadwal->shift_id,
