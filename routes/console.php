@@ -22,6 +22,21 @@ Schedule::command('tunjangan:generate-kuota')
     });
 
 
+// Check absen clock in (TAMBAH INI)
+Schedule::command('notif:check-absen --type=clock_in')
+    ->everyFifteenMinutes()
+    ->between('06:00', '22:00');
+
+// Check absen clock out (TAMBAH INI)
+Schedule::command('notif:check-absen --type=clock_out')
+    ->everyFifteenMinutes()
+    ->between('12:00', '04:00');
+
+// Check absent (TAMBAH INI)
+Schedule::command('notif:check-absen --type=absent')
+    ->dailyAt('22:00');
+
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

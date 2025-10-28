@@ -160,9 +160,9 @@ class Notification extends Model
             'karyawan_id' => $karyawanId,
             'type' => 'reminder_clock_in',
             'title' => 'Reminder Absen Masuk',
-            // 'message' => "Jangan lupa absen masuk ya! Shift {$shiftName} sudah dimulai.",
+            'message' => "Jangan lupa absen masuk ya! Shift {$shiftName} sudah dimulai.",
             //  'message' => "Wayahe Kerjo njir Absent e yo di pikir ! shift {$shiftName} sudah dimulai.",
-             'message' => "HIDUP JOK.......!!!!",
+            //  'message' => "HIDUP JOK.......!!!!",
             'data' => [
                 'jadwal_id' => $jadwalId,
                 'date' => now()->format('Y-m-d')
