@@ -20,6 +20,7 @@ class Jadwal extends Model
         'ijin_id',      // ✅ CORE: Jadwal bisa punya ijin
         'date',
         'is_active',
+          'type',
         'status',       // ✅ Status jadwal
         'notes',
         'created_by_user_id',
@@ -34,6 +35,7 @@ class Jadwal extends Model
     const STATUS_NORMAL = 'normal';
     const STATUS_HAS_IJIN = 'has_ijin';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_ONCALL = 'oncall'; // ← TAMBAH INI
 
     // Relationships
     public function karyawan()
@@ -73,6 +75,18 @@ class Jadwal extends Model
     {
         return $this->status === self::STATUS_NORMAL;
     }
+
+        public function isOnCall()
+    {
+        return $this->type === 'oncall';
+    }
+
+    // 🆕 SCOPE ONCALL
+    public function scopeOnCall($query)
+    {
+        return $query->where('type', 'oncall');
+    }
+
 
     // ✅ UPDATE JADWAL DAN ABSEN DARI IJIN
     public function applyIjin(Ijin $ijin)

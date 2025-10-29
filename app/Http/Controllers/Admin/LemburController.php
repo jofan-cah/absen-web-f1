@@ -144,15 +144,20 @@ class LemburController extends Controller
         try {
             DB::beginTransaction();
 
-            // 🆕 CEK: Apakah koordinator sudah approve atau admin bypass?
-            if ($lembur->koordinator_status === 'approved') {
-                // NORMAL FLOW: Koordinator sudah approve, admin approve level 2
-                $result = $lembur->approveByAdmin($user->user_id, $request->notes);
-                $message = 'Lembur berhasil disetujui oleh Admin dan tunjangan telah dibuat!';
+            // ✅ CEK JENIS LEMBUR: OnCall atau Request biasa?
+            if ($lembur->jenis_lembur === 'oncall') {
+                // 🔥 ONCALL: Auto-generate tunjangan LANGSUNG
+                $result = $lembur->approveOnCall($user->user_id, $request->notes);
+                $message = 'OnCall berhasil disetujui dan tunjangan telah dibuat secara langsung!';
             } else {
-                // 🔥 BYPASS FLOW: Admin langsung approve (skip koordinator)
-                $result = $lembur->approveByAdminDirect($user->user_id, $request->notes);
-                $message = 'Lembur berhasil disetujui langsung oleh Admin (bypass koordinator) dan tunjangan telah dibuat!';
+                // 📋 LEMBUR REQUEST: Flow normal
+                if ($lembur->koordinator_status === 'approved') {
+                    $result = $lembur->approveByAdmin($user->user_id, $request->notes);
+                    $message = 'Lembur berhasil disetujui oleh Admin dan tunjangan telah dibuat!';
+                } else {
+                    $result = $lembur->approveByAdminDirect($user->user_id, $request->notes);
+                    $message = 'Lembur berhasil disetujui langsung oleh Admin (bypass koordinator)!';
+                }
             }
 
             if (!$result) {

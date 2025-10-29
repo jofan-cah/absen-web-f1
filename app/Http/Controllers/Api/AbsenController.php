@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Models\Absen;
 use App\Models\Ijin;
 use App\Models\Jadwal;
+use App\Models\Lembur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AbsenController extends BaseApiController
@@ -51,8 +53,6 @@ class AbsenController extends BaseApiController
             'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-
-
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
         }
@@ -86,6 +86,7 @@ class AbsenController extends BaseApiController
             return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
         }
 
+        // Cari atau buat absen
         $absen = Absen::where('jadwal_id', $jadwal->jadwal_id)->first();
 
         if (!$absen) {
@@ -100,20 +101,17 @@ class AbsenController extends BaseApiController
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = 'clock_in_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d_H-i-s') . '.' . $photo->getClientOriginalExtension();
-
-            // Upload ke S3 dengan path yang sama
+            $filename = 'clock_in_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '.' . $photo->getClientOriginalExtension();
             $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
-        // Calculate late minutes
+        // Check lateness
         $shiftStart = Carbon::parse($jadwal->shift->start_time);
-        $tolerance = $jadwal->shift->late_tolerance ?? 15;
         $lateMinutes = 0;
         $status = 'present';
 
-        if ($now->isAfter($shiftStart->copy()->addMinutes($tolerance))) {
-            $lateMinutes = $now->diffInMinutes($shiftStart);
+        if ($now->isAfter($shiftStart->copy()->addMinutes($jadwal->shift->late_tolerance ?? 15))) {
+            $lateMinutes = $shiftStart->diffInMinutes($now);
             $status = 'late';
         }
 
@@ -124,8 +122,8 @@ class AbsenController extends BaseApiController
             'clock_in_latitude' => $request->latitude,
             'clock_in_longitude' => $request->longitude,
             'clock_in_address' => $request->address,
-            'status' => $status,
             'late_minutes' => $lateMinutes,
+            'status' => $status
         ]);
 
         $message = $status === 'late' ? 'Clock in berhasil (Terlambat)' : 'Clock in berhasil';
@@ -155,7 +153,6 @@ class AbsenController extends BaseApiController
         $karyawan = $user->karyawan;
         $today = Carbon::today();
         $now = Carbon::now();
-
 
         // ✅ CEK IJIN APPROVED
         $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
@@ -193,9 +190,7 @@ class AbsenController extends BaseApiController
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today . '.' . $photo->getClientOriginalExtension();
-
-            // Upload ke S3 dengan path yang sama
+            $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '.' . $photo->getClientOriginalExtension();
             $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
@@ -233,12 +228,59 @@ class AbsenController extends BaseApiController
             'status' => $currentStatus
         ]);
 
+        // ✅ KHUSUS OnCall: Update lembur OnCall juga setelah clock out
+        if ($absen->type === 'oncall') {
+            $this->updateLemburOnCall($absen);
+        }
+
         return $this->successResponse([
             'absen' => $absen->fresh(),
             'work_hours' => $workHours,
             'early_checkout_minutes' => $earlyCheckoutMinutes,
             'clock_out_time' => $now->format('H:i:s')
         ], 'Clock out berhasil');
+    }
+
+    /**
+     * Update Lembur OnCall setelah clock out
+     * Auto-calculate total_jam dari clock_in sampai clock_out
+     */
+    private function updateLemburOnCall($absen)
+    {
+        try {
+            // Cari lembur OnCall yang terkait dengan absen ini
+            $lembur = Lembur::where('oncall_jadwal_id', $absen->jadwal_id)
+                ->where('jenis_lembur', 'oncall')
+                ->first();
+
+            if (!$lembur) {
+                Log::warning("Lembur OnCall tidak ditemukan untuk absen: {$absen->absen_id}");
+                return;
+            }
+
+            // Calculate total jam dari clock_in ke clock_out
+            $clockIn = Carbon::parse($absen->clock_in);
+            $clockOut = Carbon::parse($absen->clock_out);
+            $totalMinutes = $clockIn->diffInMinutes($clockOut);
+            $totalJam = round($totalMinutes / 60, 2); // Dalam jam (misal: 4.5 jam)
+
+            // Update lembur OnCall
+            $lembur->update([
+                'jam_selesai' => $absen->clock_out, // Jam selesai dari absen
+                'total_jam' => $totalJam, // ✅ AUTO CALCULATE!
+                'status' => 'draft', // Status jadi draft (siap di-submit)
+            ]);
+
+            Log::info("Lembur OnCall berhasil diupdate", [
+                'lembur_id' => $lembur->lembur_id,
+                'total_jam' => $totalJam,
+                'clock_in' => $clockIn->format('H:i:s'),
+                'clock_out' => $clockOut->format('H:i:s'),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error update lembur OnCall: " . $e->getMessage());
+        }
     }
 
     public function history(Request $request)

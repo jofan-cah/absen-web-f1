@@ -32,6 +32,7 @@ class Absen extends Model
         'clock_out_address',
         'status',       // ✅ Follow dari ijin_type->code
         'late_minutes',
+        'type',
         'early_checkout_minutes',
         'work_hours',
         'notes',
@@ -79,6 +80,31 @@ class Absen extends Model
         return !is_null($this->ijin_id);
     }
 
+    public function isOnCall()
+    {
+        return $this->type === 'oncall';
+    }
+        public function scopeOnCall($query)
+    {
+        return $query->where('type', 'oncall');
+    }
+
+
+
+    public function getUangMakanAttribute()
+    {
+        // Kalau OnCall → gak dapat uang makan normal
+        if ($this->isOnCall()) {
+            return 0;
+        }
+
+        // Kalau kerja >= 8 jam → dapat 1 uang makan
+        if ($this->work_hours >= 8) {
+            return 1;
+        }
+
+        return 0;
+    }
     public function isLeaveStatus()
     {
         return in_array($this->status, [
@@ -97,8 +123,8 @@ class Absen extends Model
     public function isEditable()
     {
         return $this->status === self::STATUS_SCHEDULED
-               && !$this->clock_in
-               && !$this->ijin_id;
+            && !$this->clock_in
+            && !$this->ijin_id;
     }
 
     // Accessor
@@ -134,7 +160,7 @@ class Absen extends Model
                 $randomString .= $characters[rand(0, strlen($characters) - 1)];
             }
 
-            $absenId = 'ABS'.$randomString;
+            $absenId = 'ABS' . $randomString;
             $exists = self::where('absen_id', $absenId)->exists();
         } while ($exists);
 

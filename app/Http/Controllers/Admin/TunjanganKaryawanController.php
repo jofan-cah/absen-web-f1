@@ -216,6 +216,7 @@ class TunjanganKaryawanController extends Controller
         $hariKerjaAsli = Absen::where('karyawan_id', $karyawanId)
             ->whereBetween('date', [$startDate, $endDate])
             ->whereNotNull('clock_in')
+            ->where('type', '!=', 'oncall')
             ->count();
 
         // Hitung penalti jika ada
@@ -235,6 +236,7 @@ class TunjanganKaryawanController extends Controller
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereNotNull('clock_in')        // ✅ Ada masuk
                 ->whereNull('clock_out')          // ❌ TAPI tidak ada clock out
+                  ->where('type', '!=', 'oncall')
                 ->count();
 
             // ✅ DELAY = Jumlah hari tidak logout
@@ -998,6 +1000,7 @@ class TunjanganKaryawanController extends Controller
                     ->whereYear('tanggal_lembur', $year)
                     ->whereMonth('tanggal_lembur', $month)
                     ->whereIn('status', ['approved', 'processed']) // yang sudah diapprove
+                    ->where('jenis_lembur', '!=', 'oncall')
                     ->with('tunjanganKaryawan')
                     ->get();
 
