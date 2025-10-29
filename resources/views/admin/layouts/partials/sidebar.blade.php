@@ -335,9 +335,36 @@
                     </div>
                 </div>
             @endif
-
+            @if ($isAdmin || $isCoordinator)
+                <a href="{{ route('admin.oncall.index') }}"
+                    class="nav-item {{ request()->routeIs('oncall.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                    @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                    <div
+                        class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-purple-400 to-pink-500 text-white shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <span class="flex-1 truncate text-gray-700 group-hover:text-purple-700">OnCall</span>
+                    @php
+                        // Count pending oncall (waiting_checkin)
+                        $pendingOnCallCount = 0;
+                        if ($isCoordinator) {
+                            $pendingOnCallCount = \App\Models\Lembur::where('jenis_lembur', 'oncall')
+                                ->where('created_by_user_id', auth()->id())
+                                ->where('status', 'waiting_checkin')
+                                ->count();
+                        }
+                    @endphp
+                    @if ($pendingOnCallCount > 0)
+                        <span
+                            class="text-xs bg-yellow-100 text-yellow-700 font-bold px-1.5 py-0.5 rounded-full">{{ $pendingOnCallCount }}</span>
+                    @endif
+                </a>
+            @endif
             <!-- Transaksi Section - Admin + Koordinator -->
-            @if ($isAdmin )
+            @if ($isAdmin)
                 <div class="mb-1.5">
                     <div class="flex items-center px-2.5 py-1.5 mb-1">
                         <div

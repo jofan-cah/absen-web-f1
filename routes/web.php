@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\IjinTypeController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\LemburController;
+use App\Http\Controllers\Admin\OnCallController;
 use App\Http\Controllers\Admin\PenaltiController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\TunjanganDetailController;
@@ -52,6 +53,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/jadwal', [JadwalController::class, 'store'])->name('jadwal.store');
             Route::put('/jadwal/{jadwal}', [JadwalController::class, 'update'])->name('jadwal.update');
             Route::delete('/jadwal/{jadwal}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
+        });
+
+
+        Route::middleware(['role:admin,coordinator'])->prefix('oncall')->name('oncall.')->group(function () {
+            Route::get('/', [OnCallController::class, 'index'])->name('index');
+            Route::get('/create', [OnCallController::class, 'create'])->name('create');
+            Route::post('/', [OnCallController::class, 'store'])->name('store');
+            Route::get('/{id}', [OnCallController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [OnCallController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [OnCallController::class, 'update'])->name('update');
+            Route::delete('/{id}', [OnCallController::class, 'destroy'])->name('destroy');
         });
 
 

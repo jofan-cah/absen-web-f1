@@ -23,6 +23,8 @@ class Lembur extends Model
         'karyawan_id',
         'absen_id',
         'tanggal_lembur',
+        'oncall_jadwal_id',
+        'jenis_lembur',
         'jam_mulai',
         'jam_selesai',
         'total_jam',
@@ -59,7 +61,7 @@ class Lembur extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
     ];
-     protected $appends = ['bukti_foto_url'];
+    protected $appends = ['bukti_foto_url'];
 
     // ============================================
     // RELATIONSHIPS
@@ -647,4 +649,96 @@ class Lembur extends Model
         }
         return null;
     }
+
+    public function jadwalOnCall()
+    {
+        return $this->belongsTo(Jadwal::class, 'oncall_jadwal_id', 'jadwal_id');
+    }
+
+    public function approveOnCall($userId, $notes = null)
+    {
+        if ($this->status !== 'submitted') {
+            return false;
+        }
+
+        // VALIDASI: Harus jenis OnCall
+        if ($this->jenis_lembur !== 'oncall') {
+            throw new \Exception('Method ini hanya untuk lembur OnCall');
+        }
+
+        // VALIDASI: Total jam harus sudah dihitung (dari clock out)
+        if ($this->total_jam <= 0) {
+            throw new \Exception('OnCall belum selesai. Total jam belum dihitung.');
+        }
+
+        // Update status lembur
+        $this->update([
+            // OnCall auto-bypass koordinator
+            'koordinator_status' => 'approved',
+            'koordinator_approved_at' => now(),
+            'koordinator_notes' => 'Auto-approved (OnCall bypass)',
+
+            // Status final approved
+            'status' => 'approved',
+            'approved_by_user_id' => $userId,
+            'approved_at' => now(),
+            'approval_notes' => $notes,
+        ]);
+
+        // ✅ GENERATE TUNJANGAN ONCALL LANGSUNG!
+        $this->generateTunjanganOnCall();
+
+        return true;
+    }
+
+    /**
+ * Generate Tunjangan khusus OnCall
+ * Individual per OnCall (bukan weekly)
+ */
+private function generateTunjanganOnCall()
+{
+    if ($this->tunjangan_karyawan_id) {
+        Log::info("Tunjangan OnCall sudah ada: {$this->lembur_id}");
+        return false;
+    }
+
+    // Get tunjangan type & detail
+    $tunjanganType = $this->getLemburTunjanganType();
+    $tunjanganDetail = $this->getLemburTunjanganDetail();
+
+    if (!$tunjanganType || !$tunjanganDetail) {
+        throw new \Exception('Tunjangan Type/Detail tidak ditemukan');
+    }
+
+    // Calculate tunjangan
+    $quantity = $this->calculateQuantity(); // >= 4 jam = 2x
+    $amountPerUnit = $this->calculateAmountPerUnit();
+    $totalAmount = $quantity * $amountPerUnit;
+
+    // Create TunjanganKaryawan
+    $tunjangan = TunjanganKaryawan::create([
+        'karyawan_id' => $this->karyawan_id,
+        'tunjangan_detail_id' => $tunjanganDetail->tunjangan_detail_id,
+        'lembur_id' => $this->lembur_id, // ✅ Link ke OnCall specific
+        'week' => null, // ✅ BUKAN weekly!
+        'month' => $this->tanggal_lembur->format('Y-m'),
+        'year' => $this->tanggal_lembur->year,
+        'quantity' => $quantity,
+        'amount' => $amountPerUnit,
+        'total_amount' => $totalAmount,
+        'status' => 'approved', // ✅ Langsung approved
+        'type' => 'oncall', // ✅ Type khusus OnCall
+        'description' => "OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
+        'submitted_via' => 'system',
+        'approved_by_user_id' => $this->approved_by_user_id,
+        'approved_at' => now(),
+    ]);
+
+    // Update lembur
+    $this->update([
+        'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
+    ]);
+
+    return $tunjangan;
+}
 }
