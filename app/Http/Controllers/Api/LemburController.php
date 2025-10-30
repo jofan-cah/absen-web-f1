@@ -644,60 +644,62 @@ class LemburController extends BaseApiController
     }
 
 
-    public function updatePhoto(Request $request, $id)
-    {
-        $user = $request->user();
-        $karyawan = $user->karyawan;
+ /**
+ * Update foto lembur dan langsung submit untuk approval
+ * POST /api/lembur/{id}/update-photo
+ */
+public function updatePhoto(Request $request, $id)
+{
+    $user = $request->user();
+    $karyawan = $user->karyawan;
 
-        $lembur = Lembur::where('lembur_id', $id)
-            ->where('karyawan_id', $karyawan->karyawan_id)
-            ->first();
+    $lembur = Lembur::where('lembur_id', $id)
+        ->where('karyawan_id', $karyawan->karyawan_id)
+        ->first();
 
-        if (!$lembur) {
-            return $this->notFoundResponse('Data lembur tidak ditemukan');
-        }
+    if (!$lembur) {
+        return $this->notFoundResponse('Data lembur tidak ditemukan');
+    }
 
-        // VALIDASI: Hanya draft yang bisa edit foto
-        if ($lembur->status !== 'draft') {
-            return $this->forbiddenResponse('Hanya lembur draft yang dapat diupdate fotonya');
-        }
+    if ($lembur->status !== 'draft') {
+        return $this->forbiddenResponse('Hanya lembur draft yang dapat diupdate fotonya');
+    }
 
-        // ✅ HAPUS validasi completed_at - gak perlu cek ini
-        // Selama draft, boleh upload/ganti foto kapan aja
+    $validator = Validator::make($request->all(), [
+        'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-        $validator = Validator::make($request->all(), [
-            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+    if ($validator->fails()) {
+        return $this->validationErrorResponse($validator->errors());
+    }
 
-        if ($validator->fails()) {
-            return $this->validationErrorResponse($validator->errors());
-        }
-
-        try {
-            // Upload foto baru
-            $photoPath = $lembur->bukti_foto;
-
-            if ($request->hasFile('bukti_foto')) {
-                // Delete old photo kalau ada
-                if ($photoPath) {
-                    Storage::disk('s3')->delete($photoPath);
-                }
-
-                $photo = $request->file('bukti_foto');
-                $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
-                $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
+    try {
+        // Upload foto baru
+        if ($request->hasFile('bukti_foto')) {
+            // Delete old photo
+            if ($lembur->bukti_foto) {
+                Storage::disk('s3')->delete($lembur->bukti_foto);
             }
 
-            $lembur->update([
-                'bukti_foto' => $photoPath,
-            ]);
-
-            return $this->successResponse(
-                $lembur->fresh(['absen.jadwal.shift']),
-                'Foto bukti lembur berhasil diupdate'
-            );
-        } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal update foto: ' . $e->getMessage());
+            $photo = $request->file('bukti_foto');
+            $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+            $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
         }
+
+        // ✅ UPDATE foto + langsung SUBMIT
+        $lembur->update([
+            'bukti_foto' => $photoPath,
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            'submitted_via' => 'mobile',
+        ]);
+
+        return $this->successResponse(
+            $lembur->fresh(['absen.jadwal.shift']),
+            'Foto berhasil diupdate dan otomatis disubmit untuk approval'
+        );
+    } catch (\Exception $e) {
+        return $this->serverErrorResponse('Gagal update foto: ' . $e->getMessage());
     }
+}
 }
