@@ -125,6 +125,8 @@ class LemburController extends BaseApiController
     /**
      * 🆕 Mulai lembur - buat draft dengan started_at
      * POST /api/lembur/start
+     *
+     * ✅ UPDATED: Support OnCall - skip validasi +1 jam
      */
     public function start(Request $request)
     {
@@ -176,25 +178,36 @@ class LemburController extends BaseApiController
             return $this->errorResponse('Data jadwal shift tidak ditemukan', 404);
         }
 
-        $shiftEnd = $absen->jadwal->shift->end_time;
+        $shift = $absen->jadwal->shift;
+        $shiftEnd = $shift->end_time;
 
-        // ✅ VALIDASI +1 JAM HANYA PAS START (cek waktu pengajuan)
-        $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
-        $maxStartTime = $shiftEndCarbon->copy()->addHour(); // Maksimal 1 jam dari shift end
-        $now = Carbon::now();
+        // ✅ CEK APAKAH INI ONCALL
+        $isOnCall = $absen->type === 'oncall';
 
-        // Cek apakah pengajuan masih dalam waktu +1 jam dari shift end
-        $tanggalAbsen = Carbon::parse($absen->date);
-        $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
+        // ✅ VALIDASI +1 JAM - SKIP UNTUK ONCALL!
+        if (!$isOnCall) {
+            // HANYA VALIDASI UNTUK LEMBUR REQUEST (bukan OnCall)
+            $shiftEndCarbon = Carbon::createFromFormat('H:i:s', $shiftEnd);
+            $maxStartTime = $shiftEndCarbon->copy()->addHour(); // Maksimal 1 jam dari shift end
+            $now = Carbon::now();
 
-        if ($now->greaterThan($maxStartDateTime)) {
-            return $this->errorResponse(
-                "Waktu pengajuan lembur sudah melewati batas maksimal (shift end + 1 jam). Batas: {$maxStartDateTime->format('d/m/Y H:i')}",
-                422
-            );
+            // Cek apakah pengajuan masih dalam waktu +1 jam dari shift end
+            $tanggalAbsen = Carbon::parse($absen->date);
+            $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
+
+            if ($now->greaterThan($maxStartDateTime)) {
+                return $this->errorResponse(
+                    "Waktu pengajuan lembur sudah melewati batas maksimal (shift end + 1 jam). Batas: {$maxStartDateTime->format('d/m/Y H:i')}",
+                    422
+                );
+            }
         }
+        // ✅ ONCALL: SKIP VALIDASI WAKTU! Bebas kapan aja
 
         try {
+            // ✅ Determine jenis_lembur based on absen type
+            $jenisLembur = $isOnCall ? 'oncall' : 'request';
+
             // Create lembur draft dengan started_at
             $lembur = Lembur::create([
                 'lembur_id' => Lembur::generateLemburId(),
@@ -205,21 +218,32 @@ class LemburController extends BaseApiController
                 'jam_selesai' => null, // Belum diisi
                 'deskripsi_pekerjaan' => null,
                 'bukti_foto' => null,
+                'jenis_lembur' => $jenisLembur, // ✅ 'oncall' atau 'request'
                 'status' => 'draft',
                 'koordinator_status' => 'pending',
                 'submitted_via' => 'mobile',
                 'started_at' => now(), // Timestamp mulai
                 'completed_at' => null, // Belum selesai
                 'created_by_user_id' => $user->user_id,
+
+                // ✅ ONCALL: Link ke jadwal OnCall
+                'oncall_jadwal_id' => $isOnCall ? $absen->jadwal_id : null,
             ]);
+
+            // ✅ Custom message based on type
+            $messageHint = $isOnCall
+                ? 'OnCall dimulai. Klik "Selesai Lembur" setelah pekerjaan selesai.'
+                : 'Lembur dimulai. Klik "Selesai Lembur" setelah pekerjaan selesai.';
 
             return $this->createdResponse([
                 'lembur' => $lembur->fresh(['absen.jadwal.shift']),
                 'shift_info' => [
-                    'shift_name' => $absen->jadwal->shift->name,
+                    'shift_name' => $shift->name,
                     'shift_end' => substr($shiftEnd, 0, 5),
+                    'is_oncall' => $isOnCall, // ✅ Info tambahan
+                    'jenis_lembur' => $jenisLembur, // ✅ Info tambahan
                 ],
-                'message_hint' => 'Lembur dimulai. Klik "Selesai Lembur" setelah pekerjaan selesai.'
+                'message_hint' => $messageHint
             ], 'Lembur berhasil dimulai');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal memulai lembur: ' . $e->getMessage());
@@ -536,6 +560,8 @@ class LemburController extends BaseApiController
     /**
      * Get info untuk form lembur (shift end, max start time)
      * GET /api/lembur/form-info/{absenId}
+     *
+     * ✅ UPDATED: Support OnCall - skip validasi +1 jam
      */
     public function getFormInfo($absenId)
     {
