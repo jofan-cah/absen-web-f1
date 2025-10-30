@@ -314,15 +314,21 @@ class LemburController extends BaseApiController
 
             $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $jamSelesai);
 
-            // ✅ VALIDASI MINIMAL: Jam selesai harus lebih besar dari shift end
-            if ($jamSelesaiCarbon->lessThanOrEqualTo($shiftEndCarbon)) {
-                return $this->errorResponse(
-                    "Jam selesai lembur harus lebih dari jam shift berakhir (" . substr($shiftEnd, 0, 5) . ")",
-                    422
-                );
-            }
+            // ✅ CEK APAKAH INI ONCALL
+            $isOnCall = $lembur->jenis_lembur === 'oncall';
 
-            // ❌ TIDAK ADA VALIDASI +1 JAM - Karyawan bebas input jam selesai kapan saja
+            // ✅ VALIDASI JAM SELESAI - SKIP UNTUK ONCALL!
+            if (!$isOnCall) {
+                // HANYA VALIDASI UNTUK LEMBUR REQUEST (bukan OnCall)
+                // Jam selesai harus lebih besar dari shift end
+                if ($jamSelesaiCarbon->lessThanOrEqualTo($shiftEndCarbon)) {
+                    return $this->errorResponse(
+                        "Jam selesai lembur harus lebih dari jam shift berakhir (" . substr($shiftEnd, 0, 5) . ")",
+                        422
+                    );
+                }
+            }
+            // ✅ ONCALL: SKIP VALIDASI! Bebas jam berapa aja (karena bisa lewat tengah malam)
 
             // Upload bukti foto
             $photoPath = null;
