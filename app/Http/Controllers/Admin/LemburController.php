@@ -146,6 +146,7 @@ class LemburController extends Controller
 
             // ✅ CEK JENIS LEMBUR: OnCall atau Request biasa?
             if ($lembur->jenis_lembur === 'oncall') {
+                dd('JOFAN');
                 // 🔥 ONCALL: Auto-generate tunjangan LANGSUNG
                 $result = $lembur->approveOnCall($user->user_id, $request->notes);
                 $message = 'OnCall berhasil disetujui dan tunjangan telah dibuat secara langsung!';

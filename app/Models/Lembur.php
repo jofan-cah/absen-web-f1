@@ -679,9 +679,9 @@ class Lembur extends Model
         // Update status lembur
         $this->update([
             // OnCall auto-bypass koordinator
-            'koordinator_status' => 'approved',
-            'koordinator_approved_at' => now(),
-            'koordinator_notes' => 'Auto-approved (OnCall bypass)',
+            // 'koordinator_status' => 'approved',
+            // 'koordinator_approved_at' => now(),
+            // 'koordinator_notes' => 'Auto-approved (OnCall bypass)',
 
             // Status final approved
             'status' => 'approved',
@@ -720,23 +720,20 @@ class Lembur extends Model
         $amountPerUnit = $this->calculateAmountPerUnit();
         $totalAmount = $quantity * $amountPerUnit;
 
-        // Create TunjanganKaryawan
         $tunjangan = TunjanganKaryawan::create([
+            'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
-            'tunjangan_detail_id' => $tunjanganDetail->tunjangan_detail_id,
-            'lembur_id' => $this->lembur_id, // ✅ Link ke OnCall specific
-            'week' => null, // ✅ BUKAN weekly!
-            'month' => $this->tanggal_lembur->format('Y-m'),
-            'year' => $this->tanggal_lembur->year,
+            'tunjangan_type_id' => $tunjanganType->tunjangan_type_id, // ✅ TAMBAH INI!
+            'absen_id' => $this->absen_id, // ✅ TAMBAH INI!
+            'lembur_id' => $this->lembur_id,
+            'period_start' => $this->tanggal_lembur, // ✅ TAMBAH INI!
+            'period_end' => $this->tanggal_lembur, // ✅ TAMBAH INI!
             'quantity' => $quantity,
             'amount' => $amountPerUnit,
             'total_amount' => $totalAmount,
-            'status' => 'approved', // ✅ Langsung approved
-            'type' => 'oncall', // ✅ Type khusus OnCall
-            'description' => "OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
-            'submitted_via' => 'system',
-            'approved_by_user_id' => $this->approved_by_user_id,
-            'approved_at' => now(),
+            'status' => 'pending', // ✅ Jangan langsung approved!
+            'notes' => "Tunjangan lembur OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
+            'hari_kerja_final' => 1, // ✅ TAMBAH INI!
         ]);
 
         // Update lembur
