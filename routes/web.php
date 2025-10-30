@@ -227,7 +227,7 @@ Route::get('/app-version', function () {
     return response()->json([
         'success' => true,
         'data' => [
-            'minimum_version' => '1.0.0',  // Versi minimum yang harus dipakai
+            'minimum_version' => '1.2.0',  // Versi minimum yang harus dipakai
             'latest_version' => '1.2.0',    // Versi terbaru
             'force_update' => true,         // true = wajib update, false = optional
             'message' => 'Aplikasi Anda perlu diupdate ke versi terbaru'
