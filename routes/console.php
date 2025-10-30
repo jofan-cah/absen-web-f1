@@ -2,57 +2,71 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
+// ================================
+// NOTIFIKASI ABSENSI
+// ================================
 
 // Cek clock in setiap 15 menit (06:00 - 22:00)
 Schedule::command('notif:check-absen --type=clock_in')
     ->everyFifteenMinutes()
-    ->between('06:00', '22:00');
-
-Schedule::command('notif:check-absen --type=clock_out')
-    ->everyFifteenMinutes()
-    ->when(function () {
-        $hour = now()->format('H');
-        return $hour >= 12 || $hour < 4; // 12:00–23:59 atau 00:00–03:59
-    });
-
-// Cek absent sekali di malam (22:00)
-Schedule::command('notif:check-absen --type=absent')
-    ->dailyAt('22:00');
-
-// Generate uang kuota setiap Senin pertama di bulan berjalan
-Schedule::command('tunjangan:generate-kuota')
-    ->monthlyOn(1, '00:01') // Tanggal 1 setiap bulan jam 00:01
-    ->when(function () {
-        // Cek apakah tanggal 1 adalah hari Senin
-        return now()->day === 1 && now()->dayOfWeek === Carbon::MONDAY;
-    })
+    ->between('06:00', '22:00')
     ->onSuccess(function () {
-        Log::info('✅ Scheduled job: Generate uang kuota berhasil dijalankan');
+        Log::info('✅ Check clock_in berhasil dijalankan');
     })
     ->onFailure(function () {
-        Log::error('❌ Scheduled job: Generate uang kuota gagal');
+        Log::error('❌ Check clock_in gagal');
     });
 
-
-// Check absen clock in (TAMBAH INI)
-Schedule::command('notif:check-absen --type=clock_in')
-    ->everyFifteenMinutes()
-    ->between('06:00', '22:00');
-
-// Check absen clock out (TAMBAH INI)
+// Cek clock out setiap 15 menit (12:00-23:59 dan 00:00-03:59)
 Schedule::command('notif:check-absen --type=clock_out')
     ->everyFifteenMinutes()
-    ->between('12:00', '04:00');
+    ->when(function () {
+        $hour = (int) now()->format('H');
+        // Jalan antara jam 12:00-23:59 ATAU 00:00-03:59
+        return $hour >= 12 || $hour < 4;
+    })
+    ->onSuccess(function () {
+        Log::info('✅ Check clock_out berhasil dijalankan');
+    })
+    ->onFailure(function () {
+        Log::error('❌ Check clock_out gagal');
+    });
 
-// Check absent (TAMBAH INI)
+// Cek absent sekali di malam hari (22:00)
 Schedule::command('notif:check-absen --type=absent')
-    ->dailyAt('22:00');
+    ->dailyAt('22:00')
+    ->onSuccess(function () {
+        Log::info('✅ Check absent berhasil dijalankan');
+    })
+    ->onFailure(function () {
+        Log::error('❌ Check absent gagal');
+    });
 
+// ================================
+// GENERATE TUNJANGAN
+// ================================
+
+// Generate uang kuota setiap tanggal 1 yang jatuh di hari Senin
+Schedule::command('tunjangan:generate-kuota')
+    ->monthlyOn(1, '00:01')
+    ->when(function () {
+        // Hanya jalan jika tanggal 1 adalah hari Senin
+        return now()->dayOfWeek === Carbon::MONDAY;
+    })
+    ->onSuccess(function () {
+        Log::info('✅ Generate uang kuota berhasil dijalankan');
+    })
+    ->onFailure(function () {
+        Log::error('❌ Generate uang kuota gagal');
+    });
+
+// ================================
+// ARTISAN COMMANDS
+// ================================
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
