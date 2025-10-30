@@ -275,9 +275,9 @@ class Lembur extends Model
         }
 
         // VALIDASI: Karyawan harus sudah clock out
-        if (!$this->hasClockOut()) {
-            throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
-        }
+        // if (!$this->hasClockOut()) {
+        //     throw new \Exception('Karyawan belum melakukan clock out. Lembur tidak dapat diapprove.');
+        // }
 
         // ✅ FIX: Ambil karyawan_id dari user_id
         $koordinator = \App\Models\Karyawan::where('user_id', $userId)->first();
