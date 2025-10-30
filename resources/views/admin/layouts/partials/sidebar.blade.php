@@ -282,7 +282,7 @@
             </div>
 
             <!-- Lembur Section - BARU untuk Koordinator -->
-            @if (auth()->user()->role === 'koordinator'))
+            @if (auth()->user()->role === 'koordinator')
                 <div class="mb-1.5">
                     <div class="flex items-center px-2.5 py-1.5 mb-1">
                         <div
