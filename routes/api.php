@@ -124,7 +124,7 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::post('/start', [LemburController::class, 'start']);                    // Mulai lembur
         Route::post('/{id}/finish', [LemburController::class, 'finish']);             // Selesai lembur
         Route::post('/{id}/submit', [LemburController::class, 'submitForApproval']);  // Submit
-
+        Route::post('/{id}/update-photo', [LemburController::class, 'updatePhoto']);
         // ✅ BACKWARD COMPATIBILITY (untuk app lama yang belum update)
         // Route::post('/submit', [LemburController::class, 'store']);                   // Versi lama
 
