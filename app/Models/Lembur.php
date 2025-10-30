@@ -183,15 +183,20 @@ class Lembur extends Model
 
     public function canEdit()
     {
-        return in_array($this->status, ['draft', 'rejected']);
+        // Draft atau pending yang belum completed bisa edit
+        return in_array($this->status, ['draft', 'pending'])
+            && $this->completed_at == null;
     }
+
 
     public function canSubmit()
     {
-        return $this->status === 'draft'
-            && $this->jam_selesai
-            && $this->deskripsi_pekerjaan
-            && $this->bukti_foto;
+        // Draft atau pending yang sudah lengkap bisa submit
+        return in_array($this->status, ['draft', 'pending'])
+            && $this->jam_selesai != null
+            && $this->deskripsi_pekerjaan != null
+            && $this->bukti_foto != null
+            && $this->completed_at != null;  // ✅ Pastikan sudah "finish"
     }
 
     public function hasClockOut()
@@ -692,53 +697,53 @@ class Lembur extends Model
     }
 
     /**
- * Generate Tunjangan khusus OnCall
- * Individual per OnCall (bukan weekly)
- */
-private function generateTunjanganOnCall()
-{
-    if ($this->tunjangan_karyawan_id) {
-        Log::info("Tunjangan OnCall sudah ada: {$this->lembur_id}");
-        return false;
+     * Generate Tunjangan khusus OnCall
+     * Individual per OnCall (bukan weekly)
+     */
+    private function generateTunjanganOnCall()
+    {
+        if ($this->tunjangan_karyawan_id) {
+            Log::info("Tunjangan OnCall sudah ada: {$this->lembur_id}");
+            return false;
+        }
+
+        // Get tunjangan type & detail
+        $tunjanganType = $this->getLemburTunjanganType();
+        $tunjanganDetail = $this->getLemburTunjanganDetail();
+
+        if (!$tunjanganType || !$tunjanganDetail) {
+            throw new \Exception('Tunjangan Type/Detail tidak ditemukan');
+        }
+
+        // Calculate tunjangan
+        $quantity = $this->calculateQuantity(); // >= 4 jam = 2x
+        $amountPerUnit = $this->calculateAmountPerUnit();
+        $totalAmount = $quantity * $amountPerUnit;
+
+        // Create TunjanganKaryawan
+        $tunjangan = TunjanganKaryawan::create([
+            'karyawan_id' => $this->karyawan_id,
+            'tunjangan_detail_id' => $tunjanganDetail->tunjangan_detail_id,
+            'lembur_id' => $this->lembur_id, // ✅ Link ke OnCall specific
+            'week' => null, // ✅ BUKAN weekly!
+            'month' => $this->tanggal_lembur->format('Y-m'),
+            'year' => $this->tanggal_lembur->year,
+            'quantity' => $quantity,
+            'amount' => $amountPerUnit,
+            'total_amount' => $totalAmount,
+            'status' => 'approved', // ✅ Langsung approved
+            'type' => 'oncall', // ✅ Type khusus OnCall
+            'description' => "OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
+            'submitted_via' => 'system',
+            'approved_by_user_id' => $this->approved_by_user_id,
+            'approved_at' => now(),
+        ]);
+
+        // Update lembur
+        $this->update([
+            'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
+        ]);
+
+        return $tunjangan;
     }
-
-    // Get tunjangan type & detail
-    $tunjanganType = $this->getLemburTunjanganType();
-    $tunjanganDetail = $this->getLemburTunjanganDetail();
-
-    if (!$tunjanganType || !$tunjanganDetail) {
-        throw new \Exception('Tunjangan Type/Detail tidak ditemukan');
-    }
-
-    // Calculate tunjangan
-    $quantity = $this->calculateQuantity(); // >= 4 jam = 2x
-    $amountPerUnit = $this->calculateAmountPerUnit();
-    $totalAmount = $quantity * $amountPerUnit;
-
-    // Create TunjanganKaryawan
-    $tunjangan = TunjanganKaryawan::create([
-        'karyawan_id' => $this->karyawan_id,
-        'tunjangan_detail_id' => $tunjanganDetail->tunjangan_detail_id,
-        'lembur_id' => $this->lembur_id, // ✅ Link ke OnCall specific
-        'week' => null, // ✅ BUKAN weekly!
-        'month' => $this->tanggal_lembur->format('Y-m'),
-        'year' => $this->tanggal_lembur->year,
-        'quantity' => $quantity,
-        'amount' => $amountPerUnit,
-        'total_amount' => $totalAmount,
-        'status' => 'approved', // ✅ Langsung approved
-        'type' => 'oncall', // ✅ Type khusus OnCall
-        'description' => "OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
-        'submitted_via' => 'system',
-        'approved_by_user_id' => $this->approved_by_user_id,
-        'approved_at' => now(),
-    ]);
-
-    // Update lembur
-    $this->update([
-        'tunjangan_karyawan_id' => $tunjangan->tunjangan_karyawan_id,
-    ]);
-
-    return $tunjangan;
-}
 }

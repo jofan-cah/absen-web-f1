@@ -222,3 +222,4 @@ Route::middleware(['auth', 'role:koordinator'])->prefix('koordinator')->name('ko
         Route::post('/{lembur}/reject', [LemburKoorController::class, 'reject'])->name('reject');
     });
 });
+
