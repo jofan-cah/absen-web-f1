@@ -537,23 +537,21 @@ class LemburController extends BaseApiController
      * Get info untuk form lembur (shift end, max start time)
      * GET /api/lembur/form-info/{absenId}
      */
-    public function getFormInfo(Request $request, $absenId)
+    public function getFormInfo($absenId)
     {
-        $user = $request->user();
+        $user = request()->user();
         $karyawan = $user->karyawan;
 
-        $absen = Absen::with('jadwal.shift')->find($absenId);
+        $absen = Absen::with(['jadwal.shift'])->find($absenId);
 
         if (!$absen) {
-            return $this->notFoundResponse('Data absensi tidak ditemukan');
+            return $this->notFoundResponse('Data absen tidak ditemukan');
         }
 
-        // Validasi ownership
         if ($absen->karyawan_id !== $karyawan->karyawan_id) {
-            return $this->forbiddenResponse('Absensi bukan milik Anda');
+            return $this->forbiddenResponse('Anda tidak memiliki akses ke absen ini');
         }
 
-        // Cek clock out
         if (!$absen->clock_out) {
             return $this->errorResponse('Anda belum melakukan clock out', 422);
         }
@@ -574,28 +572,42 @@ class LemburController extends BaseApiController
             ->whereIn('status', ['draft', 'submitted', 'approved'])
             ->first();
 
+        // ✅ CEK APAKAH INI ONCALL
+        $isOnCall = $absen->type === 'oncall';
+
         // Cek apakah masih dalam waktu pengajuan (+1 jam dari shift end)
         $tanggalAbsen = Carbon::parse($absen->date);
         $maxStartDateTime = $tanggalAbsen->copy()->setTimeFromTimeString($maxStartTime->format('H:i:s'));
         $now = Carbon::now();
-        $canStart = $now->lessThanOrEqualTo($maxStartDateTime);
+
+        // ✅ ONCALL: SKIP VALIDASI WAKTU! (selalu bisa start)
+        $canStart = $isOnCall ? true : $now->lessThanOrEqualTo($maxStartDateTime);
+
+        // ✅ ONCALL: Custom message
+        $infoMessage = '';
+        if ($isOnCall) {
+            $infoMessage = "✅ OnCall - Tidak ada batasan waktu mulai lembur";
+        } else {
+            $infoMessage = $canStart
+                ? "✅ Anda dapat memulai lembur hingga " . $maxStartDateTime->format('d/m/Y H:i')
+                : "⚠️ Waktu pengajuan lembur sudah melewati batas (shift end + 1 jam)";
+        }
 
         return $this->successResponse([
             'can_create_lembur' => !$existingLembur && $canStart,
             'has_existing_lembur' => (bool) $existingLembur,
             'existing_lembur_id' => $existingLembur->lembur_id ?? null,
-            'can_start' => $canStart,
-            'max_start_datetime' => $maxStartDateTime->format('Y-m-d H:i:s'),
+            'can_start' => $canStart, // ✅ OnCall selalu true
+            'is_oncall' => $isOnCall, // ✅ Tambahan info
+            'max_start_datetime' => $isOnCall ? null : $maxStartDateTime->format('Y-m-d H:i:s'), // ✅ OnCall: null
             'shift_name' => $shift->name,
             'shift_start' => substr($shift->start_time, 0, 5),
             'shift_end' => substr($shiftEnd, 0, 5),
-            'jam_mulai_lembur' => substr($shiftEnd, 0, 5), // Otomatis dari shift_end
+            'jam_mulai_lembur' => substr($shiftEnd, 0, 5),
             'clock_in' => $absen->clock_in,
             'clock_out' => $absen->clock_out,
             'work_hours' => $absen->work_hours,
-            'info_message' => $canStart
-                ? "Anda dapat memulai lembur hingga " . $maxStartDateTime->format('d/m/Y H:i')
-                : "Waktu pengajuan lembur sudah melewati batas (shift end + 1 jam)"
+            'info_message' => $infoMessage, // ✅ Custom message
         ], 'Info form lembur berhasil diambil');
     }
 }
