@@ -657,14 +657,13 @@ class LemburController extends BaseApiController
             return $this->notFoundResponse('Data lembur tidak ditemukan');
         }
 
-        // VALIDASI: Hanya draft yang sudah completed
+        // VALIDASI: Hanya draft yang bisa edit foto
         if ($lembur->status !== 'draft') {
             return $this->forbiddenResponse('Hanya lembur draft yang dapat diupdate fotonya');
         }
 
-        if (!$lembur->completed_at) {
-            return $this->forbiddenResponse('Lembur belum diselesaikan');
-        }
+        // ✅ HAPUS validasi completed_at - gak perlu cek ini
+        // Selama draft, boleh upload/ganti foto kapan aja
 
         $validator = Validator::make($request->all(), [
             'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
@@ -679,7 +678,7 @@ class LemburController extends BaseApiController
             $photoPath = $lembur->bukti_foto;
 
             if ($request->hasFile('bukti_foto')) {
-                // Delete old photo
+                // Delete old photo kalau ada
                 if ($photoPath) {
                     Storage::disk('s3')->delete($photoPath);
                 }
