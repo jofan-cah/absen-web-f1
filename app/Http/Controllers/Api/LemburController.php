@@ -642,4 +642,64 @@ class LemburController extends BaseApiController
             'info_message' => $infoMessage, // ✅ Custom message
         ], 'Info form lembur berhasil diambil');
     }
+
+
+ /**
+ * Update foto lembur dan langsung submit untuk approval
+ * POST /api/lembur/{id}/update-photo
+ */
+public function updatePhoto(Request $request, $id)
+{
+    $user = $request->user();
+    $karyawan = $user->karyawan;
+
+    $lembur = Lembur::where('lembur_id', $id)
+        ->where('karyawan_id', $karyawan->karyawan_id)
+        ->first();
+
+    if (!$lembur) {
+        return $this->notFoundResponse('Data lembur tidak ditemukan');
+    }
+
+    if ($lembur->status !== 'draft') {
+        return $this->forbiddenResponse('Hanya lembur draft yang dapat diupdate fotonya');
+    }
+
+    $validator = Validator::make($request->all(), [
+        'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
+
+    if ($validator->fails()) {
+        return $this->validationErrorResponse($validator->errors());
+    }
+
+    try {
+        // Upload foto baru
+        if ($request->hasFile('bukti_foto')) {
+            // Delete old photo
+            if ($lembur->bukti_foto) {
+                Storage::disk('s3')->delete($lembur->bukti_foto);
+            }
+
+            $photo = $request->file('bukti_foto');
+            $filename = 'lembur/' . $karyawan->karyawan_id . '/' . time() . '.' . $photo->getClientOriginalExtension();
+            $photoPath = Storage::disk('s3')->putFileAs('', $photo, $filename, 'private');
+        }
+
+        // ✅ UPDATE foto + langsung SUBMIT
+        $lembur->update([
+            'bukti_foto' => $photoPath,
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            'submitted_via' => 'mobile',
+        ]);
+
+        return $this->successResponse(
+            $lembur->fresh(['absen.jadwal.shift']),
+            'Foto berhasil diupdate dan otomatis disubmit untuk approval'
+        );
+    } catch (\Exception $e) {
+        return $this->serverErrorResponse('Gagal update foto: ' . $e->getMessage());
+    }
+}
 }
