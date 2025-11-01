@@ -217,7 +217,12 @@ class TunjanganKaryawanController extends Controller
             ->whereBetween('date', [$startDate, $endDate])
             ->whereNotNull('clock_in')
             ->where('type', '!=', 'oncall')
+            // ->when($tunjanganType->code === 'UANG_MAKAN', function ($query) {
+            //     $query->whereNotNull('clock_out')
+            //         ->whereRaw('TIMESTAMPDIFF(HOUR, clock_in, clock_out) > 2');
+            // })
             ->count();
+            // dd($hariKerjaAsli);
 
         // Hitung penalti jika ada
         $hariPotongPenalti = Penalti::getTotalHariPotongan($karyawanId, $startDate, $endDate);
@@ -236,7 +241,7 @@ class TunjanganKaryawanController extends Controller
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereNotNull('clock_in')        // ✅ Ada masuk
                 ->whereNull('clock_out')          // ❌ TAPI tidak ada clock out
-                  ->where('type', '!=', 'oncall')
+                ->where('type', '!=', 'oncall')
                 ->count();
 
             // ✅ DELAY = Jumlah hari tidak logout
