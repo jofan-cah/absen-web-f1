@@ -206,7 +206,7 @@ class LemburController extends BaseApiController
 
         try {
             // ✅ Determine jenis_lembur based on absen type
-            $jenisLembur = $isOnCall ? 'oncall' : 'request';
+            $jenisLembur = $isOnCall ? 'oncall' : 'regular';
 
             // Create lembur draft dengan started_at
             $lembur = Lembur::create([
