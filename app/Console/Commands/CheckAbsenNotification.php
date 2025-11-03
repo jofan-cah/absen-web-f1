@@ -59,20 +59,25 @@ class CheckAbsenNotification extends Command
     }
 
     /**
-     * Cek karyawan yang belum clock in
+     * ✅ FIXED: Cek karyawan yang belum clock in + FILTER SHIFT TIME
      * Untuk dijalankan pagi hari (misal jam 08:30)
      */
     protected function checkClockIn()
     {
         $this->info('🔍 Mengecek karyawan yang belum clock in...');
 
+        $now = Carbon::now();
+        $today = today();
+
         // Ambil jadwal hari ini yang statusnya normal (tidak ada ijin)
-        $jadwals = Jadwal::where('date', today())
+        $jadwals = Jadwal::where('date', $today)
             ->where('status', 'normal')
             ->with(['karyawan.deviceTokens', 'shift', 'absen'])
             ->get();
 
         $this->info("👥 Total jadwal hari ini: {$jadwals->count()}");
+        $this->info("🕐 Waktu sekarang: {$now->format('H:i:s')}");
+        $this->newLine();
 
         $sentCount = 0;
         $skipCount = 0;
@@ -80,6 +85,26 @@ class CheckAbsenNotification extends Command
         foreach ($jadwals as $jadwal) {
             // Skip kalau sudah ada absen dengan clock_in
             if ($jadwal->absen && $jadwal->absen->clock_in) {
+                $this->line("⏭️  {$jadwal->karyawan->full_name} - Sudah clock in");
+                $skipCount++;
+                continue;
+            }
+
+            // ✅ FILTER: Cek apakah shift sudah dimulai
+            if (!$jadwal->shift || !$jadwal->shift->start_time) {
+                $this->warn("⚠️  {$jadwal->karyawan->full_name} - No shift start time");
+                $skipCount++;
+                continue;
+            }
+
+            // Parse shift start time
+            $shiftStart = Carbon::createFromFormat('H:i:s', $jadwal->shift->start_time);
+            $shiftStartToday = Carbon::parse($today)->setTimeFrom($shiftStart);
+
+            // ✅ CRITICAL: Kirim notif HANYA kalau shift sudah lewat
+            if ($now->lessThan($shiftStartToday)) {
+                // Shift belum dimulai, skip
+                $this->line("⏭️  {$jadwal->karyawan->full_name} - Shift belum dimulai ({$shiftStart->format('H:i')})");
                 $skipCount++;
                 continue;
             }
@@ -101,7 +126,7 @@ class CheckAbsenNotification extends Command
                 'data' => [
                     'jadwal_id' => $jadwal->jadwal_id,
                     'shift_id' => $jadwal->shift_id,
-                    'date' => today()->format('Y-m-d')
+                    'date' => $today->format('Y-m-d')
                 ]
             ]);
 
@@ -126,7 +151,7 @@ class CheckAbsenNotification extends Command
 
             if ($fcmSuccess) {
                 $notification->markFCMSent();
-                $this->info("✅ {$jadwal->karyawan->full_name} (NIP: {$jadwal->karyawan->nip})");
+                $this->info("✅ {$jadwal->karyawan->full_name} (NIP: {$jadwal->karyawan->nip}) - Shift: {$jadwal->shift->name}");
                 $sentCount++;
             } else {
                 $this->error("❌ {$jadwal->karyawan->full_name} - FCM failed");
@@ -141,26 +166,50 @@ class CheckAbsenNotification extends Command
     }
 
     /**
-     * Cek karyawan yang belum clock out
+     * ✅ FIXED: Cek karyawan yang belum clock out + FILTER SHIFT TIME
      * Untuk dijalankan sore hari (misal jam 17:30)
      */
     protected function checkClockOut()
     {
         $this->info('🔍 Mengecek karyawan yang belum clock out...');
 
+        $now = Carbon::now();
+        $today = today();
+
         // Ambil absen hari ini yang sudah clock_in tapi belum clock_out
-        $absens = Absen::where('date', today())
+        $absens = Absen::where('date', $today)
             ->whereNotNull('clock_in')
             ->whereNull('clock_out')
             ->with(['karyawan.deviceTokens', 'jadwal.shift'])
             ->get();
 
         $this->info("👥 Total belum clock out: {$absens->count()}");
+        $this->info("🕐 Waktu sekarang: {$now->format('H:i:s')}");
+        $this->newLine();
 
         $sentCount = 0;
         $skipCount = 0;
 
         foreach ($absens as $absen) {
+            // ✅ FILTER: Cek apakah shift sudah selesai
+            if (!$absen->jadwal || !$absen->jadwal->shift || !$absen->jadwal->shift->end_time) {
+                $this->warn("⚠️  {$absen->karyawan->full_name} - No shift end time");
+                $skipCount++;
+                continue;
+            }
+
+            // Parse shift end time
+            $shiftEnd = Carbon::createFromFormat('H:i:s', $absen->jadwal->shift->end_time);
+            $shiftEndToday = Carbon::parse($today)->setTimeFrom($shiftEnd);
+
+            // ✅ CRITICAL: Kirim notif HANYA kalau shift sudah selesai
+            if ($now->lessThan($shiftEndToday)) {
+                // Shift belum selesai, skip
+                $this->line("⏭️  {$absen->karyawan->full_name} - Shift belum selesai ({$shiftEnd->format('H:i')})");
+                $skipCount++;
+                continue;
+            }
+
             // Skip kalau karyawan tidak ada device token
             $deviceTokens = $absen->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
@@ -178,7 +227,7 @@ class CheckAbsenNotification extends Command
                 'data' => [
                     'absen_id' => $absen->absen_id,
                     'jadwal_id' => $absen->jadwal_id,
-                    'date' => today()->format('Y-m-d')
+                    'date' => $today->format('Y-m-d')
                 ]
             ]);
 
@@ -203,7 +252,7 @@ class CheckAbsenNotification extends Command
 
             if ($fcmSuccess) {
                 $notification->markFCMSent();
-                $this->info("✅ {$absen->karyawan->full_name} (NIP: {$absen->karyawan->nip})");
+                $this->info("✅ {$absen->karyawan->full_name} (NIP: {$absen->karyawan->nip}) - Shift: {$absen->jadwal->shift->name}");
                 $sentCount++;
             } else {
                 $this->error("❌ {$absen->karyawan->full_name} - FCM failed");
@@ -225,14 +274,17 @@ class CheckAbsenNotification extends Command
     {
         $this->info('🔍 Mengecek karyawan yang tidak absen...');
 
+        $today = today();
+
         // Ambil jadwal hari ini yang belum ada absen sama sekali
-        $jadwals = Jadwal::where('date', today())
+        $jadwals = Jadwal::where('date', $today)
             ->where('status', 'normal')
             ->whereDoesntHave('absen')
             ->with(['karyawan.deviceTokens', 'shift'])
             ->get();
 
         $this->info("👥 Total tidak absen: {$jadwals->count()}");
+        $this->newLine();
 
         $sentCount = 0;
         $skipCount = 0;
@@ -254,7 +306,7 @@ class CheckAbsenNotification extends Command
                 'message' => 'Kamu belum absen hari ini. Segera hubungi koordinator untuk konfirmasi.',
                 'data' => [
                     'jadwal_id' => $jadwal->jadwal_id,
-                    'date' => today()->format('Y-m-d')
+                    'date' => $today->format('Y-m-d')
                 ]
             ]);
 
