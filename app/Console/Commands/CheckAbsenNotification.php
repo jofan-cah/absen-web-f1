@@ -12,17 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 class CheckAbsenNotification extends Command
 {
-    /**
-     * Signature dengan option type
-     *
-     * php artisan notif:check-absen --type=clock_in
-     * php artisan notif:check-absen --type=clock_out
-     * php artisan notif:check-absen --type=absent
-     */
     protected $signature = 'notif:check-absen {--type=clock_in : Type notifikasi (clock_in, clock_out, absent)}';
-
     protected $description = 'Cek absen karyawan dan kirim notifikasi FCM';
-
     protected $fcmService;
 
     public function __construct(FCMService $fcmService)
@@ -59,8 +50,7 @@ class CheckAbsenNotification extends Command
     }
 
     /**
-     * ✅ FIXED: Cek karyawan yang belum clock in + FILTER SHIFT TIME
-     * Untuk dijalankan pagi hari (misal jam 08:30)
+     * ✅ FIXED: Cek karyawan yang belum clock in + FILTER SHIFT TIME + VALIDASI KETAT
      */
     protected function checkClockIn()
     {
@@ -69,10 +59,10 @@ class CheckAbsenNotification extends Command
         $now = Carbon::now();
         $today = today();
 
-        // Ambil jadwal hari ini yang statusnya normal (tidak ada ijin)
+        // Ambil jadwal hari ini yang statusnya normal
         $jadwals = Jadwal::where('date', $today)
             ->where('status', 'normal')
-            ->with(['karyawan.deviceTokens', 'shift', 'absen'])
+            ->with(['karyawan.deviceTokens', 'shift'])
             ->get();
 
         $this->info("👥 Total jadwal hari ini: {$jadwals->count()}");
@@ -83,9 +73,15 @@ class CheckAbsenNotification extends Command
         $skipCount = 0;
 
         foreach ($jadwals as $jadwal) {
-            // Skip kalau sudah ada absen dengan clock_in
-            if ($jadwal->absen && $jadwal->absen->clock_in) {
-                $this->line("⏭️  {$jadwal->karyawan->full_name} - Sudah clock in");
+            // ✅ VALIDASI KETAT: Cek absen by jadwal_id DAN karyawan_id + date
+            $existingAbsen = Absen::where('jadwal_id', $jadwal->jadwal_id)
+                ->where('karyawan_id', $jadwal->karyawan_id)
+                ->whereDate('date', $today)
+                ->whereNotNull('clock_in')
+                ->first();
+
+            if ($existingAbsen) {
+                $this->line("⏭️  {$jadwal->karyawan->full_name} - Sudah clock in ({$existingAbsen->clock_in})");
                 $skipCount++;
                 continue;
             }
@@ -103,7 +99,6 @@ class CheckAbsenNotification extends Command
 
             // ✅ CRITICAL: Kirim notif HANYA kalau shift sudah lewat
             if ($now->lessThan($shiftStartToday)) {
-                // Shift belum dimulai, skip
                 $this->line("⏭️  {$jadwal->karyawan->full_name} - Shift belum dimulai ({$shiftStart->format('H:i')})");
                 $skipCount++;
                 continue;
@@ -113,6 +108,18 @@ class CheckAbsenNotification extends Command
             $deviceTokens = $jadwal->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
                 $this->warn("⚠️  {$jadwal->karyawan->full_name} - No device token");
+                $skipCount++;
+                continue;
+            }
+
+            $recentNotif = Notification::where('karyawan_id', $jadwal->karyawan_id)
+                ->where('type', 'reminder_clock_in')
+                ->whereDate('created_at', $today)
+                ->where('created_at', '>=', $now->copy()->subMinutes(30)) // 30 menit terakhir
+                ->exists();
+
+            if ($recentNotif) {
+                $this->line("⏭️  {$jadwal->karyawan->full_name} - Notif sudah dikirim (30 menit terakhir)");
                 $skipCount++;
                 continue;
             }
@@ -166,8 +173,7 @@ class CheckAbsenNotification extends Command
     }
 
     /**
-     * ✅ FIXED: Cek karyawan yang belum clock out + FILTER SHIFT TIME
-     * Untuk dijalankan sore hari (misal jam 17:30)
+     * ✅ FIXED: Cek karyawan yang belum clock out + FILTER SHIFT TIME + VALIDASI KETAT
      */
     protected function checkClockOut()
     {
@@ -204,7 +210,6 @@ class CheckAbsenNotification extends Command
 
             // ✅ CRITICAL: Kirim notif HANYA kalau shift sudah selesai
             if ($now->lessThan($shiftEndToday)) {
-                // Shift belum selesai, skip
                 $this->line("⏭️  {$absen->karyawan->full_name} - Shift belum selesai ({$shiftEnd->format('H:i')})");
                 $skipCount++;
                 continue;
@@ -214,6 +219,18 @@ class CheckAbsenNotification extends Command
             $deviceTokens = $absen->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
                 $this->warn("⚠️  {$absen->karyawan->full_name} - No device token");
+                $skipCount++;
+                continue;
+            }
+
+            $recentNotif = Notification::where('karyawan_id', $absen->karyawan_id)
+                ->where('type', 'reminder_clock_out')
+                ->whereDate('created_at', $today)
+                ->where('created_at', '>=', $now->copy()->subMinutes(30)) // 30 menit terakhir
+                ->exists();
+
+            if ($recentNotif) {
+                $this->line("⏭️  {$absen->karyawan->full_name} - Notif sudah dikirim (30 menit terakhir)");
                 $skipCount++;
                 continue;
             }
@@ -268,7 +285,6 @@ class CheckAbsenNotification extends Command
 
     /**
      * Cek karyawan yang tidak absen sama sekali
-     * Untuk dijalankan malam hari (misal jam 22:00)
      */
     protected function checkAbsent()
     {
@@ -294,6 +310,18 @@ class CheckAbsenNotification extends Command
             $deviceTokens = $jadwal->karyawan->getActiveDeviceTokens();
             if (empty($deviceTokens)) {
                 $this->warn("⚠️  {$jadwal->karyawan->full_name} - No device token");
+                $skipCount++;
+                continue;
+            }
+
+            // ✅ CEK DUPLIKAT NOTIFIKASI
+            $recentNotif = Notification::where('karyawan_id', $jadwal->karyawan_id)
+                ->where('type', 'absent_alert')
+                ->whereDate('created_at', $today)
+                ->exists();
+
+            if ($recentNotif) {
+                $this->line("⏭️  {$jadwal->karyawan->full_name} - Notif sudah dikirim hari ini");
                 $skipCount++;
                 continue;
             }
