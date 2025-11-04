@@ -51,11 +51,22 @@ Schedule::command('notif:check-absen --type=absent')
 // ================================
 
 // Generate uang kuota setiap tanggal 1 yang jatuh di hari Senin
+// Generate uang kuota setiap hari Senin pertama di bulan
 Schedule::command('tunjangan:generate-kuota')
-    ->monthlyOn(1, '00:01')
+    ->weekly()
+    ->mondays()
+    ->at('00:01')
     ->when(function () {
-        // Hanya jalan jika tanggal 1 adalah hari Senin
-        return now()->dayOfWeek === Carbon::MONDAY;
+        // Jalan di hari Senin pertama bulan ini
+        $now = now();
+        $firstMonday = $now->copy()->startOfMonth()->next(Carbon::MONDAY);
+
+        // Kalau tanggal 1 adalah Senin, first Monday = tanggal 1
+        if ($now->copy()->startOfMonth()->dayOfWeek === Carbon::MONDAY) {
+            $firstMonday = $now->copy()->startOfMonth();
+        }
+
+        return $now->isSameDay($firstMonday);
     })
     ->onSuccess(function () {
         Log::info('✅ Generate uang kuota berhasil dijalankan');
@@ -63,6 +74,23 @@ Schedule::command('tunjangan:generate-kuota')
     ->onFailure(function () {
         Log::error('❌ Generate uang kuota gagal');
     });
+
+Schedule::command('tunjangan:generate-makan')
+    ->weekly()
+    ->mondays()
+    ->at('00:30')
+    ->onSuccess(function () {
+        Log::info('✅ Generate uang makan berhasil dijalankan', [
+            'date' => now()->format('Y-m-d H:i:s'),
+            'day' => now()->format('l'), // Monday
+        ]);
+    })
+    ->onFailure(function () {
+        Log::error('❌ Generate uang makan gagal', [
+            'date' => now()->format('Y-m-d H:i:s'),
+        ]);
+    });
+
 
 // ================================
 // ARTISAN COMMANDS
