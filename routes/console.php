@@ -75,6 +75,23 @@ Schedule::command('tunjangan:generate-kuota')
         Log::error('❌ Generate uang kuota gagal');
     });
 
+Schedule::command('tunjangan:generate-makan')
+    ->weekly()
+    ->mondays()
+    ->at('00:30')
+    ->onSuccess(function () {
+        Log::info('✅ Generate uang makan berhasil dijalankan', [
+            'date' => now()->format('Y-m-d H:i:s'),
+            'day' => now()->format('l'), // Monday
+        ]);
+    })
+    ->onFailure(function () {
+        Log::error('❌ Generate uang makan gagal', [
+            'date' => now()->format('Y-m-d H:i:s'),
+        ]);
+    });
+
+
 // ================================
 // ARTISAN COMMANDS
 // ================================
