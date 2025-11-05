@@ -1,35 +1,52 @@
 <?php
 
-
-
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Karyawan;
 use App\Models\TunjanganKaryawan;
+use App\Services\SlackNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class GenerateUangKuota extends Command
 {
     protected $signature = 'tunjangan:generate-kuota {--month=} {--year=}';
+    protected $description = 'Generate uang kuota untuk semua karyawan yang berhak + Slack notification';
+    protected $slackService;
 
-    protected $description = 'Generate uang kuota untuk semua karyawan yang berhak';
+    public function __construct(SlackNotificationService $slackService)
+    {
+        parent::__construct();
+        $this->slackService = $slackService;
+    }
 
     public function handle()
     {
+        $startTime = now();
         $this->info('🚀 Memulai generate uang kuota...');
 
-        // Ambil bulan dan tahun (default: bulan sekarang)
+        // Ambil bulan dan tahun
         $month = $this->option('month') ?? now()->month;
         $year = $this->option('year') ?? now()->year;
 
-        $this->info("📅 Periode: {$month}/{$year}");
+        $monthName = Carbon::create($year, $month, 1)->format('F Y');
 
-        // Ambil semua karyawan yang berhak dapat uang kuota
+        $this->info("📅 Periode: {$monthName}");
+
+        // 🔔 Kirim START ke Slack
+        $this->slackService->notifySuccess("📦 Generate Uang Kuota Started", [
+            'periode' => $monthName,
+            'month' => $month,
+            'year' => $year,
+            'timestamp' => $startTime->format('Y-m-d H:i:s'),
+            'command' => 'tunjangan:generate-kuota',
+        ]);
+
+        // Ambil karyawan yang berhak
         $karyawans = Karyawan::where('uang_kuota', true)
             ->where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010']) // Exclude admin
+            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
             ->with(['user', 'department'])
             ->get();
 
@@ -39,9 +56,13 @@ class GenerateUangKuota extends Command
         $skipCount = 0;
         $errorCount = 0;
 
+        $successList = [];
+        $skipList = [];
+        $errorList = [];
+
         foreach ($karyawans as $karyawan) {
             try {
-                // Cek apakah sudah ada tunjangan kuota untuk bulan ini
+                // Cek duplikat
                 $exists = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
                     ->whereHas('tunjanganType', function ($query) {
                         $query->where('code', 'UANG_KUOTA');
@@ -52,11 +73,12 @@ class GenerateUangKuota extends Command
 
                 if ($exists) {
                     $this->warn("⚠️  Skip: {$karyawan->full_name} (NIP: {$karyawan->nip}) - Sudah ada");
+                    $skipList[] = "{$karyawan->full_name} ({$karyawan->nip})";
                     $skipCount++;
                     continue;
                 }
 
-                // Generate tunjangan kuota
+                // Generate tunjangan
                 $tunjangan = TunjanganKaryawan::generateTunjanganKuota(
                     $karyawan->karyawan_id,
                     $month,
@@ -65,9 +87,9 @@ class GenerateUangKuota extends Command
 
                 if ($tunjangan) {
                     $this->info("✅ Berhasil: {$karyawan->full_name} (NIP: {$karyawan->nip}) - Rp " . number_format($tunjangan->total_amount, 0, ',', '.'));
+                    $successList[] = "{$karyawan->full_name} ({$karyawan->nip}, Rp " . number_format($tunjangan->total_amount, 0, ',', '.') . ")";
                     $successCount++;
 
-                    // Log ke database
                     Log::info("Uang kuota generated", [
                         'karyawan_id' => $karyawan->karyawan_id,
                         'nip' => $karyawan->nip,
@@ -78,11 +100,13 @@ class GenerateUangKuota extends Command
                     ]);
                 } else {
                     $this->error("❌ Gagal: {$karyawan->full_name} (NIP: {$karyawan->nip})");
+                    $errorList[] = "{$karyawan->full_name} ({$karyawan->nip}, Failed to generate)";
                     $errorCount++;
                 }
 
             } catch (\Exception $e) {
                 $this->error("❌ Error: {$karyawan->full_name} - {$e->getMessage()}");
+                $errorList[] = "{$karyawan->full_name} ({$e->getMessage()})";
                 $errorCount++;
 
                 Log::error("Generate uang kuota error", [
@@ -92,6 +116,9 @@ class GenerateUangKuota extends Command
             }
         }
 
+        $endTime = now();
+        $duration = $endTime->diffInSeconds($startTime);
+
         // Summary
         $this->newLine();
         $this->info("📊 SUMMARY:");
@@ -99,6 +126,39 @@ class GenerateUangKuota extends Command
         $this->warn("⚠️  Di-skip: {$skipCount}");
         $this->error("❌ Gagal: {$errorCount}");
         $this->info("🎉 Selesai!");
+
+        // ✅ Kirim DETAILED summary ke Slack
+        $summaryData = [
+            'periode' => $monthName,
+            'total_berhasil' => $successCount,
+            'total_skipped' => $skipCount,
+            'total_error' => $errorCount,
+            'duration' => "{$duration} seconds",
+            'timestamp' => $endTime->format('Y-m-d H:i:s'),
+        ];
+
+        // Tambah list success (max 10)
+        if (!empty($successList)) {
+            $summaryData['✅_generated'] = implode(', ', array_slice($successList, 0, 10));
+            if (count($successList) > 10) {
+                $summaryData['generated_note'] = 'Showing first 10 of ' . count($successList);
+            }
+        }
+
+        // Tambah list skip (max 10)
+        if (!empty($skipList)) {
+            $summaryData['⏭️_skipped'] = implode(', ', array_slice($skipList, 0, 10));
+            if (count($skipList) > 10) {
+                $summaryData['skip_note'] = 'Showing first 10 of ' . count($skipList);
+            }
+        }
+
+        // Tambah list error (max 5)
+        if (!empty($errorList)) {
+            $summaryData['❌_errors'] = implode(', ', array_slice($errorList, 0, 5));
+        }
+
+        $this->slackService->notifySuccess("✅ Generate Uang Kuota Completed", $summaryData);
 
         return Command::SUCCESS;
     }
