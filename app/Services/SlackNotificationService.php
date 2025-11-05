@@ -8,10 +8,20 @@ use Illuminate\Support\Facades\Log;
 class SlackNotificationService
 {
     protected $webhookUrl;
+    protected $enabled;
 
     public function __construct()
     {
+        // ✅ FIXED: Ambil dari root level config
         $this->webhookUrl = config('services.slack.webhook_url');
+        $this->enabled = config('services.slack.enabled', true);
+
+        // Debug log
+        Log::info('SlackNotificationService initialized', [
+            'webhook_exists' => !empty($this->webhookUrl),
+            'webhook_preview' => substr($this->webhookUrl ?? 'NOT SET', 0, 50),
+            'enabled' => $this->enabled,
+        ]);
     }
 
     /**
@@ -19,7 +29,11 @@ class SlackNotificationService
      */
     public function notifySuccess($title, $details = [])
     {
-        if (!$this->webhookUrl) {
+        if (!$this->enabled || !$this->webhookUrl) {
+            Log::warning('Slack notification skipped', [
+                'reason' => !$this->enabled ? 'disabled' : 'no webhook url',
+                'title' => $title,
+            ]);
             return false;
         }
 
@@ -32,13 +46,17 @@ class SlackNotificationService
      */
     public function notifyError($title, $error, $details = [])
     {
-        if (!$this->webhookUrl) {
+        if (!$this->enabled || !$this->webhookUrl) {
+            Log::warning('Slack notification skipped', [
+                'reason' => !$this->enabled ? 'disabled' : 'no webhook url',
+                'title' => $title,
+            ]);
             return false;
         }
 
         $message = $this->buildMessage('error', $title, array_merge($details, [
             'error' => $error instanceof \Exception ? $error->getMessage() : $error,
-            'trace' => $error instanceof \Exception ? $error->getTraceAsString() : null,
+            'trace' => $error instanceof \Exception ? substr($error->getTraceAsString(), 0, 1000) : null,
         ]));
 
         return $this->send($message);
@@ -49,7 +67,7 @@ class SlackNotificationService
      */
     public function notifyWarning($title, $details = [])
     {
-        if (!$this->webhookUrl) {
+        if (!$this->enabled || !$this->webhookUrl) {
             return false;
         }
 
@@ -97,7 +115,7 @@ class SlackNotificationService
 
         // Tambah trace kalau ada (untuk error)
         if (isset($details['trace']) && $details['trace']) {
-            $attachment['text'] = "```\n" . substr($details['trace'], 0, 1000) . "\n```";
+            $attachment['text'] = "```\n" . $details['trace'] . "\n```";
         }
 
         return [
@@ -112,11 +130,24 @@ class SlackNotificationService
      */
     protected function send($message)
     {
+        if (!$this->webhookUrl) {
+            Log::error('Slack webhook URL not configured');
+            return false;
+        }
+
         try {
+            Log::info('Sending to Slack', [
+                'webhook' => substr($this->webhookUrl, 0, 50),
+                'title' => $message['attachments'][0]['title'] ?? 'N/A',
+            ]);
+
             $response = Http::timeout(5)->post($this->webhookUrl, $message);
 
             if ($response->successful()) {
-                Log::info('Slack notification sent', ['title' => $message['attachments'][0]['title'] ?? 'N/A']);
+                Log::info('Slack notification sent successfully', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
                 return true;
             }
 
@@ -129,6 +160,7 @@ class SlackNotificationService
         } catch (\Exception $e) {
             Log::error('Slack notification exception', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             return false;
         }
@@ -139,7 +171,10 @@ class SlackNotificationService
      */
     public function sendSimple($text, $type = 'info')
     {
-        if (!$this->webhookUrl) {
+        if (!$this->enabled || !$this->webhookUrl) {
+            Log::warning('Slack sendSimple skipped', [
+                'reason' => !$this->enabled ? 'disabled' : 'no webhook url',
+            ]);
             return false;
         }
 
