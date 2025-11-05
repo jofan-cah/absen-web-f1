@@ -223,3 +223,43 @@ Route::middleware(['auth', 'role:koordinator'])->prefix('koordinator')->name('ko
     });
 });
 
+
+
+
+
+Route::get('/test-slack-respondprefast', function() {
+    $slack = app(\App\Services\SlackNotificationService::class);
+
+    // ✅ Test Success
+    $slack->notifySuccess('🎉 Test Slack Integration - respondprefast', [
+        'app_name' => config('app.name'),
+        'environment' => config('app.env'),
+        'timestamp' => now()->format('Y-m-d H:i:s'),
+        'message' => 'Webhook berhasil terhubung ke channel #respondprefast!',
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Test notification sent to #respondprefast! Check your Slack.',
+    ]);
+});
+
+Route::get('/test-slack-error', function() {
+    $slack = app(\App\Services\SlackNotificationService::class);
+
+    // 🔴 Test Error
+    try {
+        throw new \Exception('This is a simulated error for testing!');
+    } catch (\Exception $e) {
+        $slack->notifyError('Test Error Notification', $e, [
+            'endpoint' => request()->path(),
+            'user' => 'Test User',
+            'ip' => request()->ip(),
+        ]);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Error notification sent to #respondprefast!',
+    ]);
+});
