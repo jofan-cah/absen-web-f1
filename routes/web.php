@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\LemburController;
 use App\Http\Controllers\Admin\OnCallController;
 use App\Http\Controllers\Admin\PenaltiController;
 use App\Http\Controllers\Admin\ShiftController;
+use App\Http\Controllers\Admin\ShiftSwapAdminController;
 use App\Http\Controllers\Admin\TunjanganDetailController;
 use App\Http\Controllers\Admin\TunjanganKaryawanController;
 use App\Http\Controllers\Admin\TunjanganTypeController;
@@ -64,6 +65,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/{id}/edit', [OnCallController::class, 'edit'])->name('edit');
             Route::put('/{id}', [OnCallController::class, 'update'])->name('update');
             Route::delete('/{id}', [OnCallController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::middleware(['role:admin,coordinator'])->prefix('shift-swap')->name('shift-swap.')->group(function () {
+            Route::get('/', [ShiftSwapAdminController::class, 'index'])->name('indexSw');
+            Route::get('/history', [ShiftSwapAdminController::class, 'history'])->name('historySw');
+            Route::get('/{swap_id}', [ShiftSwapAdminController::class, 'show'])->name('showSw');
+            Route::post('/{swap_id}/approve', [ShiftSwapAdminController::class, 'approve'])->name('approveSw');
+            Route::post('/{swap_id}/reject', [ShiftSwapAdminController::class, 'reject'])->name('rejectSw');
         });
 
 
@@ -227,7 +236,7 @@ Route::middleware(['auth', 'role:koordinator'])->prefix('koordinator')->name('ko
 
 
 
-Route::get('/test-slack-respondprefast', function() {
+Route::get('/test-slack-respondprefast', function () {
     $slack = app(\App\Services\SlackNotificationService::class);
 
     // ✅ Test Success
@@ -244,7 +253,7 @@ Route::get('/test-slack-respondprefast', function() {
     ]);
 });
 
-Route::get('/test-slack-error', function() {
+Route::get('/test-slack-error', function () {
     $slack = app(\App\Services\SlackNotificationService::class);
 
     // 🔴 Test Error
