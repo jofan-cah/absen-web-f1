@@ -20,6 +20,7 @@ class Jadwal extends Model
         'ijin_id',      // ✅ CORE: Jadwal bisa punya ijin
         'date',
         'is_active',
+         'swap_id',
           'type',
         'status',       // ✅ Status jadwal
         'notes',
@@ -69,6 +70,12 @@ class Jadwal extends Model
     public function hasIjin()
     {
         return !is_null($this->ijin_id);
+    }
+
+     // ✅ RELASI KE SHIFT SWAP (0:1) - TAMBAHAN
+    public function shiftSwap()
+    {
+        return $this->belongsTo(ShiftSwapRequest::class, 'swap_id', 'swap_id');
     }
 
     public function isNormal()

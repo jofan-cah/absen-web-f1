@@ -238,6 +238,103 @@
                 </div>
             </div>
 
+
+
+            <!-- MENU TUKAR SHIFT - Admin Full Access, Koordinator Sesuai Divisi -->
+            @php
+                // Hitung pending approval
+                $pendingSwapQuery = \App\Models\ShiftSwapRequest::pendingAdminApproval()->with([
+                    'requesterKaryawan.department',
+                    'partnerKaryawan.department',
+                ]);
+
+                // Jika koordinator, filter sesuai department
+                if ($isCoordinator) {
+                    $userDepartmentId = auth()->user()->karyawan->department_id ?? null;
+                    if ($userDepartmentId) {
+                        $pendingSwapQuery->where(function ($q) use ($userDepartmentId) {
+                            $q->whereHas('requesterKaryawan', function ($query) use ($userDepartmentId) {
+                                $query->where('department_id', $userDepartmentId);
+                            })->orWhereHas('partnerKaryawan', function ($query) use ($userDepartmentId) {
+                                $query->where('department_id', $userDepartmentId);
+                            });
+                        });
+                    }
+                }
+
+                $pendingSwapCount = $pendingSwapQuery->count();
+            @endphp
+
+
+            @if ($isAdmin || $isCoordinator)
+                <div class="mb-1.5" x-data="{ open: {{ request()->routeIs('admin.shift-swap.*') ? 'true' : 'false' }} }">
+                    <!-- Menu Header -->
+                    <button @click="open = !open"
+                        class="nav-item {{ request()->routeIs('admin.shift-swap.*') ? 'active' : '' }} w-full flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]">
+                        <div
+                            class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-orange-400 to-red-500 text-white shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </div>
+                        <span class="flex-1 text-left truncate text-gray-700 group-hover:text-orange-700">Tukar
+                            Shift</span>
+
+                        @if ($pendingSwapCount > 0)
+                            <span
+                                class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-1 animate-pulse">
+                                {{ $pendingSwapCount }}
+                            </span>
+                        @endif
+
+                        <svg class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
+                            :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <!-- Submenu Items dengan Icon -->
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 transform -translate-y-2"
+                        x-transition:enter-end="opacity-100 transform translate-y-0" class="ml-6 mt-1 space-y-1">
+
+                        <!-- Pending Approval dengan Icon -->
+                        <a href="{{ route('admin.shift-swap.indexSw') }}"
+                            class="flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg transition-colors {{ request()->routeIs('admin.shift-swap.indexSw') ? 'text-orange-700 bg-orange-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
+                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                            <div class="flex items-center">
+                                <svg class="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Pending Approval</span>
+                            </div>
+                            @if ($pendingSwapCount > 0)
+                                <span class="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                                    {{ $pendingSwapCount }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- Riwayat dengan Icon -->
+                        <a href="{{ route('admin.shift-swap.historySw') }}"
+                            class="flex items-center px-2.5 py-1.5 text-xs rounded-lg transition-colors {{ request()->routeIs('admin.shift-swap.historySw') ? 'text-orange-700 bg-orange-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
+                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                            <svg class="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                            </svg>
+                            Riwayat
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             <!-- Jadwal Section -->
             <div class="mb-1.5">
                 <div class="flex items-center px-2.5 py-1.5 mb-1">

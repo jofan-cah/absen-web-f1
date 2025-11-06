@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\LemburController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RiwayatController;
+use App\Http\Controllers\Api\ShiftSwapController;
 use App\Http\Controllers\Api\TunjanganController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -202,6 +203,30 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::delete('/notifications/{id}', [App\Http\Controllers\Api\NotificationController::class, 'destroy']);
         Route::delete('/notifications/clear-read', [App\Http\Controllers\Api\NotificationController::class, 'clearRead']);
     });
+
+    Route::prefix('shift-swap')->group(function () {
+
+    // Create swap request
+    Route::post('/request', [ShiftSwapController::class, 'createRequest']);
+
+    // Respond to swap request (approve/reject)
+    Route::post('/respond/{swap_id}', [ShiftSwapController::class, 'respondToRequest']);
+
+    // Cancel swap request
+    Route::post('/cancel/{swap_id}', [ShiftSwapController::class, 'cancelRequest']);
+
+    // Get swap history
+    Route::get('/history', [ShiftSwapController::class, 'getHistory']);
+
+    // Get pending requests (yang perlu di-approve user)
+    Route::get('/pending', [ShiftSwapController::class, 'getPendingRequests']);
+
+    // Get available jadwals for swap
+    Route::get('/available-jadwals', [ShiftSwapController::class, 'getAvailableJadwals']);
+});
+
+
+
 });
 
 // ============================================
