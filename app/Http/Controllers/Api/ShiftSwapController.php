@@ -118,7 +118,7 @@ class ShiftSwapController extends BaseApiController
      * Respond to swap request (approve/reject)
      * POST /api/shift-swap/respond/{swap_id}
      */
-    public function respondToRequest(Request $request, $swap_id)
+      public function respondToRequest(Request $request, $swap_id)
     {
         $validator = Validator::make($request->all(), [
             'action' => 'required|in:approve,reject',
@@ -172,12 +172,12 @@ class ShiftSwapController extends BaseApiController
                 );
             }
 
-            // Approve & Swap
+            // ✅ FIX: Approve by partner (menunggu admin approval)
             if ($request->action === 'approve') {
-                $swapRequest->approveAndSwap($request->notes);
+                $swapRequest->approveByPartner($request->notes); // ✅ Method yang benar
                 DB::commit();
 
-                // TODO: Send notification to both parties
+                // TODO: Send notification to requester & admin
 
                 return $this->successResponse(
                     $swapRequest->fresh()->load([
@@ -186,7 +186,7 @@ class ShiftSwapController extends BaseApiController
                         'requesterKaryawan',
                         'partnerKaryawan'
                     ]),
-                    'Tukar shift berhasil! Jadwal Anda telah diperbarui'
+                    'Request disetujui! Menunggu persetujuan admin/koordinator'
                 );
             }
 
