@@ -96,20 +96,32 @@ class JadwalController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
 
+        if (!$karyawan) {
+            return $this->errorResponse('Data karyawan tidak ditemukan', 404);
+        }
+
         $startDate = $request->get('start_date', now()->format('Y-m-d'));
         $endDate = $request->get('end_date', now()->addDays(7)->format('Y-m-d'));
+
+        $startDate = Carbon::parse($startDate)->format('Y-m-d');
+        $endDate = Carbon::parse($endDate)->format('Y-m-d');
 
         $jadwals = Jadwal::with(['shift', 'absen'])
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereBetween('date', [$startDate, $endDate])
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(function ($jadwal) {
+                // ✅ Format date ke Y-m-d
+                $jadwal->date = \Carbon\Carbon::parse($jadwal->date)->format('Y-m-d');
+                return $jadwal;
+            });
 
         return $this->successResponse([
             'jadwals' => $jadwals,
             'start_date' => $startDate,
             'end_date' => $endDate,
-            'total' => $jadwals->count()
+            'total' => $jadwals->count(),
         ], 'Jadwal berdasarkan range tanggal berhasil diambil');
     }
 }
