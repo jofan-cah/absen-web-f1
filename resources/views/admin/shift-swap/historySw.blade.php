@@ -256,7 +256,7 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{{ route('admin.shift-swap.show', $swap->swap_id) }}"
+                            <a href="{{ route('admin.shift-swap.showSw', $swap->swap_id) }}"
                                class="text-blue-600 hover:text-blue-900 transition-colors"
                                title="Lihat Detail">
                                 <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
