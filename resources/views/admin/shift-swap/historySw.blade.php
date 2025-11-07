@@ -98,23 +98,23 @@
 
         <!-- Filter Tabs -->
         <div class="mt-6 flex items-center space-x-2 border-b border-gray-200">
-            <a href="{{ route('admin.shift-swap.history') }}"
+            <a href="{{ route('admin.shift-swap.historySw') }}"
                class="px-4 py-2 text-sm font-medium {{ !request('status') ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-500 hover:text-gray-700' }}">
                 Semua
             </a>
-            <a href="{{ route('admin.shift-swap.history', ['status' => 'completed']) }}"
+            <a href="{{ route('admin.shift-swap.historySw', ['status' => 'completed']) }}"
                class="px-4 py-2 text-sm font-medium {{ request('status') == 'completed' ? 'text-green-700 border-b-2 border-green-700' : 'text-gray-500 hover:text-gray-700' }}">
                 Completed
             </a>
-            <a href="{{ route('admin.shift-swap.history', ['status' => 'rejected_by_admin']) }}"
+            <a href="{{ route('admin.shift-swap.historySw', ['status' => 'rejected_by_admin']) }}"
                class="px-4 py-2 text-sm font-medium {{ request('status') == 'rejected_by_admin' ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-500 hover:text-gray-700' }}">
                 Rejected by Admin
             </a>
-            <a href="{{ route('admin.shift-swap.history', ['status' => 'rejected_by_partner']) }}"
+            <a href="{{ route('admin.shift-swap.historySw', ['status' => 'rejected_by_partner']) }}"
                class="px-4 py-2 text-sm font-medium {{ request('status') == 'rejected_by_partner' ? 'text-orange-700 border-b-2 border-orange-700' : 'text-gray-500 hover:text-gray-700' }}">
                 Rejected by Partner
             </a>
-            <a href="{{ route('admin.shift-swap.history', ['status' => 'cancelled']) }}"
+            <a href="{{ route('admin.shift-swap.historySw', ['status' => 'cancelled']) }}"
                class="px-4 py-2 text-sm font-medium {{ request('status') == 'cancelled' ? 'text-gray-700 border-b-2 border-gray-700' : 'text-gray-500 hover:text-gray-700' }}">
                 Cancelled
             </a>
