@@ -351,7 +351,7 @@
                 </button>
             </div>
 
-            <form action="{{ route('admin.shift-swap.approve', $swapRequest->swap_id) }}" method="POST">
+            <form action="{{ route('admin.shift-swap.approveSw', $swapRequest->swap_id) }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
