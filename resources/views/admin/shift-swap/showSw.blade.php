@@ -388,7 +388,7 @@
                 </button>
             </div>
 
-            <form action="{{ route('admin.shift-swap.reject', $swapRequest->swap_id) }}" method="POST">
+            <form action="{{ route('admin.shift-swap.rejectSw', $swapRequest->swap_id) }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Penolakan <span class="text-red-500">*</span></label>
