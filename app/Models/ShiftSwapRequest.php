@@ -32,6 +32,7 @@ class ShiftSwapRequest extends Model
 
     protected $casts = [
         'partner_response_at' => 'datetime',
+        'admin_approved_at' => 'datetime',
         'completed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
