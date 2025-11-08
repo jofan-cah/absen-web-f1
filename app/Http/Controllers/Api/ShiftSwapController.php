@@ -106,7 +106,6 @@ class ShiftSwapController extends BaseApiController
                 $swapRequest->load(['requesterKaryawan', 'partnerKaryawan', 'requesterJadwal.shift', 'partnerJadwal.shift']),
                 'Request tukar shift berhasil dikirim'
             );
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to create swap request', ['error' => $e->getMessage()]);
@@ -118,7 +117,7 @@ class ShiftSwapController extends BaseApiController
      * Respond to swap request (approve/reject)
      * POST /api/shift-swap/respond/{swap_id}
      */
-      public function respondToRequest(Request $request, $swap_id)
+    public function respondToRequest(Request $request, $swap_id)
     {
         $validator = Validator::make($request->all(), [
             'action' => 'required|in:approve,reject',
@@ -189,7 +188,6 @@ class ShiftSwapController extends BaseApiController
                     'Request disetujui! Menunggu persetujuan admin/koordinator'
                 );
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to respond to swap request', [
@@ -240,7 +238,6 @@ class ShiftSwapController extends BaseApiController
                 $swapRequest,
                 'Request tukar shift berhasil dibatalkan'
             );
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to cancel swap request', [
@@ -284,7 +281,6 @@ class ShiftSwapController extends BaseApiController
             $history = $query->paginate($perPage);
 
             return $this->paginatedResponse($history, 'History tukar shift berhasil diambil');
-
         } catch (\Exception $e) {
             Log::error('Failed to get swap history', ['error' => $e->getMessage()]);
             return $this->serverErrorResponse('Gagal mengambil history');
@@ -320,7 +316,6 @@ class ShiftSwapController extends BaseApiController
                 $pendingRequests,
                 'Pending requests berhasil diambil'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to get pending requests', ['error' => $e->getMessage()]);
             return $this->serverErrorResponse('Gagal mengambil pending requests');
@@ -352,11 +347,14 @@ class ShiftSwapController extends BaseApiController
                 ->where('karyawan_id', '!=', $karyawan->karyawan_id)
                 ->where('is_active', true)
                 ->whereNull('swap_id')
-                ->whereDoesntHave('absen', function($query) {
-                    $query->where(function($q) {
+                ->whereDoesntHave('absen', function ($query) {
+                    $query->where(function ($q) {
                         $q->whereNotNull('clock_in')
-                          ->orWhereNotNull('clock_out');
+                            ->orWhereNotNull('clock_out');
                     });
+                })
+                ->whereHas('karyawan', function ($query) use ($karyawan) {
+                    $query->where('department_id', $karyawan->department_id);
                 })
                 ->with(['karyawan', 'shift'])
                 ->get();
@@ -365,7 +363,6 @@ class ShiftSwapController extends BaseApiController
                 $availableJadwals,
                 'Jadwal tersedia berhasil diambil'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to get available jadwals', ['error' => $e->getMessage()]);
             return $this->serverErrorResponse('Gagal mengambil jadwal tersedia');
