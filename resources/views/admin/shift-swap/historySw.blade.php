@@ -162,11 +162,11 @@
                             <div class="flex items-center">
                                 <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                                     <span class="text-xs font-semibold text-blue-700">
-                                        {{ substr($swap->requesterKaryawan->name, 0, 2) }}
+                                        {{ substr($swap->requesterKaryawan->full_name, 0, 2) }}
                                     </span>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900">{{ $swap->requesterKaryawan->name }}</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $swap->requesterKaryawan->full_name }}</div>
                                     <div class="text-xs text-gray-500">{{ $swap->requesterKaryawan->employee_id }}</div>
                                 </div>
                             </div>
@@ -175,11 +175,11 @@
                             <div class="flex items-center">
                                 <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
                                     <span class="text-xs font-semibold text-green-700">
-                                        {{ substr($swap->partnerKaryawan->name, 0, 2) }}
+                                        {{ substr($swap->partnerKaryawan->full_name, 0, 2) }}
                                     </span>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900">{{ $swap->partnerKaryawan->name }}</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $swap->partnerKaryawan->full_name }}</div>
                                     <div class="text-xs text-gray-500">{{ $swap->partnerKaryawan->employee_id }}</div>
                                 </div>
                             </div>
@@ -192,7 +192,7 @@
                             <div class="flex items-center space-x-2">
                                 <div class="text-center">
                                     <div class="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                                        {{ $swap->requesterJadwal->shift->name }}
+                                        {{ $swap->requesterJadwal->shift->full_name }}
                                     </div>
                                 </div>
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@
                                 </svg>
                                 <div class="text-center">
                                     <div class="text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded">
-                                        {{ $swap->partnerJadwal->shift->name }}
+                                        {{ $swap->partnerJadwal->shift->full_name }}
                                     </div>
                                 </div>
                             </div>
@@ -249,7 +249,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($swap->approvedByAdmin)
-                                <div class="text-sm text-gray-900">{{ $swap->approvedByAdmin->name }}</div>
+                                <div class="text-sm text-gray-900">{{ $swap->approvedByAdmin->full_name }}</div>
                                 <div class="text-xs text-gray-500">{{ $swap->approvedByAdmin->email }}</div>
                             @else
                                 <span class="text-sm text-gray-400">-</span>
