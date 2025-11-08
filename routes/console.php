@@ -12,7 +12,7 @@ use Carbon\Carbon;
 
 // Cek clock in setiap 15 menit (06:00 - 22:00)
 Schedule::command('notif:check-absen --type=clock_in')
-    ->everyFifteenMinutes()
+    ->everyThirtySeconds()
     ->between('06:00', '22:00')
     ->onSuccess(function () {
         Log::info('✅ Check clock_in berhasil dijalankan');
@@ -23,7 +23,7 @@ Schedule::command('notif:check-absen --type=clock_in')
 
 // Cek clock out setiap 15 menit (12:00-23:59 dan 00:00-03:59)
 Schedule::command('notif:check-absen --type=clock_out')
-    ->everyFifteenMinutes()
+    ->everyThirtySeconds()
     ->when(function () {
         $hour = (int) now()->format('H');
         // Jalan antara jam 12:00-23:59 ATAU 00:00-03:59

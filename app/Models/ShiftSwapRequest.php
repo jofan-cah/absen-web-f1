@@ -32,6 +32,7 @@ class ShiftSwapRequest extends Model
 
     protected $casts = [
         'partner_response_at' => 'datetime',
+        'admin_approved_at' => 'datetime',
         'completed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -195,37 +196,37 @@ class ShiftSwapRequest extends Model
                 throw new \Exception('Tidak bisa tukar shift, ada yang sudah melakukan absensi');
             }
 
-            // Get karyawan names for notes
-            $requesterName = $jadwalA->karyawan->name;
-            $partnerName = $jadwalB->karyawan->name;
+            // Get shift names for notes
+            $shiftAName = $jadwalA->shift->name;
+            $shiftBName = $jadwalB->shift->name;
 
-            // Swap karyawan_id di jadwals
-            $tempKaryawanId = $jadwalA->karyawan_id;
+            // 🔥 SWAP SHIFT_ID (bukan karyawan_id!)
+            $tempShiftId = $jadwalA->shift_id;
 
+            // Update jadwal A: dapat shift dari B
             $jadwalA->update([
-                'karyawan_id' => $jadwalB->karyawan_id,
+                'shift_id' => $jadwalB->shift_id,
                 'swap_id' => $this->swap_id,
-                'notes' => ($jadwalA->notes ? $jadwalA->notes . ' | ' : '') . "Ditukar dengan {$partnerName}"
+                'notes' => ($jadwalA->notes ? $jadwalA->notes . ' | ' : '') . "Shift ditukar: {$shiftAName} → {$shiftBName}"
             ]);
 
+            // Update jadwal B: dapat shift dari A
             $jadwalB->update([
-                'karyawan_id' => $tempKaryawanId,
+                'shift_id' => $tempShiftId,
                 'swap_id' => $this->swap_id,
-                'notes' => ($jadwalB->notes ? $jadwalB->notes . ' | ' : '') . "Ditukar dengan {$requesterName}"
+                'notes' => ($jadwalB->notes ? $jadwalB->notes . ' | ' : '') . "Shift ditukar: {$shiftBName} → {$shiftAName}"
             ]);
 
-            // Swap karyawan_id di absens
+            // Update notes di absens (karyawan tetap sama, cuma shift berubah)
             if ($absenA) {
                 $absenA->update([
-                    'karyawan_id' => $jadwalB->karyawan_id,
-                    'notes' => ($absenA->notes ? $absenA->notes . ' | ' : '') . "Shift ditukar dengan {$partnerName}"
+                    'notes' => ($absenA->notes ? $absenA->notes . ' | ' : '') . "Shift ditukar: {$shiftAName} → {$shiftBName}"
                 ]);
             }
 
             if ($absenB) {
                 $absenB->update([
-                    'karyawan_id' => $tempKaryawanId,
-                    'notes' => ($absenB->notes ? $absenB->notes . ' | ' : '') . "Shift ditukar dengan {$requesterName}"
+                    'notes' => ($absenB->notes ? $absenB->notes . ' | ' : '') . "Shift ditukar: {$shiftBName} → {$shiftAName}"
                 ]);
             }
 

@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center space-x-4">
-            <a href="{{ route('admin.shift-swap.index') }}"
+            <a href="{{ route('admin.shift-swap.indexSw') }}"
                class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -351,7 +351,7 @@
                 </button>
             </div>
 
-            <form action="{{ route('admin.shift-swap.approve', $swapRequest->swap_id) }}" method="POST">
+            <form action="{{ route('admin.shift-swap.approveSw', $swapRequest->swap_id) }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
@@ -388,7 +388,7 @@
                 </button>
             </div>
 
-            <form action="{{ route('admin.shift-swap.reject', $swapRequest->swap_id) }}" method="POST">
+            <form action="{{ route('admin.shift-swap.rejectSw', $swapRequest->swap_id) }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Penolakan <span class="text-red-500">*</span></label>

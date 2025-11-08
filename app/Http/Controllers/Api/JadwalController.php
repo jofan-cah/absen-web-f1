@@ -106,16 +106,13 @@ class JadwalController extends BaseApiController
         $startDate = Carbon::parse($startDate)->format('Y-m-d');
         $endDate = Carbon::parse($endDate)->format('Y-m-d');
 
+        // ✅ Langsung ambil dan format
         $jadwals = Jadwal::with(['shift', 'absen'])
+            ->selectRaw("*, DATE_FORMAT(date, '%Y-%m-%d') as date")
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereBetween('date', [$startDate, $endDate])
             ->orderBy('date')
-            ->get()
-            ->map(function ($jadwal) {
-                // ✅ Format date ke Y-m-d
-                $jadwal->date = \Carbon\Carbon::parse($jadwal->date)->format('Y-m-d');
-                return $jadwal;
-            });
+            ->get();
 
         return $this->successResponse([
             'jadwals' => $jadwals,
