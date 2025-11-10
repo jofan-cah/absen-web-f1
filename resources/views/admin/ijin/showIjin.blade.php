@@ -433,7 +433,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                     <div class="space-y-3">
-                        @if (auth()->user()->role === 'coordinator' &&
+                        @if (auth()->user()->role === 'koordinator' &&
                                 $ijin->coordinator_id === auth()->user()->user_id &&
                                 $ijin->coordinator_status === 'pending')
                             <a href="{{ route('admin.ijin.coordinator-review-form', $ijin->ijin_id) }}"

@@ -236,7 +236,7 @@ public function coordinatorReview(Request $request, Ijin $ijin)
         } else {
             // Kalau reject
             $ijin->status = 'rejected';
-            $ijin->rejected_at = now();
+            // $ijin->rejected_at = now();
 
             $ijin->admin_status = 'rejected';
 
@@ -312,7 +312,7 @@ public function adminReview(Request $request, Ijin $ijin)
         } else {
             // Reject
             $ijin->status = 'rejected';
-            $ijin->rejected_at = now();
+            // $ijin->rejected_at = now();
 
             if ($ijin->coordinator_status === 'pending') {
                 $ijin->coordinator_status = 'rejected';
