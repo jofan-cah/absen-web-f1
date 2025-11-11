@@ -82,16 +82,14 @@ class Karyawan extends Model
         // Ambil 2 digit bulan: Desember -> 12
         $month = $date->format('m');
 
-        // Cari nomor urut terakhir dari bulan dan tahun yang sama
-        $lastKaryawan = self::whereYear('hire_date', $date->year)
-            ->whereMonth('hire_date', $date->month)
-            ->orderByDesc('nip')
-            ->first();
+        // PERBAIKAN: Cari urutan terakhir dari SEMUA NIP (global)
+        // Ambil NIP terbesar (yang urutannya paling tinggi)
+        $lastKaryawan = self::orderByDesc('nip')->first();
 
         if (!$lastKaryawan) {
             $sequence = 1;
         } else {
-            // Ambil 3 digit terakhir dari NIP
+            // Ambil 3 digit terakhir dari NIP manapun
             $lastSequence = (int) substr($lastKaryawan->nip, -3);
             $sequence = $lastSequence + 1;
         }
@@ -99,7 +97,7 @@ class Karyawan extends Model
         // Format sequence jadi 3 digit: 001, 002, 003
         $sequenceFormatted = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
-        // Gabungkan: 01 + 25 + 12 + 001 = 012512001
+        // Gabungkan: 01 + 26 + 01 + 025 = 012601025
         return $companyCode . $year . $month . $sequenceFormatted;
     }
 
