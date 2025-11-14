@@ -20,25 +20,41 @@ class CheckRole
         $user = auth()->user();
         $userRole = $user->role;
 
-        // Admin bisa akses semua
+        // Admin SELALU bisa akses semua
         if ($userRole === 'admin') {
             return $next($request);
         }
 
-        // Check if user role is in allowed roles
-        $coordinatorRoles = ['coordinator', 'koordinator', 'wakil_coordinator', 'wakil_koordinator'];
+        // Normalisasi role untuk koordinator variants
+        $normalizedUserRole = $this->normalizeRole($userRole);
+        $normalizedAllowedRoles = array_map([$this, 'normalizeRole'], $roles);
 
-        foreach ($roles as $role) {
-            if ($role === 'coordinator' && in_array($userRole, $coordinatorRoles)) {
-                return $next($request);
-            }
-
-            if ($userRole === $role) {
-                return $next($request);
-            }
+        // Check if normalized user role is in allowed roles
+        if (in_array($normalizedUserRole, $normalizedAllowedRoles)) {
+            return $next($request);
         }
 
         // Unauthorized
         abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+    }
+
+    /**
+     * Normalize role names untuk handle variants
+     */
+    private function normalizeRole(string $role): string
+    {
+        // Map semua variant ke 'koordinator'
+        $koordinatorVariants = [
+            'koordinator',
+            'coordinator',
+            'wakil_koordinator',
+            'wakil_coordinator'
+        ];
+
+        if (in_array($role, $koordinatorVariants)) {
+            return 'koordinator';
+        }
+
+        return $role;
     }
 }
