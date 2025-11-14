@@ -8,6 +8,8 @@ use App\Models\Karyawan;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use DateTime;
 
 class AbsenController extends Controller
 {
@@ -24,7 +26,7 @@ class AbsenController extends Controller
 
         // Filter by department
         if ($request->department_id) {
-            $query->whereHas('karyawan', function($q) use ($request) {
+            $query->whereHas('karyawan', function ($q) use ($request) {
                 $q->where('department_id', $request->department_id);
             });
         }
@@ -40,8 +42,8 @@ class AbsenController extends Controller
         }
 
         $absens = $query->orderBy('date', 'desc')
-                       ->orderBy('clock_in', 'desc')
-                       ->paginate(20);
+            ->orderBy('clock_in', 'desc')
+            ->paginate(50);
 
         $departments = Department::where('is_active', true)->get();
         $karyawans = Karyawan::where('employment_status', 'active')->get();
@@ -70,7 +72,7 @@ class AbsenController extends Controller
             ->whereMonth('date', $month);
 
         if ($department_id) {
-            $query->whereHas('karyawan', function($q) use ($department_id) {
+            $query->whereHas('karyawan', function ($q) use ($department_id) {
                 $q->where('department_id', $department_id);
             });
         }
@@ -140,7 +142,7 @@ class AbsenController extends Controller
             ->whereMonth('date', $month);
 
         if ($department_id) {
-            $query->whereHas('karyawan', function($q) use ($department_id) {
+            $query->whereHas('karyawan', function ($q) use ($department_id) {
                 $q->where('department_id', $department_id);
             });
         }
@@ -212,5 +214,98 @@ class AbsenController extends Controller
         ];
 
         return view('admin.absen.daily-report', compact('absens', 'stats', 'date'));
+    }
+
+
+    public function exportPdfReport(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        $department_id = $request->get('department_id');
+        $karyawan_id = $request->get('karyawan_id');
+
+        // Query untuk ambil data absensi
+        $query = Absen::with(['karyawan.department', 'jadwal.shift'])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month);
+
+        if ($department_id) {
+            $query->whereHas('karyawan', function ($q) use ($department_id) {
+                $q->where('department_id', $department_id);
+            });
+        }
+
+        if ($karyawan_id) {
+            $query->where('karyawan_id', $karyawan_id);
+        }
+
+        $absens = $query->orderBy('karyawan_id')->orderBy('date')->get();
+
+        // Generate report data per karyawan
+        $reportData = [];
+        foreach ($absens as $absen) {
+            $karyawan_id = $absen->karyawan_id;
+
+            if (!isset($reportData[$karyawan_id])) {
+                $reportData[$karyawan_id] = [
+                    'karyawan' => $absen->karyawan,
+                    'total_jadwal' => 0,
+                    'hadir' => 0,
+                    'terlambat' => 0,
+                    'tidak_hadir' => 0,
+                    'pulang_cepat' => 0,
+                    'total_jam_kerja' => 0,
+                    'total_terlambat_menit' => 0,
+                    'detail_absens' => []
+                ];
+            }
+
+            $reportData[$karyawan_id]['total_jadwal']++;
+            $reportData[$karyawan_id]['detail_absens'][] = $absen;
+
+            switch ($absen->status) {
+                case 'present':
+                    $reportData[$karyawan_id]['hadir']++;
+                    break;
+                case 'late':
+                    $reportData[$karyawan_id]['terlambat']++;
+                    $reportData[$karyawan_id]['total_terlambat_menit'] += $absen->late_minutes;
+                    break;
+                case 'early_checkout':
+                    $reportData[$karyawan_id]['pulang_cepat']++;
+                    break;
+                case 'absent':
+                    $reportData[$karyawan_id]['tidak_hadir']++;
+                    break;
+            }
+
+            if ($absen->work_hours) {
+                $reportData[$karyawan_id]['total_jam_kerja'] += $absen->work_hours;
+            }
+        }
+
+        $departments = Department::where('is_active', true)->get();
+        $selectedDepartment = $department_id ? $departments->firstWhere('department_id', $department_id) : null;
+
+        $data = [
+            'reportData' => $reportData,
+            'month' => $month,
+            'year' => $year,
+            'monthName' => DateTime::createFromFormat('!m', $month)->format('F'),
+            'department' => $selectedDepartment,
+            'totalKaryawan' => count($reportData),
+            'generatedAt' => now()->format('d F Y H:i:s')
+        ];
+
+        $pdf = Pdf::loadView('admin.absen.pdfReport', $data);
+        $pdf->setPaper('A4', 'landscape');
+
+        $filename = "Laporan_Absensi_{$data['monthName']}_{$year}";
+        if ($selectedDepartment) {
+            $filename .= "_{$selectedDepartment->name}";
+        }
+        $filename .= ".pdf";
+
+        return $pdf->download($filename);
     }
 }
