@@ -110,6 +110,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/absen/report', [AbsenController::class, 'report'])->name('absen.report');
             Route::get('/absen/daily-report', [AbsenController::class, 'dailyReport'])->name('absen.daily-report');
             Route::get('/absen/export-report', [AbsenController::class, 'exportReport'])->name('absen.export-report');
+            Route::get('/absen/export-pdf-report', [AbsenController::class, 'exportPdfReport'])->name('absen.export-pdf-report');
             Route::resource('absen', AbsenController::class)->only(['index', 'show']);
 
             // User Management
