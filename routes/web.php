@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Jadwal Calendar - Admin & Coordinator bisa akses
         Route::middleware(['role:admin,coordinator'])->group(function () {
             Route::get('/jadwal/calendar', [JadwalController::class, 'calendar'])->name('jadwal.calendar');
+                Route::get('/jadwal/export-pdf', [JadwalController::class, 'exportPdf'])->name('jadwal.export-pdf'); // ← TAMBAH INI
             Route::post('/jadwal/bulk-store', [JadwalController::class, 'bulkStore'])->name('jadwal.bulk-store');
             Route::get('/jadwal/{jadwal}/check-editable', [JadwalController::class, 'checkEditable'])->name('jadwal.check-editable');
 
