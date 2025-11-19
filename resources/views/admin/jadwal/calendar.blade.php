@@ -5,7 +5,7 @@
 @section('page_title', 'Management Jadwal - Calendar View')
 
 @section('page_actions')
-    <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+    <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between w-full">
         <!-- Month/Year Navigation -->
         <div class="flex items-center gap-2">
             <button onclick="navigateMonth(-1)"
@@ -31,6 +31,11 @@
                 </select>
             </div>
 
+            <button onclick="filterByPeriod()"
+                class="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">
+                Terapkan
+            </button>
+
             <button onclick="navigateMonth(1)"
                 class="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,31 +44,19 @@
             </button>
 
             <button onclick="goToToday()"
-                class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs">
+                class="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
                 Hari Ini
             </button>
         </div>
 
-        <!-- Actions -->
-        <div class="flex gap-1.5">
-            @if (auth()->user()->role === 'admin')
-                <a href="{{ route('admin.jadwal.index') }}"
-                    class="px-2.5 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-1 text-xs">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                    List
-                </a>
-            @endif
-            <button onclick="saveAllChanges()"
-                class="px-2.5 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1 text-xs">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Simpan
-            </button>
-        </div>
+        <!-- Export PDF Button -->
+        <button onclick="exportToPDF()"
+            class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Export PDF
+        </button>
     </div>
 @endsection
 
@@ -574,6 +567,8 @@
 
 @endsection
 
+
+
 @push('scripts')
     <!-- JavaScript tetap sama seperti sebelumnya, tidak ada perubahan -->
     <script>
@@ -742,6 +737,23 @@
             });
 
             updatePendingIndicator();
+        }
+
+        // Export PDF Function
+        function exportToPDF() {
+            const month = '{{ $month }}';
+            const year = '{{ $year }}';
+            const departmentId = document.getElementById('department-filter')?.value || '';
+
+            // Build URL dengan parameter
+            let url = `{{ route('admin.jadwal.export-pdf') }}?month=${month}&year=${year}`;
+
+            if (departmentId) {
+                url += `&department_id=${departmentId}`;
+            }
+
+            // Buka PDF di tab baru
+            window.open(url, '_blank');
         }
 
         function getShiftColor(shiftId) {
@@ -1120,11 +1132,11 @@
                         <p class="text-sm text-gray-600 mb-3">Pilih hari dalam seminggu:</p>
                         <div class="space-y-2">
                             ${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map((day, idx) => `
-                                        <label class="flex items-center">
-                                            <input type="checkbox" value="${idx}" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                                            <span class="ml-2 text-sm">${day}</span>
-                                        </label>
-                                    `).join('')}
+                                            <label class="flex items-center">
+                                                <input type="checkbox" value="${idx}" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
+                                                <span class="ml-2 text-sm">${day}</span>
+                                            </label>
+                                        `).join('')}
                         </div>
                     </div>
                     <div class="flex justify-end gap-3">

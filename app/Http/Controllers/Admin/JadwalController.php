@@ -7,8 +7,11 @@ use App\Models\Jadwal;
 use App\Models\Karyawan;
 use App\Models\Shift;
 use App\Models\Absen;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use DateTime;
+use Illuminate\Support\Facades\Log;
 
 class JadwalController extends Controller
 {
@@ -102,11 +105,11 @@ class JadwalController extends Controller
         if ($accessibleDepts !== null) {
             if (empty($accessibleDepts)) {
                 // Jika array kosong, tidak ada akses sama sekali
-                \Log::warning('Empty accessible departments - no karyawan will be shown');
+                Log::warning('Empty accessible departments - no karyawan will be shown');
                 $karyawansQuery->whereRaw('1 = 0'); // Force no results
             } else {
                 // Filter by accessible departments
-                \Log::info('Filtering karyawan by departments: ' . implode(', ', $accessibleDepts));
+                Log::info('Filtering karyawan by departments: ' . implode(', ', $accessibleDepts));
                 $karyawansQuery->whereIn('department_id', $accessibleDepts);
             }
         }
@@ -118,10 +121,10 @@ class JadwalController extends Controller
 
         $karyawans = $karyawansQuery->get();
 
-        \Log::info('Karyawan Query Result: ' . $karyawans->count() . ' records');
+        Log::info('Karyawan Query Result: ' . $karyawans->count() . ' records');
         if ($karyawans->count() > 0) {
-            \Log::info('Karyawan Names: ' . $karyawans->pluck('full_name')->implode(', '));
-            \Log::info('Karyawan Departments: ' . $karyawans->pluck('department_id')->unique()->implode(', '));
+            Log::info('Karyawan Names: ' . $karyawans->pluck('full_name')->implode(', '));
+            Log::info('Karyawan Departments: ' . $karyawans->pluck('department_id')->unique()->implode(', '));
         }
 
         // ===== QUERY JADWAL =====
@@ -148,7 +151,7 @@ class JadwalController extends Controller
 
         $jadwals = $jadwalsQuery->get();
 
-        \Log::info('Jadwal Query Result: ' . $jadwals->count() . ' records');
+        Log::info('Jadwal Query Result: ' . $jadwals->count() . ' records');
 
         // Get shifts
         $shifts = Shift::where('is_active', true)->get();
@@ -188,6 +191,98 @@ class JadwalController extends Controller
             'departmentId',
             'accessibleDepts'
         ));
+    }
+
+
+    public function exportPdf(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        $departmentId = $request->get('department_id');
+        $shiftId = $request->get('shift_id');
+        $status = $request->get('status');
+
+        // Get accessible departments (auto filter untuk coordinator)
+        $accessibleDepts = $this->getAccessibleDepartments();
+
+    Log::info('Export PDF - Accessible Departments: ' . json_encode($accessibleDepts));
+
+        // Build query
+        $query = Jadwal::with(['karyawan.department', 'shift', 'absen'])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month);
+
+        // Apply department access control
+        if ($accessibleDepts !== null) {
+            if (empty($accessibleDepts)) {
+                abort(403, 'Anda tidak memiliki akses ke department manapun');
+            }
+
+            $query->whereHas('karyawan', function ($q) use ($accessibleDepts) {
+                $q->whereIn('department_id', $accessibleDepts);
+            });
+        }
+
+        // Additional filters (optional)
+        if ($departmentId) {
+            // Validasi: Coordinator hanya bisa filter department mereka sendiri
+            if ($accessibleDepts !== null && !in_array($departmentId, $accessibleDepts)) {
+                abort(403, 'Anda tidak memiliki akses ke department ini');
+            }
+
+            $query->whereHas('karyawan', function ($q) use ($departmentId) {
+                $q->where('department_id', $departmentId);
+            });
+        }
+
+        if ($shiftId) {
+            $query->where('shift_id', $shiftId);
+        }
+
+        if ($status !== null && $status !== '') {
+            $query->where('is_active', $status);
+        }
+
+        $jadwals = $query->orderBy('date', 'asc')
+            ->orderBy('karyawan_id', 'asc')
+            ->get();
+
+        Log::info('Export PDF - Total Jadwal: ' . $jadwals->count());
+
+        // Get info for header
+        $user = auth()->user();
+        $monthName = DateTime::createFromFormat('!m', $month)->format('F');
+
+        // Department info
+        $departmentName = 'Semua Department';
+        if ($departmentId) {
+            $dept = \App\Models\Department::find($departmentId);
+            $departmentName = $dept ? $dept->name : 'Unknown';
+        } elseif ($accessibleDepts !== null && count($accessibleDepts) === 1) {
+            // Coordinator dengan 1 department
+            $dept = \App\Models\Department::find($accessibleDepts[0]);
+            $departmentName = $dept ? $dept->name : 'Unknown';
+        }
+
+        // Generate PDF
+        $pdf = Pdf::loadView('admin.jadwal.pdf.jadwal-report', [
+            'jadwals' => $jadwals,
+            'month' => $month,
+            'year' => $year,
+            'monthName' => $monthName,
+            'departmentName' => $departmentName,
+            'generatedBy' => $user->name,
+            'generatedAt' => now()->format('d/m/Y H:i'),
+        ]);
+
+        // Set paper landscape untuk lebih banyak kolom
+        $pdf->setPaper('A4', 'landscape');
+
+        // Generate filename
+        $filename = "Jadwal_{$monthName}_{$year}_{$departmentName}.pdf";
+        $filename = str_replace(' ', '_', $filename);
+
+        return $pdf->stream($filename);
     }
 
     public function store(Request $request)
