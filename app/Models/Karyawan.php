@@ -70,34 +70,21 @@ class Karyawan extends Model
 
     public static function generateNIP($hireDate = null)
     {
-        // Company code fixed
         $companyCode = '01';
-
-        // Gunakan hire_date atau tanggal sekarang
         $date = $hireDate ? Carbon::parse($hireDate) : Carbon::now();
-
-        // Ambil 2 digit terakhir tahun: 2025 -> 25
         $year = $date->format('y');
-
-        // Ambil 2 digit bulan: Desember -> 12
         $month = $date->format('m');
 
-        // PERBAIKAN: Cari urutan terakhir dari SEMUA NIP (global)
-        // Ambil NIP terbesar (yang urutannya paling tinggi)
-        $lastKaryawan = self::orderByDesc('nip')->first();
+        $prefix = $companyCode . $year . $month;
 
-        if (!$lastKaryawan) {
-            $sequence = 1;
-        } else {
-            // Ambil 3 digit terakhir dari NIP manapun
-            $lastSequence = (int) substr($lastKaryawan->nip, -3);
-            $sequence = $lastSequence + 1;
-        }
+        // Ambil sequence tertinggi untuk bulan-tahun ini
+        $maxSequence = self::where('nip', 'LIKE', $prefix . '%')
+            ->selectRaw('MAX(CAST(SUBSTRING(nip, -3) AS UNSIGNED)) as max_seq')
+            ->value('max_seq');
 
-        // Format sequence jadi 3 digit: 001, 002, 003
+        $sequence = $maxSequence ? $maxSequence + 1 : 1;
         $sequenceFormatted = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
-        // Gabungkan: 01 + 26 + 01 + 025 = 012601025
         return $companyCode . $year . $month . $sequenceFormatted;
     }
 
