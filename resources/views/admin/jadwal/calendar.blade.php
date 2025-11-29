@@ -59,6 +59,14 @@
                     List
                 </a>
             @endif
+            <button onclick="exportToPDF()"
+                class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export PDF
+            </button>
             <button onclick="saveAllChanges()"
                 class="px-2.5 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1 text-xs">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1142,11 +1150,11 @@
                         <p class="text-sm text-gray-600 mb-3">Pilih hari dalam seminggu:</p>
                         <div class="space-y-2">
                             ${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map((day, idx) => `
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" value="${idx}" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
-                                                    <span class="ml-2 text-sm">${day}</span>
-                                                </label>
-                                            `).join('')}
+                                                    <label class="flex items-center">
+                                                        <input type="checkbox" value="${idx}" class="custom-day-checkbox rounded border-gray-300 text-blue-600">
+                                                        <span class="ml-2 text-sm">${day}</span>
+                                                    </label>
+                                                `).join('')}
                         </div>
                     </div>
                     <div class="flex justify-end gap-3">
