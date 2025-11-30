@@ -340,7 +340,7 @@ class IjinController extends BaseApiController
     public function submitCompensationLeave(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'original_shift_date' => 'required|date|before:today',
+            'original_shift_date' => 'required|date',
             'date_from' => 'required|date|after:today',
             'date_to' => 'required|date|after_or_equal:date_from',
             'reason' => 'nullable|string|max:500',
