@@ -65,7 +65,7 @@ class KaryawanController extends Controller
 
         // Statistics untuk dashboard cards
         $totalKaryawan = Karyawan::count();
-        $activeKaryawan = Karyawan::where('employment_status', 'aktif')->count();
+        $activeKaryawan = Karyawan::where('employment_status', 'active')->count();
         $totalDepartments = Department::where('is_active', true)->count();
         $newThisMonth = Karyawan::whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -273,11 +273,11 @@ class KaryawanController extends Controller
             $karyawan = Karyawan::findOrFail($id);
 
             // Toggle status
-            if ($karyawan->employment_status === 'aktif') {
+            if ($karyawan->employment_status === 'active') {
                 $karyawan->employment_status = 'tidak_aktif';
                 $message = 'Karyawan berhasil dinonaktifkan';
             } else {
-                $karyawan->employment_status = 'aktif';
+                $karyawan->employment_status = 'active';
                 $message = 'Karyawan berhasil diaktifkan';
             }
 
