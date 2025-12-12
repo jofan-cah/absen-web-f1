@@ -75,18 +75,19 @@ class Karyawan extends Model
         $year = $date->format('y');
         $month = $date->format('m');
 
+        // Format tetap 01yymm
         $prefix = $companyCode . $year . $month;
 
-        // Ambil sequence tertinggi untuk bulan-tahun ini
-        $maxSequence = self::where('nip', 'LIKE', $prefix . '%')
-            ->selectRaw('MAX(CAST(SUBSTRING(nip, -3) AS UNSIGNED)) as max_seq')
+        // Ambil sequence terbesar global (tidak peduli ganti bulan)
+        $maxSequence = self::selectRaw('MAX(CAST(RIGHT(nip, 3) AS UNSIGNED)) as max_seq')
             ->value('max_seq');
 
         $sequence = $maxSequence ? $maxSequence + 1 : 1;
         $sequenceFormatted = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
-        return $companyCode . $year . $month . $sequenceFormatted;
+        return $prefix . $sequenceFormatted;
     }
+
 
     // Helper method untuk generate Karyawan ID
     public static function generateKaryawanId()
