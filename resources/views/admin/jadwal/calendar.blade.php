@@ -325,11 +325,13 @@
                                 $dayJadwals = collect($calendarData[$dateStr] ?? []);
                                 // Cek apakah ada jadwal dengan ijin_id = true
                                 $hasIjin = $dayJadwals->contains('ijin_id', true);
+                                // Cek apakah ada libur di tanggal ini
+                                $libur = $liburs[$dateStr] ?? null;
                             @endphp
 
                             <div class="calendar-day min-h-24 border rounded p-1.5 transition-all
-        {{ $isCurrentMonth ? 'bg-white hover:border-blue-400 hover:shadow cursor-pointer' : 'bg-gray-50' }}
-        {{ $hasIjin ? 'border-red-400 bg-red-50' : 'border-gray-200' }}"
+        {{ $libur ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300' : ($isCurrentMonth ? 'bg-white hover:border-blue-400 hover:shadow cursor-pointer' : 'bg-gray-50') }}
+        {{ !$libur && $hasIjin ? 'border-red-400 bg-red-50' : (!$libur ? 'border-gray-200' : '') }}"
                                 data-date="{{ $dateStr }}"
                                 onclick="{{ $isCurrentMonth ? "assignToDate('$dateStr')" : '' }}">
 
@@ -355,6 +357,26 @@
                                         </span>
                                     @endif
                                 </div>
+
+                                <!-- Libur Badge -->
+                                @if($libur)
+                                    <div class="mt-1 mb-2 p-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-lg shadow-sm">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                            </svg>
+                                            <span class="text-xs font-semibold text-white">LIBUR</span>
+                                        </div>
+                                        <div class="text-xs font-medium text-white mt-1">
+                                            {{ $libur->name }}
+                                        </div>
+                                        @if($libur->type)
+                                            <div class="text-xs text-amber-100 mt-0.5">
+                                                {{ ucfirst(str_replace('_', ' ', $libur->type)) }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
 
                                 <!-- Jadwal Items - Compact -->
                                 <div class="space-y-1 jadwal-container" data-date="{{ $dateStr }}">
