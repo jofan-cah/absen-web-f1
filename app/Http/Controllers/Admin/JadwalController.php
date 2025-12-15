@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\Karyawan;
+use App\Models\Libur;
 use App\Models\Shift;
 use App\Models\Absen;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -156,6 +157,15 @@ class JadwalController extends Controller
         // Get shifts
         $shifts = Shift::where('is_active', true)->get();
 
+        // Get libur data for the month
+        $liburs = Libur::where('is_active', true)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->date->format('Y-m-d');
+            });
+
         // Format calendar data
         $calendarData = [];
         foreach ($jadwals as $jadwal) {
@@ -186,6 +196,7 @@ class JadwalController extends Controller
             'calendarData',
             'karyawans',
             'shifts',
+            'liburs',
             'month',
             'year',
             'departmentId',

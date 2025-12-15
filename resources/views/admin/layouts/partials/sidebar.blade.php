@@ -113,6 +113,21 @@
                             <span class="flex-1 truncate text-gray-700 group-hover:text-orange-700">Shift Kerja</span>
                         </a>
 
+                        <a href="{{ route('admin.libur.index') }}"
+                            class="nav-item {{ request()->routeIs('admin.libur.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                            <div
+                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <span class="flex-1 truncate text-gray-700 group-hover:text-amber-700">Hari Libur</span>
+                            <span
+                                class="text-xs bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">{{ \App\Models\Libur::count() }}</span>
+                        </a>
+
                         <a href="{{ route('admin.user.index') }}"
                             class="nav-item {{ request()->routeIs('admin.user.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
                             @click="window.innerWidth < 1024 && (sidebarOpen = false)">

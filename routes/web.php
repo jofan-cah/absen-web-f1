@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\IjinTypeController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\LemburController;
+use App\Http\Controllers\Admin\LiburController;
 use App\Http\Controllers\Admin\OnCallController;
 use App\Http\Controllers\Admin\PenaltiController;
 use App\Http\Controllers\Admin\ShiftController;
@@ -103,6 +104,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('shift/bulk-delete', [ShiftController::class, 'bulkDelete'])->name('shift.bulk-delete');
             Route::post('shift/bulk-toggle-status', [ShiftController::class, 'bulkToggleStatus'])->name('shift.bulk-toggle-status');
             Route::get('shift/export', [ShiftController::class, 'export'])->name('shift.export');
+
+            // Libur Management
+            Route::resource('libur', LiburController::class);
+            Route::post('libur/{libur}/toggle-status', [LiburController::class, 'toggleStatus'])->name('libur.toggle-status');
+            Route::post('libur/bulk-delete', [LiburController::class, 'bulkDelete'])->name('libur.bulk-delete');
+            Route::post('libur/bulk-toggle-status', [LiburController::class, 'bulkToggleStatus'])->name('libur.bulk-toggle-status');
 
             // Jadwal Management (Admin only routes)
             Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
