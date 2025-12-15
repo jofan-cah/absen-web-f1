@@ -70,7 +70,7 @@ class GenerateUangMakan extends Command
 
         // Ambil karyawan aktif
         $karyawans = Karyawan::where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
+            ->whereNotIn('karyawan_id', ['KAR001'])
             ->with(['user', 'department'])
             ->get();
 

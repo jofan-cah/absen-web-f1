@@ -93,7 +93,7 @@ class TunjanganKaryawanController extends Controller
     {
         $karyawans = Karyawan::with(['user', 'department'])
             ->where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
+            ->whereNotIn('karyawan_id', ['KAR001'])
             ->get();
 
         // Ambil tunjangan types yang aktif (exclude lembur untuk sekarang)
@@ -928,7 +928,7 @@ class TunjanganKaryawanController extends Controller
         // Get semua karyawan aktif
         $karyawans = Karyawan::with(['department'])
             ->where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
+            ->whereNotIn('karyawan_id', ['KAR001'])
             ->orderBy('full_name')
             ->get();
 
@@ -989,7 +989,7 @@ class TunjanganKaryawanController extends Controller
         // Get semua karyawan aktif
         $karyawans = Karyawan::with(['department'])
             ->where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
+            ->whereNotIn('karyawan_id', ['KAR001'])
             ->orderBy('full_name')
             ->get();
 
@@ -1283,7 +1283,7 @@ class TunjanganKaryawanController extends Controller
     {
         $karyawans = Karyawan::with(['department'])
             ->where('employment_status', 'active')
-            ->whereNotIn('karyawan_id', ['KAR001', 'KAR010'])
+            ->whereNotIn('karyawan_id', ['KAR001'])
             ->orderBy('full_name')
             ->get();
 
