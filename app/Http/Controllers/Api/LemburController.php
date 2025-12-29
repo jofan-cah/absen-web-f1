@@ -288,7 +288,7 @@ class LemburController extends BaseApiController
         $validator = Validator::make($request->all(), [
             'jam_selesai' => 'nullable|date_format:H:i', // Optional, default NOW
             'deskripsi_pekerjaan' => 'required|string|max:500',
-            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'bukti_foto' => 'required|image|mimes:jpeg,png,jpg',
         ]);
 
         if ($validator->fails()) {
@@ -388,7 +388,7 @@ class LemburController extends BaseApiController
             'tanggal_lembur' => 'required|date',
             'jam_selesai' => 'required|date_format:H:i',
             'deskripsi_pekerjaan' => 'required|string|max:500',
-            'bukti_foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'bukti_foto' => 'nullable|image|mimes:jpeg,png,jpg',
         ]);
 
         if ($validator->fails()) {
@@ -666,7 +666,7 @@ public function updatePhoto(Request $request, $id)
     }
 
     $validator = Validator::make($request->all(), [
-        'bukti_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        'bukti_foto' => 'required|image|mimes:jpeg,png,jpg',
     ]);
 
     if ($validator->fails()) {
