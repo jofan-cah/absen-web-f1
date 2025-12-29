@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,14 +36,14 @@ class AuthController extends Controller
             'birth_date' => 'nullable|date',
             'gender' => 'nullable|in:L,P',
             'department_id' => 'nullable|exists:departments,department_id',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg'
         ]);
 
         $user = Auth::user();
         $karyawan = $user->karyawan;
 
         // Start transaction
-        \DB::beginTransaction();
+        DB::beginTransaction();
 
         try {
             // Update User data
