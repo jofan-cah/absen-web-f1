@@ -386,7 +386,7 @@ class KaryawanController extends Controller
             'gender' => 'required|in:L,P',
             'employment_status' => 'required|in:active,inactive,terminated',
             'staff_status' => 'required',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg',
         ]);
 
         try {

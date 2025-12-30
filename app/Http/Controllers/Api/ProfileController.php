@@ -69,7 +69,7 @@ class ProfileController extends BaseApiController
     public function uploadPhoto(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'photo' => 'required|image|mimes:jpeg,png,jpg',
         ]);
 
         if ($validator->fails()) {
