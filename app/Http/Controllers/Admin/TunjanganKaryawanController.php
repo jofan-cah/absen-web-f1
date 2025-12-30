@@ -378,7 +378,7 @@ class TunjanganKaryawanController extends Controller
     public function confirmReceived(TunjanganKaryawan $tunjanganKaryawan, Request $request)
     {
         $request->validate([
-            'confirmation_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'confirmation_photo' => 'nullable|image|mimes:jpeg,png,jpg'
         ]);
 
         try {
