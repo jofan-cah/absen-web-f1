@@ -7,6 +7,7 @@ use App\Models\IjinType;
 use App\Models\Karyawan;
 use App\Models\Absen;
 use App\Models\Jadwal;
+use App\Models\Libur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -495,10 +496,31 @@ class IjinController extends BaseApiController
                 return $this->notFoundResponse('Data karyawan tidak ditemukan');
             }
 
+            // Get active holiday dates
+            $hariLibur = Libur::where('is_active', true)
+                ->pluck('date')
+                ->map(function($date) {
+                    return Carbon::parse($date)->format('Y-m-d');
+                })
+                ->toArray();
+
+            // Get libur details for mapping
+            $liburDetails = Libur::where('is_active', true)
+                ->get()
+                ->keyBy(function($item) {
+                    return Carbon::parse($item->date)->format('Y-m-d');
+                });
+
             $piketDates = Absen::where('karyawan_id', $karyawan->karyawan_id)
                 ->where('status', 'present')
-                ->whereRaw('DAYOFWEEK(date) = 1')
                 ->where('date', '<', now())
+                ->where(function($query) use ($hariLibur) {
+                    // Hari Minggu ATAU hari libur
+                    $query->whereRaw('DAYOFWEEK(date) = 1');
+                    if (!empty($hariLibur)) {
+                        $query->orWhereIn('date', $hariLibur);
+                    }
+                })
                 ->whereNotIn('date', function($query) use ($karyawan) {
                     $query->select('original_shift_date')
                         ->from('ijins')
@@ -508,11 +530,21 @@ class IjinController extends BaseApiController
                 })
                 ->orderBy('date', 'desc')
                 ->get(['date'])
-                ->map(function($item) {
+                ->map(function($item) use ($liburDetails) {
+                    $dateStr = $item->date->format('Y-m-d');
+                    $isSunday = $item->date->dayOfWeek === Carbon::SUNDAY;
+                    $isLibur = isset($liburDetails[$dateStr]);
+
+                    if ($isLibur) {
+                        $dayName = $liburDetails[$dateStr]->name;
+                    } else {
+                        $dayName = 'Minggu';
+                    }
+
                     return [
-                        'date' => $item->date->format('Y-m-d'),
+                        'date' => $dateStr,
                         'formatted_date' => $item->date->format('d/m/Y'),
-                        'day_name' => 'Minggu'
+                        'day_name' => $dayName
                     ];
                 });
 
