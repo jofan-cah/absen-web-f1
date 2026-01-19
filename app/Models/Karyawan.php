@@ -78,11 +78,17 @@ class Karyawan extends Model
         // Format tetap 01yymm
         $prefix = $companyCode . $year . $month;
 
-        // Ambil sequence terbesar global (tidak peduli ganti bulan)
-        $maxSequence = self::selectRaw('MAX(CAST(RIGHT(nip, 3) AS UNSIGNED)) as max_seq')
-            ->value('max_seq');
+        // Ambil sequence dari karyawan_id terakhir agar konsisten
+        $lastKaryawan = self::orderByDesc('karyawan_id')->first();
 
-        $sequence = $maxSequence ? $maxSequence + 1 : 1;
+        if ($lastKaryawan) {
+            // Ambil angka dari karyawan_id (KAR001 -> 1, KAR033 -> 33)
+            $lastNumber = (int) substr($lastKaryawan->karyawan_id, 3);
+            $sequence = $lastNumber + 1;
+        } else {
+            $sequence = 1;
+        }
+
         $sequenceFormatted = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
         return $prefix . $sequenceFormatted;
