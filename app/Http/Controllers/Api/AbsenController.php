@@ -87,7 +87,7 @@ class AbsenController extends BaseApiController
             'longitude' => 'required|numeric',
             'address' => 'required|string',
             'photo' => 'required|image|mimes:jpeg,png,jpg',
-            'type' => 'nullable|in:regular,oncall', // Optional: pilih jadwal mana
+            'type' => 'nullable|in:normal,oncall', // Optional: pilih jadwal mana (normal/oncall)
         ]);
 
         if ($validator->fails()) {
@@ -110,7 +110,7 @@ class AbsenController extends BaseApiController
                 ->where('date_to', '>=', $today)
                 ->first();
 
-            if ($approvedIjin && $requestedType === 'regular') {
+            if ($approvedIjin && $requestedType === 'normal') {
                 return $this->errorResponse(
                     'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi regular.',
                     403
@@ -125,7 +125,7 @@ class AbsenController extends BaseApiController
 
         if ($requestedType === 'oncall') {
             $jadwalQuery->where('type', 'oncall');
-        } elseif ($requestedType === 'regular') {
+        } elseif ($requestedType === 'normal') {
             $jadwalQuery->where(function($q) {
                 $q->where('type', '!=', 'oncall')->orWhereNull('type');
             });
@@ -213,7 +213,7 @@ class AbsenController extends BaseApiController
 
         return $this->successResponse([
             'absen' => $absen->fresh(),
-            'jadwal_type' => $jadwal->type ?? 'regular',
+            'jadwal_type' => $jadwal->type ?? 'normal',
             'status' => $status,
             'late_minutes' => $lateMinutes,
             'clock_in_time' => $now->format('H:i:s')
@@ -227,7 +227,7 @@ class AbsenController extends BaseApiController
             'longitude' => 'required|numeric',
             'address' => 'required|string',
             'photo' => 'required|image|mimes:jpeg,png,jpg',
-            'type' => 'nullable|in:regular,oncall', // Optional: pilih jadwal mana
+            'type' => 'nullable|in:normal,oncall', // Optional: pilih jadwal mana (normal/oncall)
         ]);
 
         if ($validator->fails()) {
@@ -250,7 +250,7 @@ class AbsenController extends BaseApiController
                 ->where('date_to', '>=', $today)
                 ->first();
 
-            if ($approvedIjin && $requestedType === 'regular') {
+            if ($approvedIjin && $requestedType === 'normal') {
                 return $this->errorResponse(
                     'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi regular.',
                     403
@@ -265,7 +265,7 @@ class AbsenController extends BaseApiController
 
         if ($requestedType === 'oncall') {
             $absenQuery->where('type', 'oncall');
-        } elseif ($requestedType === 'regular') {
+        } elseif ($requestedType === 'normal') {
             $absenQuery->where(function($q) {
                 $q->where('type', '!=', 'oncall')->orWhereNull('type');
             });
@@ -358,7 +358,7 @@ class AbsenController extends BaseApiController
 
         return $this->successResponse([
             'absen' => $absen->fresh(),
-            'jadwal_type' => $absen->type ?? 'regular',
+            'jadwal_type' => $absen->type ?? 'normal',
             'work_hours' => $workHours,
             'early_checkout_minutes' => $earlyCheckoutMinutes,
             'clock_out_time' => $now->format('H:i:s')

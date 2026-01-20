@@ -162,6 +162,7 @@ class Jadwal extends Model
                 'karyawan_id' => $jadwal->karyawan_id,
                 'jadwal_id' => $jadwal->jadwal_id,
                 'date' => $jadwal->date,
+                'type' => $jadwal->type ?? 'normal', // Include type dari jadwal (normal/oncall)
                 'status' => Absen::STATUS_SCHEDULED
             ]);
         });
