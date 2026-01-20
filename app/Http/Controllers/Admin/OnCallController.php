@@ -187,14 +187,16 @@ class OnCallController extends Controller
             }
         }
 
-        // Validasi: Cek apakah karyawan sudah punya jadwal/OnCall di tanggal yang sama
-        $existingJadwal = Jadwal::where('karyawan_id', $request->karyawan_id)
+        // Validasi: Cek apakah karyawan sudah punya ONCALL di tanggal yang sama
+        // (Jadwal reguler diperbolehkan bersamaan dengan oncall)
+        $existingOnCall = Jadwal::where('karyawan_id', $request->karyawan_id)
             ->whereDate('date', $request->tanggal_oncall)
+            ->where('type', 'oncall') // Hanya cek oncall, bukan jadwal reguler
             ->exists();
 
-        if ($existingJadwal) {
+        if ($existingOnCall) {
             return redirect()->back()
-                ->with('error', 'Karyawan sudah memiliki jadwal di tanggal tersebut')
+                ->with('error', 'Karyawan sudah memiliki jadwal OnCall di tanggal tersebut')
                 ->withInput();
         }
 

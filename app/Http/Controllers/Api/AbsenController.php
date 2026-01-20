@@ -24,23 +24,59 @@ class AbsenController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        $jadwal = Jadwal::with('shift')
+        // Ambil SEMUA jadwal hari ini (regular + oncall)
+        $jadwals = Jadwal::with(['shift', 'absen'])
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereDate('date', $today)
-            ->first();
+            ->get();
 
-        if (!$jadwal) {
+        if ($jadwals->isEmpty()) {
             return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
         }
 
-        $absen = Absen::where('jadwal_id', $jadwal->jadwal_id)->first();
+        // Pisahkan jadwal regular dan oncall
+        $jadwalRegular = $jadwals->where('type', '!=', 'oncall')->first();
+        $jadwalOnCall = $jadwals->where('type', 'oncall')->first();
+
+        // Build response untuk jadwal regular
+        $regularData = null;
+        if ($jadwalRegular) {
+            $absenRegular = $jadwalRegular->absen;
+            $regularData = [
+                'jadwal' => $jadwalRegular,
+                'absen' => $absenRegular,
+                'can_clock_in' => !$absenRegular || !$absenRegular->clock_in,
+                'can_clock_out' => $absenRegular && $absenRegular->clock_in && !$absenRegular->clock_out,
+            ];
+        }
+
+        // Build response untuk jadwal oncall
+        $oncallData = null;
+        if ($jadwalOnCall) {
+            $absenOnCall = $jadwalOnCall->absen;
+            $oncallData = [
+                'jadwal' => $jadwalOnCall,
+                'absen' => $absenOnCall,
+                'can_clock_in' => !$absenOnCall || !$absenOnCall->clock_in,
+                'can_clock_out' => $absenOnCall && $absenOnCall->clock_in && !$absenOnCall->clock_out,
+            ];
+        }
+
+        // Backward compatibility: jika hanya ada satu jadwal
+        $primaryJadwal = $jadwalRegular ?? $jadwalOnCall;
+        $primaryAbsen = $primaryJadwal->absen ?? null;
 
         return $this->successResponse([
             'has_jadwal' => true,
-            'jadwal' => $jadwal,
-            'absen' => $absen,
-            'can_clock_in' => !$absen || !$absen->clock_in,
-            'can_clock_out' => $absen && $absen->clock_in && !$absen->clock_out
+            // Backward compatibility
+            'jadwal' => $primaryJadwal,
+            'absen' => $primaryAbsen,
+            'can_clock_in' => !$primaryAbsen || !$primaryAbsen->clock_in,
+            'can_clock_out' => $primaryAbsen && $primaryAbsen->clock_in && !$primaryAbsen->clock_out,
+            // New: data terpisah untuk regular dan oncall
+            'has_multiple_jadwal' => $jadwalRegular && $jadwalOnCall,
+            'regular' => $regularData,
+            'oncall' => $oncallData,
         ], 'Status absen hari ini');
     }
 
@@ -51,6 +87,7 @@ class AbsenController extends BaseApiController
             'longitude' => 'required|numeric',
             'address' => 'required|string',
             'photo' => 'required|image|mimes:jpeg,png,jpg',
+            'type' => 'nullable|in:regular,oncall', // Optional: pilih jadwal mana
         ]);
 
         if ($validator->fails()) {
@@ -62,31 +99,57 @@ class AbsenController extends BaseApiController
         $today = Carbon::today();
         $now = Carbon::now();
 
-        // ✅ CEK IJIN APPROVED
-        $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
-            ->where('status', 'approved')
-            ->where('date_from', '<=', $today)
-            ->where('date_to', '>=', $today)
-            ->first();
+        // Type yang diminta (default: regular, atau auto-detect jika tidak diisi)
+        $requestedType = $request->get('type');
 
-        if ($approvedIjin) {
-            return $this->errorResponse(
-                'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi.',
-                403
-            );
+        // ✅ CEK IJIN APPROVED (hanya untuk jadwal REGULAR, oncall tetap bisa)
+        if ($requestedType !== 'oncall') {
+            $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
+                ->where('status', 'approved')
+                ->where('date_from', '<=', $today)
+                ->where('date_to', '>=', $today)
+                ->first();
+
+            if ($approvedIjin && $requestedType === 'regular') {
+                return $this->errorResponse(
+                    'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi regular.',
+                    403
+                );
+            }
         }
 
-        // Cari jadwal hari ini
-        $jadwal = Jadwal::with('shift')
+        // Cari jadwal hari ini berdasarkan type
+        $jadwalQuery = Jadwal::with('shift')
             ->where('karyawan_id', $karyawan->karyawan_id)
-            ->whereDate('date', $today)
-            ->first();
+            ->whereDate('date', $today);
+
+        if ($requestedType === 'oncall') {
+            $jadwalQuery->where('type', 'oncall');
+        } elseif ($requestedType === 'regular') {
+            $jadwalQuery->where(function($q) {
+                $q->where('type', '!=', 'oncall')->orWhereNull('type');
+            });
+        } else {
+            // Auto-detect: prioritaskan regular, kalau tidak ada cari oncall
+            $jadwal = (clone $jadwalQuery)->where(function($q) {
+                $q->where('type', '!=', 'oncall')->orWhereNull('type');
+            })->first();
+
+            if (!$jadwal) {
+                $jadwal = (clone $jadwalQuery)->where('type', 'oncall')->first();
+            }
+        }
+
+        if (!isset($jadwal)) {
+            $jadwal = $jadwalQuery->first();
+        }
 
         if (!$jadwal) {
-            return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
+            $typeLabel = $requestedType === 'oncall' ? 'OnCall' : 'regular';
+            return $this->notFoundResponse("Tidak ada jadwal {$typeLabel} untuk hari ini");
         }
 
-        // Cari atau buat absen
+        // Cari absen
         $absen = Absen::where('jadwal_id', $jadwal->jadwal_id)->first();
 
         if (!$absen) {
@@ -94,25 +157,29 @@ class AbsenController extends BaseApiController
         }
 
         if ($absen->clock_in) {
-            return $this->errorResponse('Sudah melakukan clock in hari ini', 400);
+            $typeLabel = $jadwal->type === 'oncall' ? 'OnCall' : 'regular';
+            return $this->errorResponse("Sudah melakukan clock in {$typeLabel} hari ini", 400);
         }
 
         // Upload photo to S3
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = 'clock_in_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '.' . $photo->getClientOriginalExtension();
+            $typePrefix = $jadwal->type === 'oncall' ? 'oncall_' : '';
+            $filename = $typePrefix . 'clock_in_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '_' . time() . '.' . $photo->getClientOriginalExtension();
             $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
-        // Check lateness
-        $shiftStart = Carbon::parse($jadwal->shift->start_time);
+        // Check lateness (skip untuk oncall - oncall tidak ada konsep telat)
         $lateMinutes = 0;
         $status = 'present';
 
-        if ($now->isAfter($shiftStart->copy()->addMinutes($jadwal->shift->late_tolerance ?? 15))) {
-            $lateMinutes = $shiftStart->diffInMinutes($now);
-            $status = 'late';
+        if ($jadwal->type !== 'oncall' && $jadwal->shift) {
+            $shiftStart = Carbon::parse($jadwal->shift->start_time);
+            if ($now->isAfter($shiftStart->copy()->addMinutes($jadwal->shift->late_tolerance ?? 15))) {
+                $lateMinutes = $shiftStart->diffInMinutes($now);
+                $status = 'late';
+            }
         }
 
         // Update absen
@@ -126,14 +193,31 @@ class AbsenController extends BaseApiController
             'status' => $status
         ]);
 
-        $message = $status === 'late' ? 'Clock in berhasil (Terlambat)' : 'Clock in berhasil';
+        // ✅ Untuk OnCall: Update juga status di Lembur
+        if ($jadwal->type === 'oncall') {
+            $lemburOnCall = Lembur::where('oncall_jadwal_id', $jadwal->jadwal_id)
+                ->where('jenis_lembur', 'oncall')
+                ->first();
+
+            if ($lemburOnCall) {
+                $lemburOnCall->update([
+                    'absen_id' => $absen->absen_id,
+                    'started_at' => $now,
+                    'status' => 'in_progress', // Update status dari waiting_checkin ke in_progress
+                ]);
+            }
+        }
+
+        $typeLabel = $jadwal->type === 'oncall' ? 'OnCall' : '';
+        $message = $status === 'late' ? "Clock in {$typeLabel} berhasil (Terlambat)" : "Clock in {$typeLabel} berhasil";
 
         return $this->successResponse([
             'absen' => $absen->fresh(),
+            'jadwal_type' => $jadwal->type ?? 'regular',
             'status' => $status,
             'late_minutes' => $lateMinutes,
             'clock_in_time' => $now->format('H:i:s')
-        ], $message);
+        ], trim($message));
     }
 
     public function clockOut(Request $request)
@@ -143,6 +227,7 @@ class AbsenController extends BaseApiController
             'longitude' => 'required|numeric',
             'address' => 'required|string',
             'photo' => 'required|image|mimes:jpeg,png,jpg',
+            'type' => 'nullable|in:regular,oncall', // Optional: pilih jadwal mana
         ]);
 
         if ($validator->fails()) {
@@ -154,43 +239,75 @@ class AbsenController extends BaseApiController
         $today = Carbon::today();
         $now = Carbon::now();
 
-        // ✅ CEK IJIN APPROVED
-        $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
-            ->where('status', 'approved')
-            ->where('date_from', '<=', $today)
-            ->where('date_to', '>=', $today)
-            ->first();
+        // Type yang diminta
+        $requestedType = $request->get('type');
 
-        if ($approvedIjin) {
-            return $this->errorResponse(
-                'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi.',
-                403
-            );
+        // ✅ CEK IJIN APPROVED (hanya untuk jadwal REGULAR, oncall tetap bisa)
+        if ($requestedType !== 'oncall') {
+            $approvedIjin = Ijin::where('karyawan_id', $karyawan->karyawan_id)
+                ->where('status', 'approved')
+                ->where('date_from', '<=', $today)
+                ->where('date_to', '>=', $today)
+                ->first();
+
+            if ($approvedIjin && $requestedType === 'regular') {
+                return $this->errorResponse(
+                    'Anda memiliki ijin yang sudah disetujui untuk hari ini (' . $approvedIjin->ijinType->name . '). Tidak dapat melakukan absensi regular.',
+                    403
+                );
+            }
         }
 
-        // Cari absen hari ini
-        $absen = Absen::with('jadwal.shift')
+        // Cari absen hari ini berdasarkan type
+        $absenQuery = Absen::with('jadwal.shift')
             ->where('karyawan_id', $karyawan->karyawan_id)
-            ->whereDate('date', $today)
-            ->first();
+            ->whereDate('date', $today);
+
+        if ($requestedType === 'oncall') {
+            $absenQuery->where('type', 'oncall');
+        } elseif ($requestedType === 'regular') {
+            $absenQuery->where(function($q) {
+                $q->where('type', '!=', 'oncall')->orWhereNull('type');
+            });
+        } else {
+            // Auto-detect: cari absen yang sudah clock in tapi belum clock out
+            // Prioritaskan regular dulu
+            $absen = (clone $absenQuery)->where(function($q) {
+                $q->where('type', '!=', 'oncall')->orWhereNull('type');
+            })->whereNotNull('clock_in')->whereNull('clock_out')->first();
+
+            if (!$absen) {
+                // Kalau regular tidak ada yang siap clock out, cari oncall
+                $absen = (clone $absenQuery)->where('type', 'oncall')
+                    ->whereNotNull('clock_in')->whereNull('clock_out')->first();
+            }
+        }
+
+        if (!isset($absen)) {
+            $absen = $absenQuery->whereNotNull('clock_in')->whereNull('clock_out')->first();
+        }
 
         if (!$absen) {
-            return $this->notFoundResponse('Data absen tidak ditemukan');
+            $typeLabel = $requestedType === 'oncall' ? 'OnCall' : 'regular';
+            return $this->notFoundResponse("Data absen {$typeLabel} tidak ditemukan atau belum clock in");
         }
 
         if (!$absen->clock_in) {
-            return $this->errorResponse('Belum melakukan clock in', 400);
+            $typeLabel = $absen->type === 'oncall' ? 'OnCall' : 'regular';
+            return $this->errorResponse("Belum melakukan clock in {$typeLabel}", 400);
         }
 
         if ($absen->clock_out) {
-            return $this->errorResponse('Sudah melakukan clock out hari ini', 400);
+            $typeLabel = $absen->type === 'oncall' ? 'OnCall' : 'regular';
+            return $this->errorResponse("Sudah melakukan clock out {$typeLabel} hari ini", 400);
         }
 
         // Upload photo to S3
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = 'clock_out_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '.' . $photo->getClientOriginalExtension();
+            $typePrefix = $absen->type === 'oncall' ? 'oncall_' : '';
+            $filename = $typePrefix . 'clock_out_' . $karyawan->karyawan_id . '_' . $today->format('Y-m-d') . '_' . time() . '.' . $photo->getClientOriginalExtension();
             $photoPath = Storage::disk('s3')->putFileAs('absen_photos', $photo, $filename);
         }
 
@@ -198,21 +315,25 @@ class AbsenController extends BaseApiController
         $clockIn = Carbon::parse($absen->clock_in);
         $workMinutes = $now->diffInMinutes($clockIn);
 
-        // Subtract break duration
-        $breakDuration = $absen->jadwal->shift->break_duration ?? 0;
-        $workMinutes -= $breakDuration;
+        // Subtract break duration (skip untuk oncall)
+        if ($absen->type !== 'oncall' && $absen->jadwal && $absen->jadwal->shift) {
+            $breakDuration = $absen->jadwal->shift->break_duration ?? 0;
+            $workMinutes -= $breakDuration;
+        }
 
         $workHours = round($workMinutes / 60, 2);
 
-        // Check early checkout
-        $shiftEnd = Carbon::parse($absen->jadwal->shift->end_time);
+        // Check early checkout (skip untuk oncall - oncall tidak ada konsep pulang cepat)
         $earlyCheckoutMinutes = 0;
         $currentStatus = $absen->status;
 
-        if ($now->isBefore($shiftEnd->copy()->subMinutes($absen->jadwal->shift->early_checkout_tolerance ?? 15))) {
-            $earlyCheckoutMinutes = $shiftEnd->diffInMinutes($now);
-            if ($currentStatus !== 'late') {
-                $currentStatus = 'early_checkout';
+        if ($absen->type !== 'oncall' && $absen->jadwal && $absen->jadwal->shift) {
+            $shiftEnd = Carbon::parse($absen->jadwal->shift->end_time);
+            if ($now->isBefore($shiftEnd->copy()->subMinutes($absen->jadwal->shift->early_checkout_tolerance ?? 15))) {
+                $earlyCheckoutMinutes = $shiftEnd->diffInMinutes($now);
+                if ($currentStatus !== 'late') {
+                    $currentStatus = 'early_checkout';
+                }
             }
         }
 
@@ -233,12 +354,15 @@ class AbsenController extends BaseApiController
             $this->updateLemburOnCall($absen);
         }
 
+        $typeLabel = $absen->type === 'oncall' ? 'OnCall ' : '';
+
         return $this->successResponse([
             'absen' => $absen->fresh(),
+            'jadwal_type' => $absen->type ?? 'regular',
             'work_hours' => $workHours,
             'early_checkout_minutes' => $earlyCheckoutMinutes,
             'clock_out_time' => $now->format('H:i:s')
-        ], 'Clock out berhasil');
+        ], "Clock out {$typeLabel}berhasil");
     }
 
     /**
