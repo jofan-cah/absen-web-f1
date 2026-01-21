@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Lembur;
-use App\Models\Jadwal;
 use App\Models\Absen;
 use App\Models\Department;
+use App\Models\Jadwal;
 use App\Models\Karyawan;
+use App\Models\Lembur;
 // use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class OnCallController extends Controller
 {
@@ -31,7 +30,7 @@ class OnCallController extends Controller
             'karyawan.department',
             'jadwalOnCall.shift',
             'absen',
-            'createdBy'
+            'createdBy',
         ])->where('jenis_lembur', 'oncall');
 
         // ADMIN: Bisa liat SEMUA OnCall
@@ -42,14 +41,14 @@ class OnCallController extends Controller
             // KOORDINATOR: Hanya liat OnCall yang DIA BUAT SENDIRI
             $koordinatorDept = $user->karyawan->department_id ?? null;
 
-            if (!$koordinatorDept) {
+            if (! $koordinatorDept) {
                 return redirect()->back()->with('error', 'Data koordinator tidak valid');
             }
 
             $query->where('created_by_user_id', $user->user_id) // Hanya yang dia buat
-                  ->whereHas('karyawan', function($q) use ($koordinatorDept) {
-                      $q->where('department_id', $koordinatorDept); // Dari dept yang sama
-                  });
+                ->whereHas('karyawan', function ($q) use ($koordinatorDept) {
+                    $q->where('department_id', $koordinatorDept); // Dari dept yang sama
+                });
         }
 
         // Filter by status
@@ -69,7 +68,7 @@ class OnCallController extends Controller
 
         // Filter by department (ADMIN ONLY)
         if ($isAdmin && $request->filled('department_id')) {
-            $query->whereHas('karyawan', function($q) use ($request) {
+            $query->whereHas('karyawan', function ($q) use ($request) {
                 $q->where('department_id', $request->department_id);
             });
         }
@@ -79,7 +78,7 @@ class OnCallController extends Controller
         // Summary stats
         $summaryQuery = Lembur::where('jenis_lembur', 'oncall');
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             // Koordinator: hanya yang dia buat
             $summaryQuery->where('created_by_user_id', $user->user_id);
         }
@@ -132,13 +131,16 @@ class OnCallController extends Controller
             // Koordinator: hanya dari department-nya
             $koordinatorDept = $user->karyawan->department_id ?? null;
 
-            if (!$koordinatorDept) {
+            if (! $koordinatorDept) {
                 return redirect()->back()->with('error', 'Data koordinator tidak valid');
             }
 
-            $karyawans = Karyawan::where('department_id', $koordinatorDept)
+            $departmentIds = $user->departments()->pluck('departments.id');
+
+            $karyawans = Karyawan::whereIn('department_id', $departmentIds)
                 ->orderBy('full_name')
                 ->get();
+
         }
 
         return view('admin.oncall.createOncall', compact('karyawans'));
@@ -177,7 +179,7 @@ class OnCallController extends Controller
         // Validasi: Karyawan harus dari department yang sama (untuk koordinator)
         $karyawan = Karyawan::find($request->karyawan_id);
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $koordinatorDept = $user->karyawan->department_id ?? null;
 
             if ($karyawan->department_id !== $koordinatorDept) {
@@ -211,7 +213,7 @@ class OnCallController extends Controller
                 'status' => 'normal', // ✅ Status tetap 'normal'
                 'type' => 'oncall',   // ✅ Type yang bedain OnCall
                 'is_active' => true,
-                'notes' => 'OnCall: ' . $request->deskripsi,
+                'notes' => 'OnCall: '.$request->deskripsi,
                 'created_by_user_id' => $user->user_id,
             ]);
 
@@ -232,7 +234,7 @@ class OnCallController extends Controller
                 'absen_id' => null,
                 'oncall_jadwal_id' => $jadwal->jadwal_id,
                 'tanggal_lembur' => $request->tanggal_oncall,
-                'jam_mulai' => $request->jam_mulai . ':00',
+                'jam_mulai' => $request->jam_mulai.':00',
                 'jam_selesai' => null,
                 'total_jam' => 0, // ✅ Default 0
                 'deskripsi_pekerjaan' => $request->deskripsi,
@@ -244,7 +246,6 @@ class OnCallController extends Controller
                 'created_by_user_id' => $user->user_id,
             ]);
 
-
             DB::commit();
 
             return redirect()->route('admin.oncall.index')
@@ -254,7 +255,7 @@ class OnCallController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('error', 'Gagal membuat OnCall: ' . $e->getMessage())
+                ->with('error', 'Gagal membuat OnCall: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -272,18 +273,18 @@ class OnCallController extends Controller
             'jadwalOnCall.shift',
             'absen',
             'createdBy',
-            'tunjanganKaryawan'
+            'tunjanganKaryawan',
         ])
-        ->where('lembur_id', $id)
-        ->where('jenis_lembur', 'oncall');
+            ->where('lembur_id', $id)
+            ->where('jenis_lembur', 'oncall');
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $query->where('created_by_user_id', $user->user_id);
         }
 
         $lembur = $query->first();
 
-        if (!$lembur) {
+        if (! $lembur) {
             return redirect()->route('admin.oncall.index')
                 ->with('error', 'Data OnCall tidak ditemukan');
         }
@@ -341,13 +342,13 @@ class OnCallController extends Controller
             ->where('lembur_id', $id)
             ->where('jenis_lembur', 'oncall');
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $query->where('created_by_user_id', $user->user_id);
         }
 
         $lembur = $query->first();
 
-        if (!$lembur) {
+        if (! $lembur) {
             return redirect()->route('admin.oncall.index')
                 ->with('error', 'Data OnCall tidak ditemukan');
         }
@@ -381,13 +382,13 @@ class OnCallController extends Controller
             ->where('lembur_id', $id)
             ->where('jenis_lembur', 'oncall');
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $query->where('created_by_user_id', $user->user_id);
         }
 
         $lembur = $query->first();
 
-        if (!$lembur) {
+        if (! $lembur) {
             return redirect()->route('admin.oncall.index')
                 ->with('error', 'Data OnCall tidak ditemukan');
         }
@@ -413,7 +414,7 @@ class OnCallController extends Controller
         try {
             $lembur->jadwalOnCall->update([
                 'date' => $request->tanggal_oncall,
-                'notes' => 'OnCall: ' . $request->deskripsi,
+                'notes' => 'OnCall: '.$request->deskripsi,
             ]);
 
             if ($lembur->jadwalOnCall->absen) {
@@ -424,7 +425,7 @@ class OnCallController extends Controller
 
             $lembur->update([
                 'tanggal_lembur' => $request->tanggal_oncall,
-                'jam_mulai' => $request->jam_mulai . ':00',
+                'jam_mulai' => $request->jam_mulai.':00',
                 'deskripsi_pekerjaan' => $request->deskripsi,
             ]);
 
@@ -437,7 +438,7 @@ class OnCallController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('error', 'Gagal update OnCall: ' . $e->getMessage())
+                ->with('error', 'Gagal update OnCall: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -454,13 +455,13 @@ class OnCallController extends Controller
             ->where('lembur_id', $id)
             ->where('jenis_lembur', 'oncall');
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $query->where('created_by_user_id', $user->user_id);
         }
 
         $lembur = $query->first();
 
-        if (!$lembur) {
+        if (! $lembur) {
             return redirect()->route('admin.oncall.index')
                 ->with('error', 'Data OnCall tidak ditemukan');
         }
@@ -492,7 +493,7 @@ class OnCallController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('error', 'Gagal menghapus OnCall: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus OnCall: '.$e->getMessage());
         }
     }
 }

@@ -171,4 +171,10 @@ class Karyawan extends Model
     {
         return $this->deviceTokens()->pluck('device_token')->toArray();
     }
+
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'koordinator_departments');
+    }
+
 }
