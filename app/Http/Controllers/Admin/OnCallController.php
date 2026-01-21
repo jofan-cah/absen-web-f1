@@ -180,115 +180,135 @@ class OnCallController extends Controller
      * Store a newly created OnCall
      * POST /oncall
      */
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-        $isAdmin = $user->role === 'admin';
+public function store(Request $request)
+{
+    $user = Auth::user();
+    $isAdmin = $user->role === 'admin';
 
-        // Validasi input
-        $validator = Validator::make($request->all(), [
-            'karyawan_id' => 'required|exists:karyawans,karyawan_id',
-            'tanggal_oncall' => 'required|date|after_or_equal:today',
-            'jam_mulai' => 'required|date_format:H:i',
-            'deskripsi' => 'required|string|max:500',
-        ], [
-            'karyawan_id.required' => 'Karyawan harus dipilih',
-            'tanggal_oncall.required' => 'Tanggal OnCall harus diisi',
-            'tanggal_oncall.after_or_equal' => 'Tanggal OnCall tidak boleh lampau',
-            'jam_mulai.required' => 'Jam mulai harus diisi',
-            'jam_mulai.date_format' => 'Format jam mulai harus HH:MM',
-            'deskripsi.required' => 'Deskripsi OnCall harus diisi',
-        ]);
+    // ===============================
+    // VALIDASI INPUT
+    // ===============================
+    $validator = Validator::make($request->all(), [
+        'karyawan_id'     => 'required|exists:karyawans,karyawan_id',
+        'tanggal_oncall'  => 'required|date|after_or_equal:today',
+        'jam_mulai'       => 'required|date_format:H:i',
+        'deskripsi'       => 'required|string|max:500',
+    ], [
+        'karyawan_id.required'    => 'Karyawan harus dipilih',
+        'tanggal_oncall.required' => 'Tanggal OnCall harus diisi',
+        'tanggal_oncall.after_or_equal' => 'Tanggal OnCall tidak boleh lampau',
+        'jam_mulai.required'      => 'Jam mulai harus diisi',
+        'jam_mulai.date_format'   => 'Format jam mulai harus HH:MM',
+        'deskripsi.required'      => 'Deskripsi OnCall harus diisi',
+    ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
+    if ($validator->fails()) {
+        return back()
+            ->withErrors($validator)
+            ->withInput();
+    }
+
+    // ===============================
+    // VALIDASI AKSES KOORDINATOR
+    // ===============================
+    $karyawan = Karyawan::findOrFail($request->karyawan_id);
+
+    if (! $isAdmin) {
+
+        // Ambil semua department yang dikelola user (koordinator)
+        $departmentIds = $user->managedDepartments()
+            ->pluck('department_id')
+            ->toArray();
+
+        if (empty($departmentIds)) {
+            return back()
+                ->with('error', 'Anda tidak memiliki department yang dikelola')
                 ->withInput();
         }
 
-        // Validasi: Karyawan harus dari department yang sama (untuk koordinator)
-        $karyawan = Karyawan::find($request->karyawan_id);
-
-        if (! $isAdmin) {
-            $koordinatorDept = $user->karyawan->department_id ?? null;
-
-            if ($karyawan->department_id !== $koordinatorDept) {
-                return redirect()->back()
-                    ->with('error', 'Karyawan bukan dari department Anda')
-                    ->withInput();
-            }
-        }
-
-        // Validasi: Cek apakah karyawan sudah punya ONCALL di tanggal yang sama
-        // (Jadwal reguler diperbolehkan bersamaan dengan oncall)
-        $existingOnCall = Jadwal::where('karyawan_id', $request->karyawan_id)
-            ->whereDate('date', $request->tanggal_oncall)
-            ->where('type', 'oncall') // Hanya cek oncall, bukan jadwal reguler
-            ->exists();
-
-        if ($existingOnCall) {
-            return redirect()->back()
-                ->with('error', 'Karyawan sudah memiliki jadwal OnCall di tanggal tersebut')
-                ->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            // 1️⃣ CREATE JADWAL ONCALL
-            $jadwal = Jadwal::create([
-                'jadwal_id' => Jadwal::generateJadwalId(),
-                'karyawan_id' => $request->karyawan_id,
-                'shift_id' => 'SHIFT-ONCALL', // Shift khusus OnCall
-                'date' => $request->tanggal_oncall,
-                'status' => 'normal', // ✅ Status tetap 'normal'
-                'type' => 'oncall',   // ✅ Type yang bedain OnCall
-                'is_active' => true,
-                'notes' => 'OnCall: '.$request->deskripsi,
-                'created_by_user_id' => $user->user_id,
-            ]);
-
-            // 2️⃣ CREATE ABSEN ONCALL (kosong, belum clock_in)
-            $absen = Absen::where('jadwal_id', $jadwal->jadwal_id)->first();
-
-            if ($absen) {
-                $absen->update([
-                    'type' => 'oncall',
-                    'status' => 'scheduled',
-                ]);
-            }
-
-            // 3️⃣ CREATE LEMBUR ONCALL
-            $lembur = Lembur::create([
-                'lembur_id' => Lembur::generateLemburId(),
-                'karyawan_id' => $request->karyawan_id,
-                'absen_id' => null,
-                'oncall_jadwal_id' => $jadwal->jadwal_id,
-                'tanggal_lembur' => $request->tanggal_oncall,
-                'jam_mulai' => $request->jam_mulai.':00',
-                'jam_selesai' => null,
-                'total_jam' => 0, // ✅ Default 0
-                'deskripsi_pekerjaan' => $request->deskripsi,
-                'bukti_foto' => null,
-                'jenis_lembur' => 'oncall',
-                'status' => 'waiting_checkin',
-                'koordinator_status' => 'pending',
-                'submitted_via' => 'web',
-                'created_by_user_id' => $user->user_id,
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('admin.oncall.index')
-                ->with('success', "OnCall berhasil di-assign ke {$karyawan->full_name}");
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return redirect()->back()
-                ->with('error', 'Gagal membuat OnCall: '.$e->getMessage())
+        // Pastikan karyawan berasal dari department yang dikelola
+        if (! in_array($karyawan->department_id, $departmentIds)) {
+            return back()
+                ->with('error', 'Karyawan bukan dari department yang Anda kelola')
                 ->withInput();
         }
     }
+
+    // ===============================
+    // CEK DUPLIKASI ONCALL
+    // ===============================
+    $existsOnCall = Jadwal::where('karyawan_id', $request->karyawan_id)
+        ->whereDate('date', $request->tanggal_oncall)
+        ->where('type', 'oncall')
+        ->exists();
+
+    if ($existsOnCall) {
+        return back()
+            ->with('error', 'Karyawan sudah memiliki jadwal OnCall di tanggal tersebut')
+            ->withInput();
+    }
+
+    // ===============================
+    // SIMPAN DATA (TRANSACTION)
+    // ===============================
+    DB::beginTransaction();
+
+    try {
+        // 1️⃣ JADWAL ONCALL
+        $jadwal = Jadwal::create([
+            'jadwal_id' => Jadwal::generateJadwalId(),
+            'karyawan_id' => $request->karyawan_id,
+            'shift_id' => 'SHIFT-ONCALL',
+            'date' => $request->tanggal_oncall,
+            'status' => 'normal',
+            'type' => 'oncall',
+            'is_active' => true,
+            'notes' => 'OnCall: ' . $request->deskripsi,
+            'created_by_user_id' => $user->user_id,
+        ]);
+
+        // 2️⃣ ABSEN ONCALL (AUTO CREATE VIA OBSERVER / TRIGGER)
+        $absen = Absen::where('jadwal_id', $jadwal->jadwal_id)->first();
+        if ($absen) {
+            $absen->update([
+                'type' => 'oncall',
+                'status' => 'scheduled',
+            ]);
+        }
+
+        // 3️⃣ LEMBUR ONCALL
+        Lembur::create([
+            'lembur_id' => Lembur::generateLemburId(),
+            'karyawan_id' => $request->karyawan_id,
+            'absen_id' => null,
+            'oncall_jadwal_id' => $jadwal->jadwal_id,
+            'tanggal_lembur' => $request->tanggal_oncall,
+            'jam_mulai' => $request->jam_mulai . ':00',
+            'jam_selesai' => null,
+            'total_jam' => 0,
+            'deskripsi_pekerjaan' => $request->deskripsi,
+            'bukti_foto' => null,
+            'jenis_lembur' => 'oncall',
+            'status' => 'waiting_checkin',
+            'koordinator_status' => 'pending',
+            'submitted_via' => 'web',
+            'created_by_user_id' => $user->user_id,
+        ]);
+
+        DB::commit();
+
+        return redirect()
+            ->route('admin.oncall.index')
+            ->with('success', "OnCall berhasil di-assign ke {$karyawan->full_name}");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        return back()
+            ->with('error', 'Gagal membuat OnCall: ' . $e->getMessage())
+            ->withInput();
+    }
+}
 
     /**
      * Display the specified OnCall
