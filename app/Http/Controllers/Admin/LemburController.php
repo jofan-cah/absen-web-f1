@@ -3,26 +3,109 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Lembur;
 use App\Models\Karyawan;
+use App\Models\Lembur;
 use App\Models\TunjanganKaryawan;
 use App\Models\TunjanganType;
-use App\Models\TunjanganDetail;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class LemburController extends Controller
 {
     /**
      * Display listing - untuk admin approval
      */
+    // public function index(Request $request)
+    // {
+    //     $query = Lembur::with([
+    //         'karyawan.user',
+    //         'karyawan.department',
+    //         'absen',
+    //         'approvedBy',
+    //         'rejectedBy',
+    //         'tunjanganKaryawan',
+    //         'coordinator'
+    //     ]);
+
+    //     // Filter by karyawan
+    //     if ($request->filled('karyawan_id')) {
+    //         $query->where('karyawan_id', $request->karyawan_id);
+    //     }
+
+    //     // Filter by status
+    //     if ($request->filled('status')) {
+    //         $query->where('status', $request->status);
+    //     }
+
+    //     // 🆕 Filter by koordinator_status
+    //     if ($request->filled('koordinator_status')) {
+    //         $query->where('koordinator_status', $request->koordinator_status);
+    //     }
+
+    //     // Filter by tanggal
+    //     if ($request->filled('tanggal_dari')) {
+    //         $query->where('tanggal_lembur', '>=', $request->tanggal_dari);
+    //     }
+
+    //     if ($request->filled('tanggal_sampai')) {
+    //         $query->where('tanggal_lembur', '<=', $request->tanggal_sampai);
+    //     }
+
+    //     $lemburs = $query->orderBy('tanggal_lembur', 'desc')
+    //         ->orderBy('created_at', 'desc')
+    //         ->paginate(20);
+
+    //     // Data untuk filter
+    //     $karyawans = Karyawan::with('user')
+    //         ->where('employment_status', 'active')
+    //         ->orderBy('full_name')
+    //         ->get();
+
+    //     $statusOptions = ['draft', 'submitted', 'approved', 'rejected', 'processed'];
+    //     $koordinatorStatusOptions = ['pending', 'approved', 'rejected']; // 🆕
+
+    //     // Summary dengan breakdown koordinator
+    //     $summary = [
+    //         'total' => Lembur::count(),
+    //         'submitted' => Lembur::where('status', 'submitted')->count(),
+
+    //         // 🆕 Breakdown submitted
+    //         'pending_koordinator' => Lembur::where('status', 'submitted')
+    //             ->where('koordinator_status', 'pending')
+    //             ->count(),
+    //         'pending_admin' => Lembur::where('status', 'submitted')
+    //             ->where('koordinator_status', 'approved')
+    //             ->count(),
+
+    //         'approved' => Lembur::where('status', 'approved')->count(),
+    //         'rejected' => Lembur::where('status', 'rejected')->count(),
+    //         'total_jam_bulan_ini' => Lembur::whereYear('tanggal_lembur', now()->year)
+    //             ->whereMonth('tanggal_lembur', now()->month)
+    //             ->sum('total_jam'),
+    //     ];
+
+    //     return view('admin.lembur.indexLembur', compact(
+    //         'lemburs',
+    //         'karyawans',
+    //         'statusOptions',
+    //         'koordinatorStatusOptions', // 🆕
+    //         'summary'
+    //     ));
+    // }
+
     public function index(Request $request)
     {
+        $user = $request->user();
+        $isAdmin = $user->role === 'admin';
+
+        // ===============================
+        // BASE QUERY
+        // ===============================
         $query = Lembur::with([
             'karyawan.user',
             'karyawan.department',
@@ -30,71 +113,123 @@ class LemburController extends Controller
             'approvedBy',
             'rejectedBy',
             'tunjanganKaryawan',
-            'coordinator'
+            'coordinator',
         ]);
 
-        // Filter by karyawan
+        // ===============================
+        // 🔒 FILTER KOORDINATOR MULTI-DEPARTMENT
+        // ===============================
+        $departmentIds = collect();
+
+        if (! $isAdmin) {
+            // Ambil semua department yang dikoordinatori
+            $departmentIds = $user->departments()->pluck('department_id');
+
+            if ($departmentIds->isNotEmpty()) {
+                $query->whereHas('karyawan', function ($q) use ($departmentIds) {
+                    $q->whereIn('department_id', $departmentIds);
+                });
+            } else {
+                // Bukan admin & bukan koordinator → tidak boleh lihat apa-apa
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        // ===============================
+        // FILTER REQUEST
+        // ===============================
         if ($request->filled('karyawan_id')) {
             $query->where('karyawan_id', $request->karyawan_id);
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // 🆕 Filter by koordinator_status
         if ($request->filled('koordinator_status')) {
             $query->where('koordinator_status', $request->koordinator_status);
         }
 
-        // Filter by tanggal
         if ($request->filled('tanggal_dari')) {
-            $query->where('tanggal_lembur', '>=', $request->tanggal_dari);
+            $query->whereDate('tanggal_lembur', '>=', $request->tanggal_dari);
         }
 
         if ($request->filled('tanggal_sampai')) {
-            $query->where('tanggal_lembur', '<=', $request->tanggal_sampai);
+            $query->whereDate('tanggal_lembur', '<=', $request->tanggal_sampai);
         }
 
-        $lemburs = $query->orderBy('tanggal_lembur', 'desc')
+        // ===============================
+        // DATA LIST
+        // ===============================
+        $lemburs = $query
+            ->orderBy('tanggal_lembur', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        // Data untuk filter
-        $karyawans = Karyawan::with('user')
-            ->where('employment_status', 'active')
+        // ===============================
+        // DROPDOWN KARYAWAN (KONSISTEN)
+        // ===============================
+        $karyawansQuery = Karyawan::with('user')
+            ->where('employment_status', 'active');
+
+        if (! $isAdmin && $departmentIds->isNotEmpty()) {
+            $karyawansQuery->whereIn('department_id', $departmentIds);
+        }
+
+        $karyawans = $karyawansQuery
             ->orderBy('full_name')
             ->get();
 
+        // ===============================
+        // OPTIONS
+        // ===============================
         $statusOptions = ['draft', 'submitted', 'approved', 'rejected', 'processed'];
-        $koordinatorStatusOptions = ['pending', 'approved', 'rejected']; // 🆕
+        $koordinatorStatusOptions = ['pending', 'approved', 'rejected'];
 
-        // Summary dengan breakdown koordinator
+        // ===============================
+        // SUMMARY (SESUI ROLE)
+        // ===============================
+        $summaryQuery = clone $query;
+
         $summary = [
-            'total' => Lembur::count(),
-            'submitted' => Lembur::where('status', 'submitted')->count(),
+            'total' => (clone $summaryQuery)->count(),
 
-            // 🆕 Breakdown submitted
-            'pending_koordinator' => Lembur::where('status', 'submitted')
+            'submitted' => (clone $summaryQuery)
+                ->where('status', 'submitted')
+                ->count(),
+
+            'pending_koordinator' => (clone $summaryQuery)
+                ->where('status', 'submitted')
                 ->where('koordinator_status', 'pending')
                 ->count(),
-            'pending_admin' => Lembur::where('status', 'submitted')
+
+            'pending_admin' => (clone $summaryQuery)
+                ->where('status', 'submitted')
                 ->where('koordinator_status', 'approved')
                 ->count(),
 
-            'approved' => Lembur::where('status', 'approved')->count(),
-            'rejected' => Lembur::where('status', 'rejected')->count(),
-            'total_jam_bulan_ini' => Lembur::whereYear('tanggal_lembur', now()->year)
+            'approved' => (clone $summaryQuery)
+                ->where('status', 'approved')
+                ->count(),
+
+            'rejected' => (clone $summaryQuery)
+                ->where('status', 'rejected')
+                ->count(),
+
+            'total_jam_bulan_ini' => (clone $summaryQuery)
+                ->whereYear('tanggal_lembur', now()->year)
                 ->whereMonth('tanggal_lembur', now()->month)
                 ->sum('total_jam'),
         ];
 
+        // ===============================
+        // RETURN VIEW
+        // ===============================
         return view('admin.lembur.indexLembur', compact(
             'lemburs',
             'karyawans',
             'statusOptions',
-            'koordinatorStatusOptions', // 🆕
+            'koordinatorStatusOptions',
             'summary'
         ));
     }
@@ -112,7 +247,7 @@ class LemburController extends Controller
             'rejectedBy',
             'createdBy',
             'tunjanganKaryawan',
-            'coordinator'
+            'coordinator',
         ]);
 
         return view('admin.lembur.showLembur', compact('lembur'));
@@ -121,13 +256,13 @@ class LemburController extends Controller
     public function approve(Lembur $lembur, Request $request)
     {
         $request->validate([
-            'notes' => 'nullable|string|max:500'
+            'notes' => 'nullable|string|max:500',
         ]);
 
         if ($lembur->status !== 'submitted') {
             return response()->json([
                 'success' => false,
-                'message' => 'Lembur tidak dapat disetujui! Status saat ini: ' . $lembur->status
+                'message' => 'Lembur tidak dapat disetujui! Status saat ini: '.$lembur->status,
             ], 422);
         }
 
@@ -137,7 +272,7 @@ class LemburController extends Controller
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya Admin yang dapat melakukan approval'
+                'message' => 'Hanya Admin yang dapat melakukan approval',
             ], 403);
         }
 
@@ -161,7 +296,7 @@ class LemburController extends Controller
                 }
             }
 
-            if (!$result) {
+            if (! $result) {
                 throw new \Exception('Gagal menyetujui lembur');
             }
 
@@ -170,13 +305,14 @@ class LemburController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'tunjangan_id' => $lembur->tunjangan_karyawan_id
+                'tunjangan_id' => $lembur->tunjangan_karyawan_id,
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal approve lembur: ' . $e->getMessage()
+                'message' => 'Gagal approve lembur: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -191,13 +327,13 @@ class LemburController extends Controller
     public function reject(Lembur $lembur, Request $request)
     {
         $request->validate([
-            'rejection_reason' => 'required|string|max:500'
+            'rejection_reason' => 'required|string|max:500',
         ]);
 
         if ($lembur->status !== 'submitted') {
             return response()->json([
                 'success' => false,
-                'message' => 'Lembur tidak dapat ditolak! Status saat ini: ' . $lembur->status
+                'message' => 'Lembur tidak dapat ditolak! Status saat ini: '.$lembur->status,
             ], 422);
         }
 
@@ -207,7 +343,7 @@ class LemburController extends Controller
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya Admin yang dapat reject lembur'
+                'message' => 'Hanya Admin yang dapat reject lembur',
             ], 403);
         }
 
@@ -217,7 +353,7 @@ class LemburController extends Controller
             // Reject oleh admin (LEVEL 2)
             $result = $lembur->rejectByAdmin($user->user_id, $request->rejection_reason);
 
-            if (!$result) {
+            if (! $result) {
                 throw new \Exception('Gagal menolak lembur');
             }
 
@@ -225,13 +361,14 @@ class LemburController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lembur berhasil ditolak oleh Admin'
+                'message' => 'Lembur berhasil ditolak oleh Admin',
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal reject lembur: ' . $e->getMessage()
+                'message' => 'Gagal reject lembur: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -248,7 +385,7 @@ class LemburController extends Controller
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'exists:lemburs,lembur_id',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
         ]);
 
         try {
@@ -260,7 +397,7 @@ class LemburController extends Controller
             if ($user->role !== 'admin') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Hanya Admin yang dapat melakukan bulk approve'
+                    'message' => 'Hanya Admin yang dapat melakukan bulk approve',
                 ], 403);
             }
 
@@ -273,12 +410,14 @@ class LemburController extends Controller
 
                     if ($lembur->status !== 'submitted') {
                         $errors[] = "{$lembur->karyawan->full_name} - Status tidak valid";
+
                         continue;
                     }
 
                     // VALIDASI: Koordinator harus sudah approve
                     if ($lembur->koordinator_status !== 'approved') {
                         $errors[] = "{$lembur->karyawan->full_name} - Belum diapprove koordinator";
+
                         continue;
                     }
 
@@ -296,21 +435,22 @@ class LemburController extends Controller
             DB::commit();
 
             $message = "{$approved} lembur berhasil disetujui oleh Admin";
-            if (!empty($errors)) {
-                $message .= ". Error: " . implode(', ', $errors);
+            if (! empty($errors)) {
+                $message .= '. Error: '.implode(', ', $errors);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'approved_count' => $approved,
-                'error_count' => count($errors)
+                'error_count' => count($errors),
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal bulk approve: ' . $e->getMessage()
+                'message' => 'Gagal bulk approve: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -322,7 +462,7 @@ class LemburController extends Controller
     {
         $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'exists:lemburs,lembur_id'
+            'ids.*' => 'exists:lemburs,lembur_id',
         ]);
 
         try {
@@ -331,7 +471,7 @@ class LemburController extends Controller
             $lemburs = Lembur::whereIn('lembur_id', $request->ids)->get();
 
             foreach ($lemburs as $lembur) {
-                if (!$lembur->canEdit()) {
+                if (! $lembur->canEdit()) {
                     throw new \Exception("Lembur untuk '{$lembur->karyawan->full_name}' tidak dapat dihapus!");
                 }
             }
@@ -349,13 +489,14 @@ class LemburController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => count($request->ids) . ' data lembur berhasil dihapus!'
+                'message' => count($request->ids).' data lembur berhasil dihapus!',
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus: ' . $e->getMessage()
+                'message' => 'Gagal menghapus: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -379,7 +520,7 @@ class LemburController extends Controller
             // Get tunjangan type lembur
             $tunjanganType = TunjanganType::where('code', 'UANG_LEMBUR')->active()->first();
 
-            if (!$tunjanganType) {
+            if (! $tunjanganType) {
                 throw new \Exception('Tunjangan type UANG_LEMBUR tidak ditemukan');
             }
 
@@ -393,7 +534,7 @@ class LemburController extends Controller
             if ($lemburs->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada lembur yang perlu di-generate tunjangan untuk periode ini'
+                    'message' => 'Tidak ada lembur yang perlu di-generate tunjangan untuk periode ini',
                 ], 404);
             }
 
@@ -403,7 +544,7 @@ class LemburController extends Controller
                     $lembur->generateTunjangan();
                     $generated++;
                 } catch (\Exception $e) {
-                    Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: " . $e->getMessage());
+                    Log::error("Gagal generate tunjangan untuk lembur {$lembur->lembur_id}: ".$e->getMessage());
                 }
             }
 
@@ -411,13 +552,14 @@ class LemburController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "{$generated} tunjangan berhasil di-generate untuk periode {$weekStart->format('d/m/Y')} - {$weekEnd->format('d/m/Y')}"
+                'message' => "{$generated} tunjangan berhasil di-generate untuk periode {$weekStart->format('d/m/Y')} - {$weekEnd->format('d/m/Y')}",
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal generate tunjangan: ' . $e->getMessage()
+                'message' => 'Gagal generate tunjangan: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -461,7 +603,7 @@ class LemburController extends Controller
                 ->map(function ($items) {
                     return [
                         'count' => $items->count(),
-                        'total_jam' => $items->sum('total_jam')
+                        'total_jam' => $items->sum('total_jam'),
                     ];
                 }),
         ];
@@ -515,7 +657,7 @@ class LemburController extends Controller
                 'Total Jam',
                 'Kategori',
                 'Status',
-                'Disetujui Oleh'
+                'Disetujui Oleh',
             ]);
 
             foreach ($lemburs as $lembur) {
@@ -529,7 +671,7 @@ class LemburController extends Controller
                     $lembur->total_jam,
                     $lembur->kategori_lembur,
                     $lembur->status,
-                    $lembur->approvedBy->name ?? '-'
+                    $lembur->approvedBy->name ?? '-',
                 ]);
             }
 
@@ -545,7 +687,7 @@ class LemburController extends Controller
             'lemburs' => $lemburs,
             'month' => $month,
             'year' => $year,
-            'period' => Carbon::create($year, $month)->format('F Y')
+            'period' => Carbon::create($year, $month)->format('F Y'),
         ];
 
         $pdf = Pdf::loadView('admin.lembur.exportPdf', $data);
