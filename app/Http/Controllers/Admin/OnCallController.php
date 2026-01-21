@@ -118,34 +118,63 @@ class OnCallController extends Controller
      * Show the form for creating a new OnCall
      * GET /oncall/create
      */
+    // public function create()
+    // {
+    //     $user = Auth::user();
+    //     $isAdmin = $user->role === 'admin';
+
+    //     // Get karyawan
+    //     if ($isAdmin) {
+    //         // Admin: semua karyawan
+    //         $karyawans = Karyawan::orderBy('full_name')->get();
+    //     } else {
+    //         // Koordinator: hanya dari department-nya
+    //         $koordinatorDept = $user->karyawan->department_id ?? null;
+
+    //         if (! $koordinatorDept) {
+    //             return redirect()->back()->with('error', 'Data koordinator tidak valid');
+    //         }
+
+    //         $departmentIds = $user->departments()->pluck('department_id');
+
+
+    //         $karyawans = Karyawan::whereIn('department_id', $departmentIds)
+    //             ->orderBy('full_name')
+    //             ->get();
+
+    //     }
+
+    //     return view('admin.oncall.createOncall', compact('karyawans'));
+    // }
+
+
     public function create()
-    {
-        $user = Auth::user();
-        $isAdmin = $user->role === 'admin';
+{
+    $user = Auth::user();
 
-        // Get karyawan
-        if ($isAdmin) {
-            // Admin: semua karyawan
-            $karyawans = Karyawan::orderBy('full_name')->get();
-        } else {
-            // Koordinator: hanya dari department-nya
-            $koordinatorDept = $user->karyawan->department_id ?? null;
+    if ($user->role === 'admin') {
+        $karyawans = Karyawan::orderBy('full_name')->get();
+    } else {
 
-            if (! $koordinatorDept) {
-                return redirect()->back()->with('error', 'Data koordinator tidak valid');
-            }
-
-            $departmentIds = $user->departments()->pluck('department_id');
-
-
-            $karyawans = Karyawan::whereIn('department_id', $departmentIds)
-                ->orderBy('full_name')
-                ->get();
-
+        if (! $user->karyawan) {
+            return back()->with('error', 'User belum terhubung ke karyawan');
         }
 
-        return view('admin.oncall.createOncall', compact('karyawans'));
+        // Ambil semua department yang dikoordinatori user
+        $departmentIds = $user->managedDepartments()
+            ->pluck('department_id');
+
+        if ($departmentIds->isEmpty()) {
+            return back()->with('error', 'Koordinator belum punya department');
+        }
+
+        $karyawans = Karyawan::whereIn('department_id', $departmentIds)
+            ->orderBy('full_name')
+            ->get();
     }
+
+    return view('admin.oncall.createOncall', compact('karyawans'));
+}
 
     /**
      * Store a newly created OnCall
