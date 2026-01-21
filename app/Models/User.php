@@ -65,9 +65,15 @@ class User extends Authenticatable
     {
         return in_array($this->role, ['admin', 'coordinator', 'wakil_coordinator']);
     }
+    public function departments()
+{
+    return $this->belongsToMany(
+        Department::class,
+        'koordinator_departments',
+        'user_id',
+        'department_id'
+    );
+}
 
-        public function departments()
-    {
-        return $this->belongsToMany(Department::class, 'koordinator_departments');
-    }
+
 }
