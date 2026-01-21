@@ -65,15 +65,11 @@ class User extends Authenticatable
     {
         return in_array($this->role, ['admin', 'coordinator', 'wakil_coordinator']);
     }
-    public function departments()
+  public function managedDepartments()
 {
-    return $this->belongsToMany(
-        Department::class,
-        'koordinator_departments',
-        'user_id',
-        'department_id'
-    );
+    return $this->hasMany(Department::class, 'manager_user_id', 'user_id');
 }
+
 
 
 }
