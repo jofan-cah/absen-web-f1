@@ -135,7 +135,8 @@ class OnCallController extends Controller
                 return redirect()->back()->with('error', 'Data koordinator tidak valid');
             }
 
-            $departmentIds = $user->departments()->pluck('departments.id');
+            $departmentIds = $user->departments()->pluck('department_id');
+
 
             $karyawans = Karyawan::whereIn('department_id', $departmentIds)
                 ->orderBy('full_name')

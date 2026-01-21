@@ -173,5 +173,10 @@ class Karyawan extends Model
     }
 
 
+            public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'koordinator_departments');
+    }
+
 
 }
