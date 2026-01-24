@@ -105,8 +105,13 @@ class CompleteSeeder extends Seeder
         ];
 
         foreach ($shifts as $index => $shift) {
+            // OnCall pakai ID khusus 'SHIFT-ONCALL' sesuai controller
+            $shiftId = $shift['code'] === 'ONCALL'
+                ? 'SHIFT-ONCALL'
+                : 'SHF' . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+
             Shift::create([
-                'shift_id' => 'SHF' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
+                'shift_id' => $shiftId,
                 'name' => $shift['name'],
                 'code' => $shift['code'],
                 'start_time' => $shift['start_time'],
