@@ -27,7 +27,6 @@ return new class extends Migration
             $table->foreign('karyawan_id')->references('karyawan_id')->on('karyawans')->onDelete('cascade');
 
             // Indexes untuk performa
-            $table->index('device_token');
             $table->index(['karyawan_id', 'is_active']);
         });
     }
