@@ -8,9 +8,25 @@ use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends BaseApiController
 {
+    /**
+     * Helper untuk log activity dengan safe try-catch
+     */
+    private function safeLog(callable $callback): void
+    {
+        try {
+            Log::debug('ActivityLog: attempting to log...');
+            $result = $callback();
+            Log::debug('ActivityLog: success, ID: ' . ($result->id ?? 'null'));
+        } catch (\Exception $e) {
+            Log::warning('ActivityLog failed: ' . $e->getMessage());
+            Log::warning('ActivityLog trace: ' . $e->getTraceAsString());
+        }
+    }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -28,8 +44,7 @@ class AuthController extends BaseApiController
             ->first();
 
         if (!$karyawan || !$karyawan->user) {
-            // Log login gagal - NIP tidak ditemukan
-            ActivityLog::logLoginFailed($request->nip, 'NIP tidak ditemukan');
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'NIP tidak ditemukan'));
             return $this->notFoundResponse('NIP tidak ditemukan');
         }
 
@@ -37,19 +52,19 @@ class AuthController extends BaseApiController
 
         // Check karyawan status
         if ($karyawan->employment_status !== 'active') {
-            ActivityLog::logLoginFailed($request->nip, 'Status karyawan tidak aktif');
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'Status karyawan tidak aktif'));
             return $this->forbiddenResponse('Status karyawan tidak aktif');
         }
 
         // Check password
         if (!Hash::check($request->password, $user->password)) {
-            ActivityLog::logLoginFailed($request->nip, 'Password salah');
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'Password salah'));
             return $this->unauthorizedResponse('Password salah');
         }
 
         // Check user active
         if (!$user->is_active) {
-            ActivityLog::logLoginFailed($request->nip, 'Akun tidak aktif');
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'Akun tidak aktif'));
             return $this->forbiddenResponse('Akun tidak aktif');
         }
 
@@ -57,7 +72,7 @@ class AuthController extends BaseApiController
         $token = $user->createToken('mobile_app')->plainTextToken;
 
         // Log login sukses
-        ActivityLog::logLogin($user, 'mobile');
+        $this->safeLog(fn() => ActivityLog::logLogin($user, 'mobile'));
 
         return $this->successResponse([
             'user' => $user,
@@ -83,7 +98,7 @@ class AuthController extends BaseApiController
         $user = $request->user();
 
         // Log logout sebelum delete token
-        ActivityLog::logLogout($user, 'mobile');
+        $this->safeLog(fn() => ActivityLog::logLogout($user, 'mobile'));
 
         $user->currentAccessToken()->delete();
         return $this->successResponse(null, 'Logout berhasil');
@@ -111,10 +126,10 @@ class AuthController extends BaseApiController
         ]);
 
         // Log perubahan password
-        ActivityLog::log('update', 'User mengubah password', [
+        $this->safeLog(fn() => ActivityLog::log('update', 'User mengubah password', [
             'module' => 'User',
             'module_id' => $user->user_id,
-        ]);
+        ]));
 
         return $this->successResponse(null, 'Password berhasil diubah');
     }

@@ -22,13 +22,22 @@ class ApiErrorLogger
 
             // Log jika response adalah error (status >= 500)
             if ($response->getStatusCode() >= 500) {
-                $this->logApiError($request, $response);
+                try {
+                    $this->logApiError($request, $response);
+                } catch (\Throwable $logError) {
+                    // Jangan block response jika logging gagal
+                    Log::warning('Failed to log API error: ' . $logError->getMessage());
+                }
             }
 
             return $response;
         } catch (\Throwable $e) {
             // Log exception yang tidak ter-handle
-            $this->logException($request, $e);
+            try {
+                $this->logException($request, $e);
+            } catch (\Throwable $logError) {
+                Log::warning('Failed to log API exception: ' . $logError->getMessage());
+            }
 
             // Re-throw untuk ditangani oleh exception handler
             throw $e;

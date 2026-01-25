@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 
 class ActivityLog extends Model
 {
@@ -54,10 +56,28 @@ class ActivityLog extends Model
     // ========================================
 
     /**
+     * Check if activity_logs table exists
+     */
+    private static function tableExists(): bool
+    {
+        try {
+            return Schema::hasTable('activity_logs');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Log aktivitas umum
      */
-    public static function log(string $action, string $description, array $options = []): self
+    public static function log(string $action, string $description, array $options = []): ?self
     {
+        // Skip if table doesn't exist
+        if (!self::tableExists()) {
+            Log::debug('ActivityLog: table not exists, skipping log');
+            return null;
+        }
+
         $user = Auth::user();
         $request = Request::instance();
 
