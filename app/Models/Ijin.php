@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\LogsActivity;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,9 +10,11 @@ use Illuminate\Support\Facades\Storage;
 
 class Ijin extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory;
+    // LogsActivity disabled - causing issues with old data
+    // use LogsActivity;
 
-    protected static $logName = 'Ijin';
+    // protected static $logName = 'Ijin';
 
     protected $primaryKey = 'ijin_id';
     public $incrementing = false;

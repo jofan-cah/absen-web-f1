@@ -3,15 +3,28 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
+    /**
+     * Safe activity log helper
+     */
+    private function safeLog(callable $callback): void
+    {
+        try {
+            $callback();
+        } catch (\Exception $e) {
+            Log::warning('ActivityLog failed: ' . $e->getMessage());
+        }
+    }
 
 
      public function showProfile()
@@ -116,19 +129,22 @@ class AuthController extends Controller
         // Try to find user by NIP
         $user = \App\Models\User::where('nip', $request->nip)->first();
 
-        if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'NIP atau password salah'));
             return back()->withErrors([
                 'nip' => 'NIP atau password salah.',
             ]);
         }
 
         if ($user->role !== 'admin' && $user->role !== 'koordinator' && $user->role !== 'wakil_coordinator') {
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'Akses ditolak - bukan admin/koordinator'));
             return back()->withErrors([
                 'nip' => 'Akses ditolak. Hanya admin yang bisa login.',
             ]);
         }
 
         if (!$user->is_active) {
+            $this->safeLog(fn() => ActivityLog::logLoginFailed($request->nip, 'Akun tidak aktif'));
             return back()->withErrors([
                 'nip' => 'Akun tidak aktif.',
             ]);
@@ -136,13 +152,20 @@ class AuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
-        // dd($user);
+
+        // Log login sukses
+        $this->safeLog(fn() => ActivityLog::logLogin($user, 'web'));
 
         return redirect()->intended('/admin/dashboard');
     }
 
     public function logout(Request $request)
     {
+        $user = Auth::user();
+
+        // Log logout sebelum logout
+        $this->safeLog(fn() => ActivityLog::logLogout($user, 'web'));
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
