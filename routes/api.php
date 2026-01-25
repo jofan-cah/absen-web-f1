@@ -39,6 +39,53 @@ Route::get('/test', function () {
     ]);
 })->middleware('throttle:5,1');
 
+// Test ActivityLog endpoint
+Route::get('/test-activity-log', function () {
+    $results = [];
+
+    // 1. Check table exists
+    $tableExists = \Illuminate\Support\Facades\Schema::hasTable('activity_logs');
+    $results['table_exists'] = $tableExists;
+
+    if (!$tableExists) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Table activity_logs not exists. Run: php artisan migrate',
+            'results' => $results,
+        ]);
+    }
+
+    // 2. Try insert
+    try {
+        $log = \App\Models\ActivityLog::create([
+            'action' => 'other',
+            'description' => 'Test from API endpoint',
+            'ip_address' => request()->ip(),
+            'platform' => 'api',
+        ]);
+        $results['insert_direct'] = 'OK, ID: ' . $log->id;
+    } catch (\Exception $e) {
+        $results['insert_direct'] = 'ERROR: ' . $e->getMessage();
+    }
+
+    // 3. Try logLoginFailed
+    try {
+        $log = \App\Models\ActivityLog::logLoginFailed('TEST_NIP', 'Test from API');
+        $results['logLoginFailed'] = $log ? 'OK, ID: ' . $log->id : 'NULL returned';
+    } catch (\Exception $e) {
+        $results['logLoginFailed'] = 'ERROR: ' . $e->getMessage();
+    }
+
+    // 4. Count
+    $results['total_logs'] = \App\Models\ActivityLog::count();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'ActivityLog test completed',
+        'results' => $results,
+    ]);
+});
+
 
 Route::get('/app-version', function () {
     return response()->json([

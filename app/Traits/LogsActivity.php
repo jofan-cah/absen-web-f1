@@ -36,7 +36,11 @@ trait LogsActivity
         // Log saat create
         static::created(function ($model) {
             if (static::shouldLog()) {
-                ActivityLog::logCreate($model, static::getLogDescription('create', $model));
+                try {
+                    ActivityLog::logCreate($model, static::getLogDescription('create', $model));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('ActivityLog create failed: ' . $e->getMessage());
+                }
             }
         });
 
@@ -48,15 +52,23 @@ trait LogsActivity
         // Log saat update
         static::updated(function ($model) {
             if (static::shouldLog() && $model->wasChanged()) {
-                $oldData = $model->oldAttributes ?? $model->getOriginal();
-                ActivityLog::logUpdate($model, $oldData, static::getLogDescription('update', $model));
+                try {
+                    $oldData = $model->oldAttributes ?? $model->getOriginal();
+                    ActivityLog::logUpdate($model, $oldData, static::getLogDescription('update', $model));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('ActivityLog update failed: ' . $e->getMessage());
+                }
             }
         });
 
         // Log saat delete
         static::deleted(function ($model) {
             if (static::shouldLog()) {
-                ActivityLog::logDelete($model, static::getLogDescription('delete', $model));
+                try {
+                    ActivityLog::logDelete($model, static::getLogDescription('delete', $model));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('ActivityLog delete failed: ' . $e->getMessage());
+                }
             }
         });
     }
