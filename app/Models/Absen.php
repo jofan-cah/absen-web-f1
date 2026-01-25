@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
-use App\Traits\LogsActivity;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Absen extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory;
+    // LogsActivity disabled - causing issues with old data
+    // use LogsActivity;
 
-    protected static $logName = 'Absen';
+    // protected static $logName = 'Absen';
 
     protected $primaryKey = 'absen_id';
     public $incrementing = false;
