@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class IjinType extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    protected static $logName = 'IjinType';
 
     protected $primaryKey = 'ijin_type_id';
     public $incrementing = false;

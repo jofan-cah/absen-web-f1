@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class ShiftSwapRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    protected static $logName = 'ShiftSwapRequest';
 
     protected $primaryKey = 'swap_id';
     public $incrementing = false;

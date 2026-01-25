@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -9,7 +10,9 @@ use Carbon\Carbon;
 
 class TunjanganKaryawan extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    protected static $logName = 'TunjanganKaryawan';
 
     protected $table = 'tunjangan_karyawan';
     protected $primaryKey = 'tunjangan_karyawan_id';
