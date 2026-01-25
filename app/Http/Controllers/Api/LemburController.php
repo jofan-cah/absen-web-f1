@@ -246,7 +246,7 @@ class LemburController extends BaseApiController
                 'message_hint' => $messageHint
             ], 'Lembur berhasil dimulai');
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal memulai lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal memulai lembur: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
         }
     }
 
@@ -357,7 +357,7 @@ class LemburController extends BaseApiController
                 'message_hint' => 'Lembur selesai. Silakan submit untuk approval.'
             ], 'Lembur berhasil diselesaikan');
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal menyelesaikan lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal menyelesaikan lembur: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
         }
     }
 
@@ -437,7 +437,7 @@ class LemburController extends BaseApiController
                 'Lembur berhasil diupdate'
             );
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal update lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal update lembur: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
         }
     }
 
@@ -478,7 +478,7 @@ class LemburController extends BaseApiController
                 'Lembur berhasil disubmit. Menunggu persetujuan Koordinator.'
             );
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal submit lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal submit lembur: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
         }
     }
 
@@ -513,7 +513,7 @@ class LemburController extends BaseApiController
 
             return $this->successResponse(null, 'Lembur berhasil dihapus');
         } catch (\Exception $e) {
-            return $this->serverErrorResponse('Gagal menghapus lembur: ' . $e->getMessage());
+            return $this->serverErrorResponse('Gagal menghapus lembur: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
         }
     }
 
@@ -699,7 +699,7 @@ public function updatePhoto(Request $request, $id)
             'Foto berhasil diupdate dan otomatis disubmit untuk approval'
         );
     } catch (\Exception $e) {
-        return $this->serverErrorResponse('Gagal update foto: ' . $e->getMessage());
+        return $this->serverErrorResponse('Gagal update foto: ' . $e->getMessage(), $e, ['module' => 'Lembur']);
     }
 }
 }

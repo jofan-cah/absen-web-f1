@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\TunjanganKaryawanController;
 use App\Http\Controllers\Admin\TunjanganTypeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Koordinator\LemburKoorController;
+use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to admin login
@@ -186,6 +187,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::post('/generate-tunjangan/mingguan', [LemburController::class, 'generateTunjanganMingguan'])->name('generate-tunjangan.mingguan');
                 Route::get('/report/analytics', [LemburController::class, 'report'])->name('report');
                 Route::get('/export/data', [LemburController::class, 'export'])->name('export');
+            });
+
+            // Activity Logs
+            Route::prefix('activity-logs')->name('activity-logs.')->group(function () {
+                Route::get('/', [ActivityLogController::class, 'index'])->name('index');
+                Route::get('/api', [ActivityLogController::class, 'apiIndex'])->name('api');
+                Route::get('/api/stats', [ActivityLogController::class, 'apiStats'])->name('api.stats');
+                Route::get('/api/logins', [ActivityLogController::class, 'apiLoginHistory'])->name('api.logins');
+                Route::get('/api/errors', [ActivityLogController::class, 'apiErrors'])->name('api.errors');
+                Route::post('/clear-old', [ActivityLogController::class, 'clearOldLogs'])->name('clear-old');
+                Route::get('/{id}', [ActivityLogController::class, 'show'])->name('show');
             });
         }); // End Admin only routes
 

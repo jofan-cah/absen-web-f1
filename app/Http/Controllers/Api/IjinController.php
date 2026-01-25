@@ -31,8 +31,7 @@ class IjinController extends BaseApiController
 
             return $this->successResponse($types, 'Berhasil mengambil data tipe ijin');
         } catch (\Exception $e) {
-            Log::error('Failed to get ijin types', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengambil data tipe ijin');
+            return $this->serverErrorResponse('Gagal mengambil data tipe ijin', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -90,8 +89,7 @@ class IjinController extends BaseApiController
             return $this->paginatedResponse($ijins, 'Berhasil mengambil data riwayat ijin');
 
         } catch (\Exception $e) {
-            Log::error('Failed to get ijin history', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengambil data riwayat ijin');
+            return $this->serverErrorResponse('Gagal mengambil data riwayat ijin', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -144,8 +142,7 @@ class IjinController extends BaseApiController
             return $this->successResponse($data, 'Berhasil mengambil detail ijin');
 
         } catch (\Exception $e) {
-            Log::error('Failed to get ijin detail', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengambil detail ijin');
+            return $this->serverErrorResponse('Gagal mengambil detail ijin', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -233,12 +230,7 @@ class IjinController extends BaseApiController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to submit ijin via API', [
-                'error' => $e->getMessage(),
-                'user_id' => $user->user_id ?? null,
-            ]);
-
-            return $this->serverErrorResponse('Gagal mengajukan ijin');
+            return $this->serverErrorResponse('Gagal mengajukan ijin', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -329,8 +321,7 @@ class IjinController extends BaseApiController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to submit shift swap via API', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengajukan tukar shift');
+            return $this->serverErrorResponse('Gagal mengajukan tukar shift', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -432,8 +423,7 @@ class IjinController extends BaseApiController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to submit compensation leave via API', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengajukan cuti pengganti');
+            return $this->serverErrorResponse('Gagal mengajukan cuti pengganti', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -477,8 +467,7 @@ class IjinController extends BaseApiController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to cancel ijin', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal membatalkan ijin');
+            return $this->serverErrorResponse('Gagal membatalkan ijin', $e, ['module' => 'Ijin']);
         }
     }
 
@@ -555,8 +544,7 @@ class IjinController extends BaseApiController
             return $this->successResponse($piketDates, 'Berhasil mengambil data piket yang tersedia');
 
         } catch (\Exception $e) {
-            Log::error('Failed to get available piket dates', ['error' => $e->getMessage()]);
-            return $this->serverErrorResponse('Gagal mengambil data piket');
+            return $this->serverErrorResponse('Gagal mengambil data piket', $e, ['module' => 'Ijin']);
         }
     }
 
