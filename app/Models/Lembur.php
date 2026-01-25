@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -11,7 +12,9 @@ use Illuminate\Support\Facades\Storage;
 
 class Lembur extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    protected static $logName = 'Lembur';
 
     protected $table = 'lemburs';
     protected $primaryKey = 'lembur_id';

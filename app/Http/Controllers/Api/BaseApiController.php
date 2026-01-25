@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 
 class BaseApiController extends Controller
 {
@@ -194,10 +196,31 @@ class BaseApiController extends Controller
      * Return a server error response
      *
      * @param string $message
+     * @param \Throwable|null $exception
+     * @param array $context
      * @return JsonResponse
      */
-    protected function serverErrorResponse(string $message = 'Internal server error'): JsonResponse
+    protected function serverErrorResponse(string $message = 'Internal server error', \Throwable $exception = null, array $context = []): JsonResponse
     {
+        // Log error ke ActivityLog
+        try {
+            if ($exception) {
+                ActivityLog::logError($exception, $message, $context);
+            } else {
+                ActivityLog::log('error', $message, [
+                    'module' => $context['module'] ?? null,
+                    'module_id' => $context['module_id'] ?? null,
+                    'error_message' => $message,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Fallback ke Laravel Log jika ActivityLog gagal
+            Log::error('API Error: ' . $message, [
+                'exception' => $exception?->getMessage(),
+                'context' => $context,
+            ]);
+        }
+
         return $this->errorResponse($message, 500);
     }
 
@@ -254,28 +277,43 @@ class BaseApiController extends Controller
      *
      * @param \Throwable $exception
      * @param bool $debug
+     * @param array $context
      * @return JsonResponse
      */
-    protected function exceptionResponse(\Throwable $exception, bool $debug = false): JsonResponse
+    protected function exceptionResponse(\Throwable $exception, bool $debug = false, array $context = []): JsonResponse
     {
         $message = 'An error occurred';
         $statusCode = 500;
         $errors = null;
+        $shouldLog = true;
 
         // Handle specific exception types
         if ($exception instanceof \Illuminate\Validation\ValidationException) {
             $message = 'Validation failed';
             $statusCode = 422;
             $errors = $exception->errors();
+            $shouldLog = false; // Validation errors tidak perlu di-log sebagai error
         } elseif ($exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
             $message = 'Resource not found';
             $statusCode = 404;
+            $shouldLog = false;
         } elseif ($exception instanceof \Illuminate\Auth\AuthenticationException) {
             $message = 'Unauthenticated';
             $statusCode = 401;
+            $shouldLog = false;
         } elseif ($exception instanceof \Illuminate\Auth\Access\AuthorizationException) {
             $message = 'Unauthorized';
             $statusCode = 403;
+            $shouldLog = false;
+        }
+
+        // Log error ke ActivityLog (hanya untuk error 500)
+        if ($shouldLog) {
+            try {
+                ActivityLog::logError($exception, $message, $context);
+            } catch (\Exception $e) {
+                Log::error('Failed to log API exception: ' . $e->getMessage());
+            }
         }
 
         $response = [

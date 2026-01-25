@@ -662,6 +662,24 @@
                             </div>
                             <span class="flex-1 truncate text-gray-700 group-hover:text-violet-700">Laporan</span>
                         </a>
+
+                        <!-- Activity Log - ADMIN ONLY -->
+                        <a href="{{ route('admin.activity-logs.index') }}"
+                            class="nav-item {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }} flex items-center px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-300 group hover:scale-[1.02]"
+                            @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                            <div
+                                class="flex items-center justify-center w-6 h-6 mr-2 rounded-md nav-icon bg-gradient-to-br from-gray-500 to-slate-600 text-white shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                </svg>
+                            </div>
+                            <span class="flex-1 truncate text-gray-700 group-hover:text-slate-700">Activity Log</span>
+                            @php $todayLogs = \App\Models\ActivityLog::whereDate('created_at', today())->count(); @endphp
+                            @if ($todayLogs > 0)
+                                <span class="text-xs bg-gray-100 text-gray-700 font-bold px-1.5 py-0.5 rounded-full">{{ $todayLogs > 99 ? '99+' : $todayLogs }}</span>
+                            @endif
+                        </a>
                     </div>
                 </div>
             @endif

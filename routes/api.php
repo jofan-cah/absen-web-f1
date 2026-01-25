@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\IjinController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\LemburController;
+use App\Http\Controllers\Api\OncallController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RiwayatController;
 use App\Http\Controllers\Api\ShiftSwapController;
@@ -202,6 +203,18 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
         Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
         Route::delete('/notifications/{id}', [App\Http\Controllers\Api\NotificationController::class, 'destroy']);
         Route::delete('/notifications/clear-read', [App\Http\Controllers\Api\NotificationController::class, 'clearRead']);
+    });
+
+    // ========================================
+    // ONCALL LEMBUR (Screen Terpisah)
+    // ========================================
+    Route::prefix('oncall')->group(function () {
+        Route::get('/today', [OncallController::class, 'today']);           // Cek jadwal oncall hari ini
+        Route::post('/clock-in', [OncallController::class, 'clockIn']);     // Clock in oncall
+        Route::put('/{id}/report', [OncallController::class, 'updateReport']); // Isi/update laporan
+        Route::post('/clock-out', [OncallController::class, 'clockOut']);   // Clock out + submit
+        Route::get('/my-list', [OncallController::class, 'myList']);        // List oncall saya
+        Route::get('/{id}', [OncallController::class, 'show']);             // Detail oncall
     });
 
     Route::prefix('shift-swap')->group(function () {

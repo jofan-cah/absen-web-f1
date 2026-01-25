@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -15,19 +14,39 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Disable foreign key checks temporarily
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // Update jadwals table
+        Schema::table('jadwals', function (Blueprint $table) {
+            // Drop foreign key first (karena pakai column yang sama)
+            $table->dropForeign(['karyawan_id']);
 
-        // Update jadwals table - drop old, add new unique with type
-        DB::statement('ALTER TABLE `jadwals` DROP INDEX `jadwals_karyawan_id_date_unique`');
-        DB::statement('ALTER TABLE `jadwals` ADD UNIQUE `jadwals_karyawan_date_type_unique` (`karyawan_id`, `date`, `type`)');
+            // Drop old unique constraint
+            $table->dropUnique(['karyawan_id', 'date']);
+        });
 
-        // Update absens table - drop old, add new unique with type
-        DB::statement('ALTER TABLE `absens` DROP INDEX `absens_karyawan_id_date_unique`');
-        DB::statement('ALTER TABLE `absens` ADD UNIQUE `absens_karyawan_date_type_unique` (`karyawan_id`, `date`, `type`)');
+        Schema::table('jadwals', function (Blueprint $table) {
+            // Add new unique with type
+            $table->unique(['karyawan_id', 'date', 'type'], 'jadwals_karyawan_date_type_unique');
 
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            // Re-add foreign key
+            $table->foreign('karyawan_id')->references('karyawan_id')->on('karyawans')->onDelete('cascade');
+        });
+
+        // Update absens table
+        Schema::table('absens', function (Blueprint $table) {
+            // Drop foreign key first
+            $table->dropForeign(['karyawan_id']);
+
+            // Drop old unique constraint
+            $table->dropUnique(['karyawan_id', 'date']);
+        });
+
+        Schema::table('absens', function (Blueprint $table) {
+            // Add new unique with type
+            $table->unique(['karyawan_id', 'date', 'type'], 'absens_karyawan_date_type_unique');
+
+            // Re-add foreign key
+            $table->foreign('karyawan_id')->references('karyawan_id')->on('karyawans')->onDelete('cascade');
+        });
     }
 
     /**
@@ -35,16 +54,26 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
         // Revert jadwals table
-        DB::statement('ALTER TABLE `jadwals` DROP INDEX `jadwals_karyawan_date_type_unique`');
-        DB::statement('ALTER TABLE `jadwals` ADD UNIQUE `jadwals_karyawan_id_date_unique` (`karyawan_id`, `date`)');
+        Schema::table('jadwals', function (Blueprint $table) {
+            $table->dropForeign(['karyawan_id']);
+            $table->dropUnique('jadwals_karyawan_date_type_unique');
+        });
+
+        Schema::table('jadwals', function (Blueprint $table) {
+            $table->unique(['karyawan_id', 'date']);
+            $table->foreign('karyawan_id')->references('karyawan_id')->on('karyawans')->onDelete('cascade');
+        });
 
         // Revert absens table
-        DB::statement('ALTER TABLE `absens` DROP INDEX `absens_karyawan_date_type_unique`');
-        DB::statement('ALTER TABLE `absens` ADD UNIQUE `absens_karyawan_id_date_unique` (`karyawan_id`, `date`)');
+        Schema::table('absens', function (Blueprint $table) {
+            $table->dropForeign(['karyawan_id']);
+            $table->dropUnique('absens_karyawan_date_type_unique');
+        });
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::table('absens', function (Blueprint $table) {
+            $table->unique(['karyawan_id', 'date']);
+            $table->foreign('karyawan_id')->references('karyawan_id')->on('karyawans')->onDelete('cascade');
+        });
     }
 };

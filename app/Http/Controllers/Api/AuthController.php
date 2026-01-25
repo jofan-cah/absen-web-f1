@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use App\Models\Karyawan;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,6 @@ class AuthController extends BaseApiController
             'password' => 'required|string|min:6',
         ]);
 
-        // dd($request->all());
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
         }
@@ -28,33 +28,36 @@ class AuthController extends BaseApiController
             ->first();
 
         if (!$karyawan || !$karyawan->user) {
+            // Log login gagal - NIP tidak ditemukan
+            ActivityLog::logLoginFailed($request->nip, 'NIP tidak ditemukan');
             return $this->notFoundResponse('NIP tidak ditemukan');
         }
 
         $user = $karyawan->user;
 
-        // Check user role
-        // if ($user->role !== 'karyawan') {
-        //     return $this->forbiddenResponse('Akun admin tidak bisa login via mobile');
-        // }
-
         // Check karyawan status
         if ($karyawan->employment_status !== 'active') {
+            ActivityLog::logLoginFailed($request->nip, 'Status karyawan tidak aktif');
             return $this->forbiddenResponse('Status karyawan tidak aktif');
         }
 
         // Check password
         if (!Hash::check($request->password, $user->password)) {
+            ActivityLog::logLoginFailed($request->nip, 'Password salah');
             return $this->unauthorizedResponse('Password salah');
         }
 
         // Check user active
         if (!$user->is_active) {
+            ActivityLog::logLoginFailed($request->nip, 'Akun tidak aktif');
             return $this->forbiddenResponse('Akun tidak aktif');
         }
 
         // Create token
         $token = $user->createToken('mobile_app')->plainTextToken;
+
+        // Log login sukses
+        ActivityLog::logLogin($user, 'mobile');
 
         return $this->successResponse([
             'user' => $user,
@@ -77,7 +80,12 @@ class AuthController extends BaseApiController
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        // Log logout sebelum delete token
+        ActivityLog::logLogout($user, 'mobile');
+
+        $user->currentAccessToken()->delete();
         return $this->successResponse(null, 'Logout berhasil');
     }
 
@@ -100,6 +108,12 @@ class AuthController extends BaseApiController
 
         $user->update([
             'password' => Hash::make($request->new_password)
+        ]);
+
+        // Log perubahan password
+        ActivityLog::log('update', 'User mengubah password', [
+            'module' => 'User',
+            'module_id' => $user->user_id,
         ]);
 
         return $this->successResponse(null, 'Password berhasil diubah');
