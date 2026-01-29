@@ -27,6 +27,11 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+// Privacy Policy (Public - untuk mobile app WebView)
+Route::get('/privacy-policy', function () {
+    return view('privacy-policy');
+})->name('privacy-policy');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
