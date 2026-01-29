@@ -272,7 +272,7 @@
         <div class="contact-box">
             <strong>PT. Rasi Bintang Perkasa</strong><br>
             Email: privacy@rasibintang.net.id<br>
-            Alamat: [Alamat Perusahaan]
+            Alamat: Jl. H Samanhudi No.17, Karang Baru, Mojayan, Kec. Klaten Tengah, Kabupaten Klaten, Jawa Tengah 57416
         </div>
     </div>
 
