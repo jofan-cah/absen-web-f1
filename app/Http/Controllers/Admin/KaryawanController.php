@@ -8,6 +8,7 @@ use App\Models\Karyawan;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Jadwal;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -184,7 +185,8 @@ class KaryawanController extends Controller
     public function create()
     {
         $departments = Department::where('is_active', true)->get();
-        return view('admin.karyawan.createKaryawan', compact('departments'));
+        $shifts = Shift::where('is_active', true)->get();
+        return view('admin.karyawan.createKaryawan', compact('departments', 'shifts'));
     }
 
     public function store(Request $request)
@@ -204,6 +206,8 @@ class KaryawanController extends Controller
             'gender' => 'required|in:L,P',
             'staff_status' => 'required',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg',
+            'is_shift_normal' => 'nullable|boolean',
+            'default_shift_id' => 'nullable|exists:shifts,shift_id',
         ]);
 
         try {
@@ -246,7 +250,9 @@ class KaryawanController extends Controller
                 'photo' => $photoPath,
                 'employment_status' => 'active',
                 'staff_status' => $request->staff_status,
-                 'uang_kuota' => true,
+                'uang_kuota' => true,
+                'is_shift_normal' => $request->boolean('is_shift_normal'),
+                'default_shift_id' => $request->is_shift_normal ? $request->default_shift_id : null,
             ]);
 
             DB::commit();
@@ -365,8 +371,9 @@ class KaryawanController extends Controller
     public function edit(Karyawan $karyawan)
     {
         $departments = Department::where('is_active', true)->get();
-        $karyawan->load(['user', 'department']);
-        return view('admin.karyawan.editKaryawan', compact('karyawan', 'departments'));
+        $shifts = Shift::where('is_active', true)->get();
+        $karyawan->load(['user', 'department', 'defaultShift']);
+        return view('admin.karyawan.editKaryawan', compact('karyawan', 'departments', 'shifts'));
     }
 
 
@@ -387,6 +394,8 @@ class KaryawanController extends Controller
             'employment_status' => 'required|in:active,inactive,terminated',
             'staff_status' => 'required',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg',
+            'is_shift_normal' => 'nullable|boolean',
+            'default_shift_id' => 'nullable|exists:shifts,shift_id',
         ]);
 
         try {
@@ -411,11 +420,9 @@ class KaryawanController extends Controller
                 $photoPath = $photo->storeAs('karyawan_photos', $filename, 'public');
             }
 
-            // dd( $request->input('uang_kuota'));
             // Update Karyawan
             $karyawan->update([
                 'department_id' => $request->department_id,
-                // 'nip' => $request->nip,
                 'full_name' => $request->full_name,
                 'position' => $request->position,
                 'phone' => $request->phone,
@@ -426,7 +433,9 @@ class KaryawanController extends Controller
                 'employment_status' => $request->employment_status,
                 'staff_status' => $request->staff_status,
                 'photo' => $photoPath,
-             'uang_kuota' => $request->boolean('uang_kuota') ? 1 : 0,
+                'uang_kuota' => $request->boolean('uang_kuota') ? 1 : 0,
+                'is_shift_normal' => $request->boolean('is_shift_normal'),
+                'default_shift_id' => $request->boolean('is_shift_normal') ? $request->default_shift_id : null,
             ]);
 
             DB::commit();

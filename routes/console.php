@@ -93,9 +93,35 @@ Schedule::command('tunjangan:generate-makan')
 
 
 // ================================
+// GENERATE JADWAL BULANAN
+// ================================
+
+// Generate jadwal otomatis setiap tanggal 1 jam 00:05
+Schedule::job(new \App\Jobs\GenerateMonthlyJadwal())
+    ->monthlyOn(1, '00:05')
+    ->onSuccess(function () {
+        Log::info('✅ Generate jadwal bulanan berhasil dijalankan');
+    })
+    ->onFailure(function () {
+        Log::error('❌ Generate jadwal bulanan gagal');
+    });
+
+// ================================
 // ARTISAN COMMANDS
 // ================================
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Command untuk generate jadwal manual
+Artisan::command('jadwal:generate {month?} {year?}', function ($month = null, $year = null) {
+    $month = $month ?? now()->month;
+    $year = $year ?? now()->year;
+
+    $this->info("Generating jadwal for {$month}/{$year}...");
+
+    dispatch(new \App\Jobs\GenerateMonthlyJadwal((int) $month, (int) $year));
+
+    $this->info("Job dispatched! Check logs for progress.");
+})->purpose('Generate jadwal bulanan untuk karyawan dengan shift normal');
