@@ -35,12 +35,15 @@ class Karyawan extends Model
         'employment_status',
         'staff_status',
         'uang_kuota',
+        'is_shift_normal',
+        'default_shift_id',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
         'birth_date' => 'date',
-        'uang_kuota' => 'boolean'
+        'uang_kuota' => 'boolean',
+        'is_shift_normal' => 'boolean',
     ];
 
     // Relationships
@@ -67,6 +70,11 @@ class Karyawan extends Model
     public function ijins()
     {
         return $this->hasMany(Ijin::class, 'karyawan_id', 'karyawan_id');
+    }
+
+    public function defaultShift()
+    {
+        return $this->belongsTo(Shift::class, 'default_shift_id', 'shift_id');
     }
 
 

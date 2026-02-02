@@ -290,6 +290,57 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <!-- Shift Normal Section -->
+                        <div class="md:col-span-2 mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Pengaturan Jadwal Otomatis
+                            </h4>
+
+                            <!-- Is Shift Normal Checkbox -->
+                            <div class="mb-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="is_shift_normal" name="is_shift_normal" value="1"
+                                        {{ old('is_shift_normal') ? 'checked' : '' }}
+                                        onchange="toggleDefaultShift()"
+                                        class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                    <label for="is_shift_normal" class="ml-2 text-sm font-medium text-gray-700">
+                                        Jadwal Shift Normal (Senin-Sabtu)
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-6">
+                                    Centang jika karyawan ini memiliki jadwal kerja tetap Senin-Sabtu.
+                                    Jadwal akan di-generate otomatis setiap awal bulan.
+                                </p>
+                            </div>
+
+                            <!-- Default Shift Dropdown -->
+                            <div id="default_shift_container" class="hidden">
+                                <label for="default_shift_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Shift Default <span class="text-red-500">*</span>
+                                </label>
+                                <select id="default_shift_id" name="default_shift_id"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @error('default_shift_id') border-red-500 @enderror">
+                                    <option value="">Pilih Shift Default</option>
+                                    @foreach ($shifts as $shift)
+                                        <option value="{{ $shift->shift_id }}"
+                                            {{ old('default_shift_id') == $shift->shift_id ? 'selected' : '' }}>
+                                            {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('default_shift_id')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Shift ini akan digunakan untuk generate jadwal otomatis setiap bulan.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex justify-between">
@@ -505,6 +556,27 @@
             const fullName = this.value;
             const username = fullName.toLowerCase().replace(/\s+/g, '');
             document.getElementById('name').value = username;
+        });
+
+        // Toggle default shift dropdown
+        function toggleDefaultShift() {
+            const isShiftNormal = document.getElementById('is_shift_normal').checked;
+            const container = document.getElementById('default_shift_container');
+            const shiftSelect = document.getElementById('default_shift_id');
+
+            if (isShiftNormal) {
+                container.classList.remove('hidden');
+                shiftSelect.setAttribute('required', 'required');
+            } else {
+                container.classList.add('hidden');
+                shiftSelect.removeAttribute('required');
+                shiftSelect.value = '';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleDefaultShift();
         });
     </script>
 @endpush

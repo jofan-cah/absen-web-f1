@@ -45,12 +45,11 @@ class Shift extends Model
     // Helper method
     public static function generateShiftId()
     {
-        $lastShift = self::orderByDesc('shift_id')->first();
-        if (!$lastShift) {
-            return 'SHF001';
-        }
+        // Get the highest numeric part from existing shift_ids
+        $lastShift = self::selectRaw("MAX(CAST(SUBSTRING(shift_id, 4) AS UNSIGNED)) as max_num")
+            ->first();
 
-        $lastNumber = (int) substr($lastShift->shift_id, 3);
+        $lastNumber = $lastShift->max_num ?? 0;
         $newNumber = $lastNumber + 1;
 
         return 'SHF' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
