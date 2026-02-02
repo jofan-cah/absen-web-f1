@@ -314,9 +314,14 @@ class JadwalController extends Controller
             ], 403);
         }
 
-        // Check if jadwal already exists
+        // Check if jadwal already exists (exclude oncall jadwal)
+        // Karyawan bisa punya jadwal normal DAN oncall di hari yang sama
         $existingJadwal = Jadwal::where('karyawan_id', $request->karyawan_id)
             ->where('date', $request->date)
+            ->where(function ($query) {
+                $query->whereNull('type')
+                    ->orWhere('type', '!=', 'oncall');
+            })
             ->first();
 
         if ($existingJadwal) {
@@ -453,9 +458,14 @@ class JadwalController extends Controller
                 continue;
             }
 
-            // Check if already exists
+            // Check if already exists (exclude oncall jadwal)
+            // Karyawan bisa punya jadwal normal DAN oncall di hari yang sama
             $exists = Jadwal::where('karyawan_id', $jadwalData['karyawan_id'])
                 ->where('date', $jadwalData['date'])
+                ->where(function ($query) {
+                    $query->whereNull('type')
+                        ->orWhere('type', '!=', 'oncall');
+                })
                 ->exists();
 
             if ($exists) {
