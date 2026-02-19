@@ -10,132 +10,95 @@ class DeviceTokenController extends BaseApiController
 {
     /**
      * Save/Update device token dari Flutter
-     * POST /api/device-token
+     * POST /api/device/device-token
+     *
+     * Fix: 1 device_token hanya boleh dimiliki 1 karyawan.
+     *      Jika token sudah terdaftar atas nama karyawan lain,
+     *      record lama DIHAPUS (bukan sekadar dinonaktifkan)
+     *      sebelum token ini diklaim akun yang sedang login.
      */
     public function store(Request $request)
     {
         try {
             $request->validate([
                 'device_token' => 'required|string',
-                'device_type' => 'required|in:android,ios',
-                'device_name' => 'nullable|string|max:255'
+                'device_type'  => 'required|in:android,ios',
+                'device_name'  => 'nullable|string|max:255',
             ]);
 
-            $user = auth()->user();
-            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+            $user       = auth()->user();
+            $karyawan   = $user->karyawan;
+            $karyawanId = $karyawan?->karyawan_id;
 
             if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            // ============================================
-            // CEK APAKAH DEVICE TOKEN SUDAH ADA
-            // ============================================
-            $existingToken = DeviceToken::where('device_token', $request->device_token)->first();
+            $token = $request->device_token;
 
-            if ($existingToken) {
-                // Token sudah ada di database
+            // ── Hapus semua record lain yang memakai token yang sama ─────────
+            // (dari akun / karyawan berbeda)
+            $deleted = DeviceToken::where('device_token', $token)
+                ->where('karyawan_id', '!=', $karyawanId)
+                ->delete();
 
-                if ($existingToken->karyawan_id === $karyawanId) {
-                    // ============================================
-                    // CASE 1: TOKEN MILIK KARYAWAN YANG SAMA
-                    // ============================================
-                    // Update data token (device_type, device_name, dll)
-                    $existingToken->update([
-                        'user_id' => $user->user_id,
-                        'device_type' => $request->device_type,
-                        'device_name' => $request->device_name,
-                        'is_active' => true,
-                        'last_used_at' => now()
-                    ]);
-
-                    Log::info('Device token updated (same karyawan)', [
-                        'karyawan_id' => $karyawanId,
-                        'device_type' => $request->device_type
-                    ]);
-
-                    return $this->successResponse($existingToken, 'Device token berhasil diupdate');
-                } else {
-                    // ============================================
-                    // CASE 2: TOKEN MILIK KARYAWAN LAIN
-                    // ============================================
-                    // Non-aktifkan token karyawan lama
-                    $existingToken->update(['is_active' => false]);
-
-                    Log::info('Deactivated token from other karyawan', [
-                        'old_karyawan_id' => $existingToken->karyawan_id,
-                        'new_karyawan_id' => $karyawanId,
-                        'device_token' => substr($request->device_token, 0, 20) . '...'
-                    ]);
-
-                    // Buat token baru untuk karyawan sekarang
-                    $newToken = DeviceToken::create([
-                        'user_id' => $user->user_id,
-                        'karyawan_id' => $karyawanId,
-                        'device_token' => $request->device_token,
-                        'device_type' => $request->device_type,
-                        'device_name' => $request->device_name,
-                        'is_active' => true,
-                        'last_used_at' => now()
-                    ]);
-
-                    Log::info('Created new token for current karyawan', [
-                        'karyawan_id' => $karyawanId,
-                        'device_type' => $request->device_type
-                    ]);
-
-                    return $this->createdResponse($newToken, 'Device token berhasil didaftarkan');
-                }
-            } else {
-                // ============================================
-                // CASE 3: TOKEN BELUM ADA DI DATABASE
-                // ============================================
-                // Buat token baru
-                $newToken = DeviceToken::create([
-                    'user_id' => $user->user_id,
-                    'karyawan_id' => $karyawanId,
-                    'device_token' => $request->device_token,
-                    'device_type' => $request->device_type,
-                    'device_name' => $request->device_name,
-                    'is_active' => true,
-                    'last_used_at' => now()
+            if ($deleted) {
+                Log::info('DeviceToken: removed token from other karyawan(s)', [
+                    'token_prefix'   => substr($token, 0, 20) . '...',
+                    'new_karyawan_id' => $karyawanId,
+                    'deleted_rows'   => $deleted,
                 ]);
-
-                Log::info('New device token registered', [
-                    'karyawan_id' => $karyawanId,
-                    'device_type' => $request->device_type
-                ]);
-
-                return $this->createdResponse($newToken, 'Device token berhasil didaftarkan');
             }
+
+            // ── Sekarang upsert token untuk karyawan yang sedang login ───────
+            $deviceToken = DeviceToken::updateOrCreate(
+                ['device_token' => $token],                // cari by token
+                [
+                    'user_id'      => $user->user_id,
+                    'karyawan_id'  => $karyawanId,
+                    'device_type'  => $request->device_type,
+                    'device_name'  => $request->device_name,
+                    'is_active'    => true,
+                    'last_used_at' => now(),
+                ]
+            );
+
+            $wasCreated = $deviceToken->wasRecentlyCreated;
+
+            Log::info('DeviceToken: ' . ($wasCreated ? 'registered' : 'updated'), [
+                'karyawan_id' => $karyawanId,
+                'device_type' => $request->device_type,
+            ]);
+
+            return $wasCreated
+                ? $this->createdResponse($deviceToken, 'Device token berhasil didaftarkan')
+                : $this->successResponse($deviceToken, 'Device token berhasil diupdate');
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return $this->validationErrorResponse($e->errors());
         } catch (\Exception $e) {
-            Log::error('Device token store failed', [
+            Log::error('DeviceToken store failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
-
             return $this->serverErrorResponse('Gagal menyimpan device token');
         }
     }
 
     /**
      * Get all device tokens for current user
-     * GET /api/device-tokens
+     * GET /api/device/device-token
      */
     public function index(Request $request)
     {
         try {
-            $user = auth()->user();
-            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+            $karyawanId = $request->user()->karyawan?->karyawan_id;
 
             if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
             $tokens = DeviceToken::where('karyawan_id', $karyawanId)
-                ->orderBy('last_used_at', 'desc')
+                ->orderByDesc('last_used_at')
                 ->get();
 
             return $this->successResponse($tokens, 'Data device token berhasil diambil');
@@ -145,18 +108,15 @@ class DeviceTokenController extends BaseApiController
     }
 
     /**
-     * Delete device token (logout)
-     * DELETE /api/device-token
+     * Delete device token (biasanya dipanggil saat logout)
+     * DELETE /api/device/device-token
      */
     public function destroy(Request $request)
     {
         try {
-            $request->validate([
-                'device_token' => 'required|string'
-            ]);
+            $request->validate(['device_token' => 'required|string']);
 
-            $user = auth()->user();
-            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+            $karyawanId = $request->user()->karyawan?->karyawan_id;
 
             if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
@@ -167,55 +127,50 @@ class DeviceTokenController extends BaseApiController
                 ->delete();
 
             if ($deleted) {
-                Log::info('Device token deleted', [
-                    'karyawan_id' => $karyawanId,
-                    'device_token' => substr($request->device_token, 0, 20) . '...'
+                Log::info('DeviceToken deleted', [
+                    'karyawan_id'  => $karyawanId,
+                    'token_prefix' => substr($request->device_token, 0, 20) . '...',
                 ]);
-
                 return $this->noContentResponse('Device token berhasil dihapus');
-            } else {
-                return $this->notFoundResponse('Device token tidak ditemukan');
             }
-        } catch (\Exception $e) {
-            Log::error('Device token delete failed', [
-                'error' => $e->getMessage()
-            ]);
 
+            return $this->notFoundResponse('Device token tidak ditemukan');
+
+        } catch (\Exception $e) {
+            Log::error('DeviceToken delete failed', ['error' => $e->getMessage()]);
             return $this->serverErrorResponse('Gagal menghapus device token');
         }
     }
 
     /**
      * Deactivate device token
-     * POST /api/device-token/deactivate
+     * POST /api/device/device-token/deactivate
      */
     public function deactivate(Request $request)
     {
         try {
-            $request->validate([
-                'device_token' => 'required|string'
-            ]);
+            $request->validate(['device_token' => 'required|string']);
 
-            $user = auth()->user();
-            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+            $karyawanId = $request->user()->karyawan?->karyawan_id;
 
             if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            $deviceToken = DeviceToken::where('device_token', $request->device_token)
+            $dt = DeviceToken::where('device_token', $request->device_token)
                 ->where('karyawan_id', $karyawanId)
                 ->first();
 
-            if ($deviceToken) {
-                $deviceToken->update(['is_active' => false]);
-
-                Log::info('Device token deactivated', ['karyawan_id' => $karyawanId]);
-
-                return $this->successResponse($deviceToken, 'Device token berhasil dinonaktifkan');
-            } else {
+            if (!$dt) {
                 return $this->notFoundResponse('Device token tidak ditemukan');
             }
+
+            $dt->update(['is_active' => false]);
+
+            Log::info('DeviceToken deactivated', ['karyawan_id' => $karyawanId]);
+
+            return $this->successResponse($dt, 'Device token berhasil dinonaktifkan');
+
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal menonaktifkan device token');
         }
@@ -223,38 +178,33 @@ class DeviceTokenController extends BaseApiController
 
     /**
      * Activate device token
-     * POST /api/device-token/activate
+     * POST /api/device/device-token/activate
      */
     public function activate(Request $request)
     {
         try {
-            $request->validate([
-                'device_token' => 'required|string'
-            ]);
+            $request->validate(['device_token' => 'required|string']);
 
-            $user = auth()->user();
-            $karyawanId = $user->karyawan ? $user->karyawan->karyawan_id : null;
+            $karyawanId = $request->user()->karyawan?->karyawan_id;
 
             if (!$karyawanId) {
                 return $this->errorResponse('User tidak memiliki data karyawan', 400);
             }
 
-            $deviceToken = DeviceToken::where('device_token', $request->device_token)
+            $dt = DeviceToken::where('device_token', $request->device_token)
                 ->where('karyawan_id', $karyawanId)
                 ->first();
 
-            if ($deviceToken) {
-                $deviceToken->update([
-                    'is_active' => true,
-                    'last_used_at' => now()
-                ]);
-
-                Log::info('Device token activated', ['karyawan_id' => $karyawanId]);
-
-                return $this->successResponse($deviceToken, 'Device token berhasil diaktifkan');
-            } else {
+            if (!$dt) {
                 return $this->notFoundResponse('Device token tidak ditemukan');
             }
+
+            $dt->update(['is_active' => true, 'last_used_at' => now()]);
+
+            Log::info('DeviceToken activated', ['karyawan_id' => $karyawanId]);
+
+            return $this->successResponse($dt, 'Device token berhasil diaktifkan');
+
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Gagal mengaktifkan device token');
         }

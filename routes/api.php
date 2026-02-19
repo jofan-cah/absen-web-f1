@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AbsenController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\IjinController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\LemburController;
@@ -285,6 +286,13 @@ Route::middleware(['auth:sanctum', 'throttle:500,1'])->group(function () {
     Route::get('/available-jadwals', [ShiftSwapController::class, 'getAvailableJadwals']);
 });
 
+// ─── Event (Mobile) ───────────────────────────────────────────────────────────
+Route::prefix('event')->group(function () {
+    Route::get('/',                    [ApiEventController::class, 'index']);
+    Route::post('/scan',               [ApiEventController::class, 'scanEventQr']);
+    Route::get('/history/me',          [ApiEventController::class, 'history']);
+    Route::get('/{id}',                [ApiEventController::class, 'show']);
+});
 
 
 });

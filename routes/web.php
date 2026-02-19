@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AbsenController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\IjinController;
 use App\Http\Controllers\Admin\IjinTypeController;
 use App\Http\Controllers\Admin\JadwalController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Admin\TunjanganTypeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Koordinator\LemburKoorController;
 use App\Http\Controllers\ActivityLogController;
+use App\Models\EventAttendance;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to admin login
@@ -87,6 +89,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Routes yang HANYA bisa diakses ADMIN
         Route::middleware(['role:admin'])->group(function () {
+
+            // ─── Event Management ─────────────────────────────────────────────
+            Route::prefix('event')->name('event.')->group(function () {
+                Route::get('/',                        [EventController::class, 'index'])->name('index');
+                Route::get('/create',                  [EventController::class, 'create'])->name('create');
+                Route::post('/',                       [EventController::class, 'store'])->name('store');
+                Route::get('/{id}',                    [EventController::class, 'show'])->name('show');
+                Route::get('/{id}/edit',               [EventController::class, 'edit'])->name('edit');
+                Route::put('/{id}',                    [EventController::class, 'update'])->name('update');
+                Route::delete('/{id}',                 [EventController::class, 'destroy'])->name('destroy');
+                Route::post('/{id}/update-status',     [EventController::class, 'updateStatus'])->name('update-status');
+                Route::get('/{id}/qr',                 [EventController::class, 'showQr'])->name('qr');
+                Route::get('/{id}/qr-otp',             [EventController::class, 'generateQrOtp'])->name('qr-otp');
+                Route::get('/{id}/scan',               [EventController::class, 'scanPage'])->name('scan-page');
+                Route::post('/{id}/scan',              [EventController::class, 'processScan'])->name('process-scan');
+                Route::get('/{id}/manual',             [EventController::class, 'manualPage'])->name('manual-page');
+                Route::post('/{id}/manual',            [EventController::class, 'processManual'])->name('process-manual');
+                Route::delete('/{id}/attendance/{att}',[EventController::class, 'removeAttendance'])->name('remove-attendance');
+                Route::get('/{id}/pdf',                [EventController::class, 'downloadPdf'])->name('download-pdf');
+                Route::get('/{id}/pdf-preview',        [EventController::class, 'previewPdf'])->name('preview-pdf');
+            });
 
             // Department Management
             Route::resource('department', DepartmentController::class);
@@ -261,6 +284,14 @@ Route::middleware(['auth', 'role:koordinator'])->prefix('koordinator')->name('ko
 
 
 
+
+// Public: Verifikasi Tiket Digital
+Route::get('/ticket/{token}', function (string $token) {
+    $attendance = EventAttendance::with(['event', 'karyawan.department'])
+        ->where('ticket_token', $token)
+        ->first();
+    return view('ticket.verify', compact('attendance'));
+})->name('ticket.verify');
 
 Route::get('/test-slack-respondprefast', function () {
     $slack = app(\App\Services\SlackNotificationService::class);

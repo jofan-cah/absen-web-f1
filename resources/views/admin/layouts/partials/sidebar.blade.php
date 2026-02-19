@@ -543,6 +543,28 @@
                 </div>
             @endif
 
+            <!-- Event - ADMIN ONLY -->
+            @if ($isAdmin)
+                <div class="mb-1.5">
+                    <a href="{{ route('admin.event.index') }}"
+                        class="nav-item {{ request()->routeIs('admin.event.*') ? 'active' : '' }} relative flex items-center px-2.5 py-2 text-xs font-semibold rounded-xl transition-all duration-300 group hover:scale-[1.02]"
+                        @click="window.innerWidth < 1024 && (sidebarOpen = false)">
+                        <div
+                            class="flex items-center justify-center w-7 h-7 mr-2 rounded-lg nav-icon bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <span class="truncate text-gray-700 group-hover:text-red-700">Event</span>
+                        @php $activeEvents = \App\Models\Event::whereIn('status', ['active','ongoing'])->count(); @endphp
+                        @if($activeEvents > 0)
+                            <span class="text-xs bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded-full">{{ $activeEvents }}</span>
+                        @endif
+                    </a>
+                </div>
+            @endif
+
             <!-- Monitoring - ADMIN ONLY -->
             @if ($isAdmin)
                 <div class="mb-1.5">

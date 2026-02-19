@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\DeviceToken;
 use App\Models\User;
 use App\Models\Karyawan;
 use App\Models\ActivityLog;
@@ -95,9 +96,24 @@ class AuthController extends BaseApiController
 
     public function logout(Request $request)
     {
-        $user = $request->user();
+        $user     = $request->user();
+        $karyawan = $user->karyawan;
 
-        // Log logout sebelum delete token
+        // ── Nonaktifkan device token FCM jika dikirim ───────────────────────
+        // Mobile app wajib kirim device_token saat logout agar HP tidak
+        // menerima notifikasi akun lain setelah ganti login.
+        if ($request->filled('device_token') && $karyawan) {
+            DeviceToken::where('device_token', $request->device_token)
+                ->where('karyawan_id', $karyawan->karyawan_id)
+                ->update(['is_active' => false]);
+
+            Log::info('DeviceToken deactivated on logout', [
+                'karyawan_id'  => $karyawan->karyawan_id,
+                'token_prefix' => substr($request->device_token, 0, 20) . '...',
+            ]);
+        }
+
+        // Log logout sebelum delete sanctum token
         $this->safeLog(fn() => ActivityLog::logLogout($user, 'mobile'));
 
         $user->currentAccessToken()->delete();
