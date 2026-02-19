@@ -36,26 +36,22 @@ class DeviceTokenController extends BaseApiController
 
             $token = $request->device_token;
 
-            // ── Hapus semua record lain yang memakai token yang sama ─────────
-            // (dari akun / karyawan berbeda)
-            $deleted = DeviceToken::where('device_token', $token)
+            // ── Hapus semua token lama milik karyawan ini (1 karyawan = 1 token) ─
+            DeviceToken::where('karyawan_id', $karyawanId)
+                ->where('device_token', '!=', $token)
+                ->delete();
+
+            // ── Hapus juga token ini kalau dimiliki karyawan lain ────────────
+            DeviceToken::where('device_token', $token)
                 ->where('karyawan_id', '!=', $karyawanId)
                 ->delete();
 
-            if ($deleted) {
-                Log::info('DeviceToken: removed token from other karyawan(s)', [
-                    'token_prefix'   => substr($token, 0, 20) . '...',
-                    'new_karyawan_id' => $karyawanId,
-                    'deleted_rows'   => $deleted,
-                ]);
-            }
-
-            // ── Sekarang upsert token untuk karyawan yang sedang login ───────
+            // ── Upsert satu-satunya token untuk karyawan ini ─────────────────
             $deviceToken = DeviceToken::updateOrCreate(
-                ['device_token' => $token],                // cari by token
+                ['karyawan_id' => $karyawanId],
                 [
                     'user_id'      => $user->user_id,
-                    'karyawan_id'  => $karyawanId,
+                    'device_token' => $token,
                     'device_type'  => $request->device_type,
                     'device_name'  => $request->device_name,
                     'is_active'    => true,
