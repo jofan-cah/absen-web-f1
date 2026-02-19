@@ -48,6 +48,13 @@ class Event extends Model
         'longitude'        => 'float',
     ];
 
+    // ─── Route Model Binding ────────────────────────────────────────────────────
+
+    public function getRouteKeyName(): string
+    {
+        return 'event_id';
+    }
+
     // ─── Relationships ──────────────────────────────────────────────────────────
 
     public function department()
@@ -70,6 +77,28 @@ class Event extends Model
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['active', 'ongoing']);
+    }
+
+    // ─── Helper Methods ──────────────────────────────────────────────────────────
+
+    public function isActive(): bool
+    {
+        return in_array($this->status, ['active', 'ongoing']);
+    }
+
+    public function hasAttended(string $karyawanId): bool
+    {
+        return $this->attendances()->where('karyawan_id', $karyawanId)->exists();
+    }
+
+    public function getTotalAttendees(): int
+    {
+        return $this->attendances()->count();
+    }
+
+    public function getTotalOrang(): int
+    {
+        return (int) $this->attendances()->sum('jumlah_orang');
     }
 
     // ─── ID Generator ───────────────────────────────────────────────────────────

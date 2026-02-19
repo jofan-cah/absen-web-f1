@@ -91,24 +91,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(['role:admin'])->group(function () {
 
             // ─── Event Management ─────────────────────────────────────────────
+            Route::resource('event', EventController::class);
             Route::prefix('event')->name('event.')->group(function () {
-                Route::get('/',                        [EventController::class, 'index'])->name('index');
-                Route::get('/create',                  [EventController::class, 'create'])->name('create');
-                Route::post('/',                       [EventController::class, 'store'])->name('store');
-                Route::get('/{id}',                    [EventController::class, 'show'])->name('show');
-                Route::get('/{id}/edit',               [EventController::class, 'edit'])->name('edit');
-                Route::put('/{id}',                    [EventController::class, 'update'])->name('update');
-                Route::delete('/{id}',                 [EventController::class, 'destroy'])->name('destroy');
-                Route::post('/{id}/update-status',     [EventController::class, 'updateStatus'])->name('update-status');
-                Route::get('/{id}/qr',                 [EventController::class, 'showQr'])->name('qr');
-                Route::get('/{id}/qr-otp',             [EventController::class, 'generateQrOtp'])->name('qr-otp');
-                Route::get('/{id}/scan',               [EventController::class, 'scanPage'])->name('scan-page');
-                Route::post('/{id}/scan',              [EventController::class, 'processScan'])->name('process-scan');
-                Route::get('/{id}/manual',             [EventController::class, 'manualPage'])->name('manual-page');
-                Route::post('/{id}/manual',            [EventController::class, 'processManual'])->name('process-manual');
-                Route::delete('/{id}/attendance/{att}',[EventController::class, 'removeAttendance'])->name('remove-attendance');
-                Route::get('/{id}/pdf',                [EventController::class, 'downloadPdf'])->name('download-pdf');
-                Route::get('/{id}/pdf-preview',        [EventController::class, 'previewPdf'])->name('preview-pdf');
+                Route::post('/{event}/update-status',              [EventController::class, 'updateStatus'])->name('update-status');
+                Route::get('/{event}/qr',                          [EventController::class, 'showQr'])->name('qr');
+                Route::get('/{event}/qr-otp',                      [EventController::class, 'generateQrOtp'])->name('qr-otp');
+                Route::get('/{event}/scan',                        [EventController::class, 'scanPage'])->name('scan');
+                Route::post('/{event}/scan',                       [EventController::class, 'processScan'])->name('process-scan');
+                Route::get('/{event}/manual',                      [EventController::class, 'manualPage'])->name('manual');
+                Route::post('/{event}/manual',                     [EventController::class, 'processManual'])->name('process-manual');
+                Route::delete('/{event}/attendance/{attendance}',  [EventController::class, 'removeAttendance'])->name('remove-attendance');
+                Route::get('/{event}/pdf',                         [EventController::class, 'downloadPdf'])->name('pdf');
+                Route::get('/{event}/pdf-preview',                 [EventController::class, 'previewPdf'])->name('pdf-preview');
             });
 
             // Department Management

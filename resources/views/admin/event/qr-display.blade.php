@@ -85,7 +85,7 @@
     <script>
         const EVENT_ID   = @json($event->event_id);
         const REFRESH    = {{ $event->qr_refresh_seconds }};
-        const OTP_URL    = @json(route('admin.event.qr-otp', $event->event_id));
+        const OTP_URL    = @json(route('admin.event.qr-otp', $event));
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
 
         let countdown      = REFRESH;

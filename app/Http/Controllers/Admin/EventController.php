@@ -16,7 +16,7 @@ class EventController extends Controller
 
     public function index(Request $request)
     {
-        $query = Event::with(['department', 'creator'])
+        $query = Event::with(['department', 'divisi', 'creator'])
             ->withCount('attendances');
 
         if ($request->filled('status')) {
@@ -31,7 +31,14 @@ class EventController extends Controller
 
         $events = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
 
-        return view('admin.event.indexEvent', compact('events'));
+        $stats = [
+            'total'    => Event::count(),
+            'active'   => Event::whereIn('status', ['active', 'ongoing'])->count(),
+            'today'    => Event::whereDate('start_date', today())->count(),
+            'upcoming' => Event::where('start_date', '>', today())->count(),
+        ];
+
+        return view('admin.event.index', compact('events', 'stats'));
     }
 
     // ─── Create ──────────────────────────────────────────────────────────────────
@@ -39,7 +46,8 @@ class EventController extends Controller
     public function create()
     {
         $departments = Department::where('is_active', true)->orderBy('name')->get();
-        return view('admin.event.createEvent', compact('departments'));
+
+        return view('admin.event.create', compact('departments'));
     }
 
     // ─── Store ───────────────────────────────────────────────────────────────────
@@ -64,10 +72,10 @@ class EventController extends Controller
             'department_id'       => 'nullable|exists:departments,department_id',
         ]);
 
-        $validated['created_by']         = auth()->id();
-        $validated['allow_multi_scan']    = $request->boolean('allow_multi_scan');
-        $validated['qr_refresh_seconds']  = $request->input('qr_refresh_seconds', 30);
-        $validated['radius']              = $request->input('radius', 100);
+        $validated['created_by']        = auth()->id();
+        $validated['allow_multi_scan']   = $request->boolean('allow_multi_scan');
+        $validated['qr_refresh_seconds'] = $request->input('qr_refresh_seconds', 30);
+        $validated['radius']             = $request->input('radius', 100);
 
         Event::create($validated);
 
@@ -77,36 +85,34 @@ class EventController extends Controller
 
     // ─── Show ────────────────────────────────────────────────────────────────────
 
-    public function show(string $id)
+    public function show(Event $event)
     {
-        $event = Event::with(['department', 'creator'])->findOrFail($id);
+        $event->load(['department', 'creator']);
 
         $attendances = EventAttendance::with(['karyawan.department', 'verifiedBy'])
-            ->where('event_id', $id)
+            ->where('event_id', $event->event_id)
             ->orderByDesc('check_in_at')
             ->get();
 
-        $totalOrang = $attendances->sum('jumlah_orang');
+        $totalAttendees = $event->getTotalAttendees();
+        $totalOrang     = $event->getTotalOrang();
 
-        return view('admin.event.showEvent', compact('event', 'attendances', 'totalOrang'));
+        return view('admin.event.show', compact('event', 'attendances', 'totalAttendees', 'totalOrang'));
     }
 
     // ─── Edit ────────────────────────────────────────────────────────────────────
 
-    public function edit(string $id)
+    public function edit(Event $event)
     {
-        $event       = Event::findOrFail($id);
         $departments = Department::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.event.editEvent', compact('event', 'departments'));
+        return view('admin.event.edit', compact('event', 'departments'));
     }
 
     // ─── Update ──────────────────────────────────────────────────────────────────
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, Event $event)
     {
-        $event = Event::findOrFail($id);
-
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
             'description'         => 'nullable|string',
@@ -131,15 +137,14 @@ class EventController extends Controller
 
         $event->update($validated);
 
-        return redirect()->route('admin.event.show', $id)
+        return redirect()->route('admin.event.show', $event)
             ->with('success', 'Event berhasil diperbarui.');
     }
 
     // ─── Destroy ─────────────────────────────────────────────────────────────────
 
-    public function destroy(string $id)
+    public function destroy(Event $event)
     {
-        $event = Event::findOrFail($id);
         $event->delete();
 
         return redirect()->route('admin.event.index')
@@ -148,27 +153,23 @@ class EventController extends Controller
 
     // ─── Update Status ───────────────────────────────────────────────────────────
 
-    public function updateStatus(Request $request, string $id)
+    public function updateStatus(Request $request, Event $event)
     {
-        $event = Event::findOrFail($id);
-
         $request->validate([
             'status' => 'required|in:draft,active,ongoing,completed,cancelled',
         ]);
 
         $event->update(['status' => $request->status]);
 
-        return back()->with('success', 'Status event berhasil diubah menjadi ' . $request->status . '.');
+        return back()->with('success', 'Status event diubah menjadi ' . ucfirst($request->status) . '.');
     }
 
     // ─── QR Display ──────────────────────────────────────────────────────────────
 
-    public function showQr(string $id)
+    public function showQr(Event $event)
     {
-        $event = Event::findOrFail($id);
-
-        if (!in_array($event->status, ['active', 'ongoing'])) {
-            return redirect()->route('admin.event.show', $id)
+        if (!$event->isActive()) {
+            return redirect()->route('admin.event.show', $event)
                 ->with('error', 'QR hanya tersedia untuk event berstatus active atau ongoing.');
         }
 
@@ -177,42 +178,35 @@ class EventController extends Controller
 
     // ─── Generate QR OTP (AJAX) ──────────────────────────────────────────────────
 
-    public function generateQrOtp(string $id)
+    public function generateQrOtp(Event $event)
     {
-        $event = Event::findOrFail($id);
-
-        if (!in_array($event->status, ['active', 'ongoing'])) {
+        if (!$event->isActive()) {
             return response()->json(['error' => 'Event tidak aktif'], 403);
         }
 
         ['otp' => $otp, 'ts' => $ts] = $event->generateOtp();
-
-        $totalAttendees = EventAttendance::where('event_id', $id)->count();
-        $totalOrang     = EventAttendance::where('event_id', $id)->sum('jumlah_orang');
 
         return response()->json([
             'event_id'        => $event->event_id,
             'otp'             => $otp,
             'ts'              => $ts,
             'expires_in'      => $event->qr_refresh_seconds,
-            'total_attendees' => $totalAttendees,
-            'total_orang'     => $totalOrang,
+            'total_attendees' => $event->getTotalAttendees(),
+            'total_orang'     => $event->getTotalOrang(),
         ]);
     }
 
     // ─── Scan Page (Webcam) ──────────────────────────────────────────────────────
 
-    public function scanPage(string $id)
+    public function scanPage(Event $event)
     {
-        $event = Event::findOrFail($id);
-
-        if (!in_array($event->status, ['active', 'ongoing'])) {
-            return redirect()->route('admin.event.show', $id)
+        if (!$event->isActive()) {
+            return redirect()->route('admin.event.show', $event)
                 ->with('error', 'Scanner hanya tersedia untuk event berstatus active atau ongoing.');
         }
 
         $recentAttendances = EventAttendance::with(['karyawan.department'])
-            ->where('event_id', $id)
+            ->where('event_id', $event->event_id)
             ->orderByDesc('check_in_at')
             ->limit(20)
             ->get();
@@ -220,58 +214,51 @@ class EventController extends Controller
         return view('admin.event.scan', compact('event', 'recentAttendances'));
     }
 
-    // ─── Process Scan (NIP from webcam) ─────────────────────────────────────────
+    // ─── Process Scan ────────────────────────────────────────────────────────────
 
-    public function processScan(Request $request, string $id)
+    public function processScan(Request $request, Event $event)
     {
-        $event = Event::findOrFail($id);
-
-        if (!in_array($event->status, ['active', 'ongoing'])) {
+        if (!$event->isActive()) {
             return response()->json(['success' => false, 'message' => 'Event tidak aktif'], 422);
         }
 
         $request->validate([
-            'nip'         => 'required|string',
+            'nip'          => 'required|string',
             'jumlah_orang' => 'nullable|integer|min:1',
-            'keterangan'  => 'nullable|string',
+            'keterangan'   => 'nullable|string',
         ]);
 
-        // Cari karyawan by NIP
         $karyawan = Karyawan::where('nip', $request->nip)
             ->where('employment_status', 'active')
             ->first();
 
         if (!$karyawan) {
-            return response()->json(['success' => false, 'message' => 'Karyawan dengan NIP ' . $request->nip . ' tidak ditemukan'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan dengan NIP ' . $request->nip . ' tidak ditemukan',
+            ], 404);
         }
 
-        // Cek double scan
-        if (!$event->allow_multi_scan) {
-            $exists = EventAttendance::where('event_id', $id)
-                ->where('karyawan_id', $karyawan->karyawan_id)
-                ->exists();
-
-            if ($exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $karyawan->full_name . ' sudah tercatat hadir di event ini',
-                ], 422);
-            }
+        if (!$event->allow_multi_scan && $event->hasAttended($karyawan->karyawan_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => $karyawan->full_name . ' sudah tercatat hadir di event ini',
+            ], 422);
         }
 
         $attendance = EventAttendance::create([
-            'event_id'    => $id,
-            'karyawan_id' => $karyawan->karyawan_id,
-            'method'      => 'qr_scan',
+            'event_id'     => $event->event_id,
+            'karyawan_id'  => $karyawan->karyawan_id,
+            'method'       => 'qr_scan',
             'jumlah_orang' => $event->type === 'partnership' ? ($request->jumlah_orang ?? 1) : 1,
-            'keterangan'  => $request->keterangan,
-            'verified_by' => auth()->id(),
+            'keterangan'   => $request->keterangan,
+            'verified_by'  => auth()->id(),
         ]);
 
         return response()->json([
-            'success'     => true,
-            'message'     => $karyawan->full_name . ' berhasil dicatat hadir',
-            'karyawan'    => [
+            'success'      => true,
+            'message'      => $karyawan->full_name . ' berhasil dicatat hadir',
+            'karyawan'     => [
                 'full_name'  => $karyawan->full_name,
                 'nip'        => $karyawan->nip,
                 'department' => $karyawan->department?->name,
@@ -283,12 +270,10 @@ class EventController extends Controller
 
     // ─── Manual Attendance Page ───────────────────────────────────────────────────
 
-    public function manualPage(string $id)
+    public function manualPage(Event $event)
     {
-        $event = Event::findOrFail($id);
-
-        if (!in_array($event->status, ['active', 'ongoing'])) {
-            return redirect()->route('admin.event.show', $id)
+        if (!$event->isActive()) {
+            return redirect()->route('admin.event.show', $event)
                 ->with('error', 'Manual attendance hanya tersedia untuk event berstatus active atau ongoing.');
         }
 
@@ -298,9 +283,8 @@ class EventController extends Controller
             ->orderBy('full_name')
             ->get();
 
-        // Exclude yang sudah hadir (jika tidak allow multi scan)
         if (!$event->allow_multi_scan) {
-            $alreadyIn = EventAttendance::where('event_id', $id)->pluck('karyawan_id')->toArray();
+            $alreadyIn = EventAttendance::where('event_id', $event->event_id)->pluck('karyawan_id')->toArray();
             $karyawans = $karyawans->whereNotIn('karyawan_id', $alreadyIn)->values();
         }
 
@@ -309,33 +293,25 @@ class EventController extends Controller
 
     // ─── Process Manual ──────────────────────────────────────────────────────────
 
-    public function processManual(Request $request, string $id)
+    public function processManual(Request $request, Event $event)
     {
-        $event = Event::findOrFail($id);
-
         $request->validate([
             'karyawan_id'  => 'required|exists:karyawans,karyawan_id',
             'jumlah_orang' => 'nullable|integer|min:1',
             'keterangan'   => 'nullable|string',
         ]);
 
-        if (!$event->allow_multi_scan) {
-            $exists = EventAttendance::where('event_id', $id)
-                ->where('karyawan_id', $request->karyawan_id)
-                ->exists();
-
-            if ($exists) {
-                return back()->with('error', 'Karyawan sudah tercatat hadir di event ini.');
-            }
+        if (!$event->allow_multi_scan && $event->hasAttended($request->karyawan_id)) {
+            return back()->with('error', 'Karyawan sudah tercatat hadir di event ini.');
         }
 
         EventAttendance::create([
-            'event_id'    => $id,
-            'karyawan_id' => $request->karyawan_id,
-            'method'      => 'manual',
+            'event_id'     => $event->event_id,
+            'karyawan_id'  => $request->karyawan_id,
+            'method'       => 'manual',
             'jumlah_orang' => $event->type === 'partnership' ? ($request->jumlah_orang ?? 1) : 1,
-            'keterangan'  => $request->keterangan,
-            'verified_by' => auth()->id(),
+            'keterangan'   => $request->keterangan,
+            'verified_by'  => auth()->id(),
         ]);
 
         return back()->with('success', 'Kehadiran berhasil dicatat.');
@@ -343,46 +319,48 @@ class EventController extends Controller
 
     // ─── Remove Attendance ────────────────────────────────────────────────────────
 
-    public function removeAttendance(string $id, string $att)
+    public function removeAttendance(Event $event, string $attendance)
     {
-        $attendance = EventAttendance::where('event_id', $id)
-            ->where('attendance_id', $att)
+        $att = EventAttendance::where('event_id', $event->event_id)
+            ->where('attendance_id', $attendance)
             ->firstOrFail();
 
-        $attendance->delete();
+        $att->delete();
 
         return back()->with('success', 'Data kehadiran berhasil dihapus.');
     }
 
-    // ─── PDF ─────────────────────────────────────────────────────────────────────
+    // ─── PDF Preview ─────────────────────────────────────────────────────────────
 
-    public function previewPdf(string $id)
+    public function previewPdf(Event $event)
     {
-        $event       = Event::with(['department', 'creator'])->findOrFail($id);
+        $event->load(['department', 'creator']);
         $attendances = EventAttendance::with(['karyawan.department', 'verifiedBy'])
-            ->where('event_id', $id)
+            ->where('event_id', $event->event_id)
             ->orderByDesc('check_in_at')
             ->get();
-        $totalOrang = $attendances->sum('jumlah_orang');
+        $totalOrang = $event->getTotalOrang();
 
-        $pdf = Pdf::loadView('admin.event.pdf', compact('event', 'attendances', 'totalOrang'))
+        $pdf = Pdf::loadView('admin.event.pdf-report', compact('event', 'attendances', 'totalOrang'))
             ->setPaper('a4', 'portrait');
 
-        return $pdf->stream('event-' . $id . '.pdf');
+        return $pdf->stream('event-' . $event->event_id . '.pdf');
     }
 
-    public function downloadPdf(string $id)
+    // ─── PDF Download ─────────────────────────────────────────────────────────────
+
+    public function downloadPdf(Event $event)
     {
-        $event       = Event::with(['department', 'creator'])->findOrFail($id);
+        $event->load(['department', 'creator']);
         $attendances = EventAttendance::with(['karyawan.department', 'verifiedBy'])
-            ->where('event_id', $id)
+            ->where('event_id', $event->event_id)
             ->orderByDesc('check_in_at')
             ->get();
-        $totalOrang = $attendances->sum('jumlah_orang');
+        $totalOrang = $event->getTotalOrang();
 
-        $pdf = Pdf::loadView('admin.event.pdf', compact('event', 'attendances', 'totalOrang'))
+        $pdf = Pdf::loadView('admin.event.pdf-report', compact('event', 'attendances', 'totalOrang'))
             ->setPaper('a4', 'portrait');
 
-        return $pdf->download('event-' . $id . '.pdf');
+        return $pdf->download('event-' . $event->event_id . '.pdf');
     }
 }
