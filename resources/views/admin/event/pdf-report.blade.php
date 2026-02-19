@@ -1,334 +1,331 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Kehadiran – {{ $event->title }}</title>
+    <meta charset="utf-8">
+    <title>Laporan Event - {{ $event->title }}</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 11px;
-            color: #1a1a2e;
-            background: #fff;
-            padding: 24px;
-        }
-
-        /* Header */
-        .header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #e11d48;
-            margin-bottom: 18px;
-        }
-        .header-brand { display: flex; flex-direction: column; }
-        .brand-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: #e11d48;
-            letter-spacing: -0.3px;
-        }
-        .brand-sub {
-            font-size: 9px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 2px;
-        }
-        .header-meta {
-            text-align: right;
-            font-size: 9px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-
-        /* Title Section */
-        .title-section {
-            background: linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%);
-            border: 1px solid #fecdd3;
-            border-left: 4px solid #e11d48;
-            border-radius: 6px;
-            padding: 14px 16px;
-            margin-bottom: 16px;
-        }
-        .event-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 6px;
-        }
-        .event-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-size: 9.5px;
-            color: #475569;
-        }
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-        .meta-label { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px; }
-
-        /* Status badge */
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .badge-completed { background: #e0e7ff; color: #3730a3; }
-        .badge-active    { background: #dcfce7; color: #166534; }
-        .badge-draft     { background: #f1f5f9; color: #475569; }
-        .badge-cancelled { background: #fee2e2; color: #991b1b; }
-        .badge-ongoing   { background: #dbeafe; color: #1e40af; }
-        .badge-internal     { background: #dbeafe; color: #1e40af; }
-        .badge-partnership  { background: #f3e8ff; color: #6b21a8; }
-
-        /* Stats Row */
-        .stats-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-        .stat-card {
-            flex: 1;
-            text-align: center;
-            padding: 12px 10px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-        }
-        .stat-value {
-            font-size: 22px;
-            font-weight: 700;
-            color: #0f172a;
-            line-height: 1;
-        }
-        .stat-label {
-            font-size: 8.5px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 4px;
-            font-weight: 600;
-        }
-        .stat-card.blue  { border-color: #bfdbfe; }
-        .stat-card.blue .stat-value { color: #2563eb; }
-        .stat-card.purple { border-color: #ddd6fe; }
-        .stat-card.purple .stat-value { color: #7c3aed; }
-        .stat-card.green  { border-color: #bbf7d0; }
-        .stat-card.green .stat-value { color: #16a34a; }
-
-        /* Table */
-        .section-title {
             font-size: 10px;
-            font-weight: 700;
-            color: #374151;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+            color: #333;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #64748b;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .header h2 {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: normal;
+        }
+
+        .header p {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .info-section {
+            margin-bottom: 15px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .info-table {
+            width: 100%;
+        }
+
+        .info-table td {
+            padding: 3px 5px;
+            vertical-align: top;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #475569;
+            width: 130px;
+        }
+
+        .info-value {
+            color: #1e293b;
+        }
+
+        .summary-boxes {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .summary-boxes td {
+            width: 25%;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+        }
+
+        .summary-number {
+            font-size: 22px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .summary-label {
+            font-size: 9px;
+            color: #64748b;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #334155;
             margin-bottom: 8px;
             padding-bottom: 5px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #3b82f6;
         }
-        table {
+
+        .section-title.absent {
+            border-bottom-color: #ef4444;
+        }
+
+        table.data-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 20px;
         }
-        thead tr {
-            background: #1e293b;
-        }
-        thead th {
-            padding: 8px 10px;
-            text-align: left;
-            font-size: 8.5px;
-            font-weight: 700;
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        }
-        thead th.center { text-align: center; }
-        tbody tr:nth-child(even) { background: #f8fafc; }
-        tbody tr:nth-child(odd)  { background: #ffffff; }
-        tbody td {
-            padding: 7px 10px;
-            font-size: 9.5px;
-            color: #374151;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-        tbody td.center { text-align: center; }
-        .name { font-weight: 600; color: #1e293b; }
-        .sub  { font-size: 8.5px; color: #94a3b8; margin-top: 1px; }
-        .method-qr     { background: #dcfce7; color: #166534; padding: 1px 6px; border-radius: 10px; font-size: 8px; font-weight: 700; }
-        .method-manual { background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 10px; font-size: 8px; font-weight: 700; }
 
-        /* Footer */
+        table.data-table th {
+            background: #334155;
+            color: white;
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        table.data-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 10px;
+        }
+
+        table.data-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        .badge-qr {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-manual {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
         .footer {
             margin-top: 20px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 8px;
+            color: #94a3b8;
         }
-        .footer-left { font-size: 8px; color: #94a3b8; line-height: 1.8; }
-        .footer-sign { text-align: center; }
-        .sign-line  { width: 130px; border-bottom: 1px solid #374151; margin-bottom: 4px; margin: 40px auto 4px; }
-        .sign-title { font-size: 8.5px; color: #374151; font-weight: 600; }
-        .sign-name  { font-size: 8px; color: #94a3b8; }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .text-green { color: #16a34a; }
+        .text-red   { color: #dc2626; }
+        .text-blue  { color: #2563eb; }
     </style>
 </head>
 <body>
 
     {{-- Header --}}
     <div class="header">
-        <div class="header-brand">
-            <div class="brand-name">F1 HR System</div>
-            <div class="brand-sub">Laporan Kehadiran Event</div>
-        </div>
-        <div class="header-meta">
-            Dicetak: {{ now()->format('d M Y, H:i') }} WIB<br>
-            Oleh: {{ auth()->user()->name ?? 'System' }}<br>
-            Dok: {{ $event->event_id }}
-        </div>
+        <h1>PT FIBERONE</h1>
+        <h2>Laporan Kehadiran Event</h2>
+        <p>Digenerate pada {{ $generatedAt }}</p>
     </div>
 
-    {{-- Event Info --}}
-    <div class="title-section">
-        <div class="event-title">{{ $event->title }}</div>
-        <div class="event-meta">
-            <div class="meta-item">
-                <span class="meta-label">Status</span>
-                <span class="badge badge-{{ $event->status }}">{{ ucfirst($event->status) }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Tipe</span>
-                <span class="badge badge-{{ $event->type }}">{{ ucfirst($event->type) }}</span>
-            </div>
-            @if($event->location)
-            <div class="meta-item">
-                <span class="meta-label">Lokasi</span>
-                <span>{{ $event->location }}</span>
-            </div>
-            @endif
-            <div class="meta-item">
-                <span class="meta-label">Tanggal</span>
-                <span>{{ $event->start_date->format('d M Y') }}{{ $event->end_date && $event->end_date->ne($event->start_date) ? ' – ' . $event->end_date->format('d M Y') : '' }}</span>
-            </div>
+    {{-- Info Event --}}
+    <div class="info-section">
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Nama Event</td>
+                <td class="info-value">: {{ $event->title }}</td>
+                <td class="info-label">Tipe</td>
+                <td class="info-value">: {{ $event->type === 'internal' ? 'Internal' : 'Partnership' }}</td>
+            </tr>
+            <tr>
+                <td class="info-label">Tanggal</td>
+                <td class="info-value">: {{ $event->start_date->format('d M Y') }}{{ $event->end_date && $event->end_date->ne($event->start_date) ? ' s/d ' . $event->end_date->format('d M Y') : '' }}</td>
+                <td class="info-label">Lokasi</td>
+                <td class="info-value">: {{ $event->location ?? '-' }}</td>
+            </tr>
             @if($event->start_time)
-            <div class="meta-item">
-                <span class="meta-label">Waktu</span>
-                <span>{{ $event->start_time }}{{ $event->end_time ? ' – ' . $event->end_time : '' }}</span>
-            </div>
+            <tr>
+                <td class="info-label">Jam</td>
+                <td class="info-value">: {{ $event->start_time }}{{ $event->end_time ? ' - ' . $event->end_time : '' }} WIB</td>
+                <td class="info-label">Status</td>
+                <td class="info-value">: {{ ucfirst($event->status) }}</td>
+            </tr>
             @endif
             @if($event->department)
-            <div class="meta-item">
-                <span class="meta-label">Dept</span>
-                <span>{{ $event->department->name }}</span>
-            </div>
+            <tr>
+                <td class="info-label">Department</td>
+                <td class="info-value" colspan="3">: {{ $event->department->name }}</td>
+            </tr>
             @endif
-        </div>
+            @if($event->description)
+            <tr>
+                <td class="info-label">Deskripsi</td>
+                <td class="info-value" colspan="3">: {{ $event->description }}</td>
+            </tr>
+            @endif
+        </table>
     </div>
 
-    {{-- Stats --}}
-    <div class="stats-row">
-        <div class="stat-card blue">
-            <div class="stat-value">{{ $attendances->count() }}</div>
-            <div class="stat-label">Total Peserta</div>
-        </div>
-        @if($event->type === 'partnership')
-        <div class="stat-card purple">
-            <div class="stat-value">{{ $totalOrang }}</div>
-            <div class="stat-label">Total Orang</div>
-        </div>
-        @endif
-        <div class="stat-card green">
-            <div class="stat-value">{{ $attendances->where('method', 'qr_scan')->count() }}</div>
-            <div class="stat-label">QR Scan</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ $attendances->where('method', 'manual')->count() }}</div>
-            <div class="stat-label">Manual</div>
-        </div>
-        @if($event->max_participants)
-        <div class="stat-card">
-            <div class="stat-value">{{ $event->max_participants }}</div>
-            <div class="stat-label">Kuota</div>
-        </div>
-        @endif
-    </div>
+    {{-- Summary --}}
+    <table class="summary-boxes">
+        <tr>
+            <td>
+                <span class="summary-number text-blue">{{ $totalKaryawan }}</span>
+                <span class="summary-label">Total Karyawan</span>
+            </td>
+            <td>
+                <span class="summary-number text-green">{{ $totalHadir }}</span>
+                <span class="summary-label">Hadir</span>
+            </td>
+            <td>
+                <span class="summary-number text-red">{{ $totalAbsen }}</span>
+                <span class="summary-label">Tidak Hadir</span>
+            </td>
+            <td>
+                <span class="summary-number">{{ $totalKaryawan > 0 ? round(($totalHadir / $totalKaryawan) * 100, 1) : 0 }}%</span>
+                <span class="summary-label">Persentase Kehadiran</span>
+            </td>
+        </tr>
+    </table>
 
-    {{-- Attendance Table --}}
-    <div class="section-title">Daftar Kehadiran</div>
-    <table>
+    {{-- Daftar Hadir --}}
+    <div class="section-title">Daftar Hadir ({{ $totalHadir }} karyawan)</div>
+    <table class="data-table">
         <thead>
             <tr>
-                <th style="width:30px">No</th>
-                <th>Nama Karyawan</th>
+                <th style="width: 30px;">No</th>
+                <th>Nama</th>
                 <th>NIP</th>
                 <th>Department</th>
-                <th>Waktu</th>
-                <th class="center">Metode</th>
+                <th>Waktu Check-in</th>
                 @if($event->type === 'partnership')
-                    <th class="center">Jml Orang</th>
+                <th>Jml Orang</th>
+                <th>Keterangan</th>
                 @endif
-                @if($event->type === 'partnership')
-                    <th>Keterangan</th>
-                @endif
+                <th>Metode</th>
             </tr>
         </thead>
         <tbody>
             @forelse($attendances as $i => $att)
             <tr>
-                <td class="center">{{ $i + 1 }}</td>
-                <td>
-                    <div class="name">{{ $att->karyawan?->full_name ?? '—' }}</div>
-                </td>
+                <td>{{ $i + 1 }}</td>
+                <td><strong>{{ $att->karyawan?->full_name ?? '—' }}</strong></td>
                 <td>{{ $att->karyawan?->nip ?? '—' }}</td>
-                <td>{{ $att->karyawan?->department?->name ?? '—' }}</td>
-                <td>{{ $att->check_in_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                <td class="center">
-                    @if($att->method === 'qr_scan')
-                        <span class="method-qr">QR Scan</span>
-                    @else
-                        <span class="method-manual">Manual</span>
-                    @endif
+                <td>{{ $att->karyawan?->department?->name ?? '-' }}</td>
+                <td>{{ $att->check_in_at?->format('d M Y H:i') ?? '—' }}</td>
+                @if($event->type === 'partnership')
+                <td style="text-align: center;">{{ $att->jumlah_orang }}</td>
+                <td>{{ $att->keterangan ?? '-' }}</td>
+                @endif
+                <td>
+                    <span class="badge {{ $att->method === 'qr_scan' ? 'badge-qr' : 'badge-manual' }}">
+                        {{ $att->method === 'qr_scan' ? 'QR Scan' : 'Manual' }}
+                    </span>
                 </td>
-                @if($event->type === 'partnership')
-                    <td class="center">{{ $att->jumlah_orang }}</td>
-                @endif
-                @if($event->type === 'partnership')
-                    <td>{{ $att->keterangan ?? '—' }}</td>
-                @endif
             </tr>
             @empty
             <tr>
-                <td colspan="{{ $event->type === 'partnership' ? 8 : 6 }}" style="text-align:center;padding:20px;color:#94a3b8;">
-                    Belum ada data kehadiran
+                <td colspan="{{ $event->type === 'partnership' ? 8 : 6 }}" style="text-align: center; padding: 15px; color: #94a3b8;">
+                    Belum ada peserta yang hadir
                 </td>
             </tr>
             @endforelse
         </tbody>
     </table>
 
+    {{-- Partnership total orang --}}
+    @if($event->type === 'partnership' && $totalHadir > 0)
+    <div class="info-section">
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Total Karyawan Hadir</td>
+                <td class="info-value">: {{ $totalHadir }} orang</td>
+            </tr>
+            <tr>
+                <td class="info-label">Total Orang (incl. keluarga)</td>
+                <td class="info-value">: {{ $totalOrang }} orang</td>
+            </tr>
+        </table>
+    </div>
+    @endif
+
+    {{-- Daftar Tidak Hadir --}}
+    @if($absentKaryawans->count() > 0)
+    <div class="section-title absent">Daftar Tidak Hadir ({{ $totalAbsen }} karyawan)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 30px;">No</th>
+                <th>Nama</th>
+                <th>NIP</th>
+                <th>Department</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($absentKaryawans as $i => $k)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td><strong>{{ $k->full_name }}</strong></td>
+                <td>{{ $k->nip }}</td>
+                <td>{{ $k->department?->name ?? '-' }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
+
     {{-- Footer --}}
     <div class="footer">
-        <div class="footer-left">
-            * Dokumen ini digenerate secara otomatis oleh sistem F1 HR.<br>
-            * Data kehadiran valid per tanggal cetak.
-        </div>
-        <div class="footer-sign">
-            <div class="sign-line"></div>
-            <div class="sign-title">Mengetahui</div>
-            <div class="sign-name">Admin HR</div>
-        </div>
+        <p>PT FIBERONE &mdash; Laporan digenerate otomatis oleh sistem pada {{ $generatedAt }}</p>
     </div>
 
 </body>

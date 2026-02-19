@@ -330,18 +330,42 @@ class EventController extends Controller
         return back()->with('success', 'Data kehadiran berhasil dihapus.');
     }
 
-    // ─── PDF Preview ─────────────────────────────────────────────────────────────
+    // ─── PDF Data ─────────────────────────────────────────────────────────────────
 
-    public function previewPdf(Event $event)
+    private function buildPdfData(Event $event): array
     {
         $event->load(['department', 'creator']);
+
         $attendances = EventAttendance::with(['karyawan.department', 'verifiedBy'])
             ->where('event_id', $event->event_id)
             ->orderByDesc('check_in_at')
             ->get();
-        $totalOrang = $event->getTotalOrang();
 
-        $pdf = Pdf::loadView('admin.event.pdf-report', compact('event', 'attendances', 'totalOrang'))
+        $totalOrang  = $event->getTotalOrang();
+        $attendedIds = $attendances->pluck('karyawan_id')->unique()->values();
+        $totalHadir  = $attendedIds->count();
+
+        $allKaryawans = Karyawan::with('department')
+            ->where('employment_status', 'active')
+            ->when($event->department_id, fn($q) => $q->where('department_id', $event->department_id))
+            ->orderBy('full_name')
+            ->get();
+
+        $totalKaryawan   = $allKaryawans->count();
+        $absentKaryawans = $allKaryawans->whereNotIn('karyawan_id', $attendedIds->toArray())->values();
+        $totalAbsen      = $absentKaryawans->count();
+        $generatedAt     = now()->format('d M Y, H:i') . ' WIB';
+
+        return compact('attendances', 'totalOrang', 'totalHadir', 'totalKaryawan', 'totalAbsen', 'absentKaryawans', 'generatedAt');
+    }
+
+    // ─── PDF Preview ─────────────────────────────────────────────────────────────
+
+    public function previewPdf(Event $event)
+    {
+        $data = $this->buildPdfData($event);
+
+        $pdf = Pdf::loadView('admin.event.pdf-report', array_merge(compact('event'), $data))
             ->setPaper('a4', 'portrait');
 
         return $pdf->stream('event-' . $event->event_id . '.pdf');
@@ -351,14 +375,9 @@ class EventController extends Controller
 
     public function downloadPdf(Event $event)
     {
-        $event->load(['department', 'creator']);
-        $attendances = EventAttendance::with(['karyawan.department', 'verifiedBy'])
-            ->where('event_id', $event->event_id)
-            ->orderByDesc('check_in_at')
-            ->get();
-        $totalOrang = $event->getTotalOrang();
+        $data = $this->buildPdfData($event);
 
-        $pdf = Pdf::loadView('admin.event.pdf-report', compact('event', 'attendances', 'totalOrang'))
+        $pdf = Pdf::loadView('admin.event.pdf-report', array_merge(compact('event'), $data))
             ->setPaper('a4', 'portrait');
 
         return $pdf->download('event-' . $event->event_id . '.pdf');
