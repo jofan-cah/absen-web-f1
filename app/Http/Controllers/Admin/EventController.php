@@ -73,7 +73,7 @@ class EventController extends Controller
         ]);
 
         $validated['created_by']        = auth()->id();
-        $validated['allow_multi_scan']   = $request->boolean('allow_multi_scan');
+        $validated['allow_multi_scan']   = $validated['type'] === 'partnership' ? $request->boolean('allow_multi_scan') : false;
         $validated['qr_refresh_seconds'] = $request->input('qr_refresh_seconds', 30);
         $validated['radius']             = $request->input('radius', 100);
 
@@ -131,7 +131,7 @@ class EventController extends Controller
             'department_id'       => 'nullable|exists:departments,department_id',
         ]);
 
-        $validated['allow_multi_scan']   = $request->boolean('allow_multi_scan');
+        $validated['allow_multi_scan']   = $validated['type'] === 'partnership' ? $request->boolean('allow_multi_scan') : false;
         $validated['qr_refresh_seconds'] = $request->input('qr_refresh_seconds', 30);
         $validated['radius']             = $request->input('radius', 100);
 

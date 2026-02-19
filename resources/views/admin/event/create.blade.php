@@ -15,7 +15,7 @@
         </a>
         <div>
             <h1 class="text-xl font-bold text-gray-900">Buat Event Baru</h1>
-            <p class="text-xs text-gray-500 mt-0.5">Isi semua informasi yang dibutuhkan</p>
+            <p class="text-xs text-gray-500 mt-0.5">Buat event internal atau kerjasama mitra</p>
         </div>
     </div>
 
@@ -35,64 +35,65 @@
     <form method="POST" action="{{ route('admin.event.store') }}" class="space-y-5">
         @csrf
 
-        {{-- Informasi Dasar --}}
+        {{-- 1. Informasi Event --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
                 <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <span class="w-5 h-5 rounded-md bg-red-500 text-white flex items-center justify-center text-xs font-bold">1</span>
-                    Informasi Dasar
+                    Informasi Event
                 </h2>
             </div>
             <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Judul Event <span class="text-red-500">*</span></label>
-                    <input type="text" name="title" value="{{ old('title') }}" required placeholder="Contoh: Rapat Koordinasi Q1 2026"
-                        class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-transparent transition">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nama Event <span class="text-red-500">*</span></label>
+                        <input type="text" name="title" value="{{ old('title') }}" required
+                            placeholder="Contoh: Bukber RASI 2026"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tipe Event <span class="text-red-500">*</span></label>
+                        <select name="type" id="eventType" required onchange="togglePartnershipFields()"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white transition">
+                            <option value="internal" {{ old('type', 'internal') === 'internal' ? 'selected' : '' }}>Internal (Rapat, Bukber, Gathering)</option>
+                            <option value="partnership" {{ old('type') === 'partnership' ? 'selected' : '' }}>Partnership / Mitra</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tipe <span class="text-red-500">*</span></label>
-                        <select name="type" required class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white transition">
-                            <option value="internal" {{ old('type', 'internal') === 'internal' ? 'selected' : '' }}>Internal</option>
-                            <option value="partnership" {{ old('type') === 'partnership' ? 'selected' : '' }}>Partnership</option>
-                        </select>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Lokasi</label>
+                        <input type="text" name="location" value="{{ old('location') }}"
+                            placeholder="Contoh: Kantor RASI / Umbul Pongok"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Department <span class="text-gray-400 font-normal">(opsional)</span></label>
-                        <select name="department_id" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white transition">
-                            <option value="">— Semua Department —</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->department_id }}" {{ old('department_id') == $dept->department_id ? 'selected' : '' }}>{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Maks. Peserta</label>
+                        <input type="number" name="max_participants" value="{{ old('max_participants') }}" min="1"
+                            placeholder="Kosongkan = tidak terbatas"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Lokasi</label>
-                    <input type="text" name="location" value="{{ old('location') }}" placeholder="Gedung A, Lantai 3"
-                        class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Deskripsi</label>
-                    <textarea name="description" rows="3" placeholder="Keterangan tambahan tentang event ini..."
+                    <textarea name="description" rows="3" placeholder="Deskripsi singkat event..."
                         class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition resize-none">{{ old('description') }}</textarea>
                 </div>
             </div>
         </div>
 
-        {{-- Tanggal & Waktu --}}
+        {{-- 2. Waktu --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
                 <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <span class="w-5 h-5 rounded-md bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
-                    Tanggal & Waktu
+                    Waktu Event
                 </h2>
             </div>
             <div class="p-5">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tanggal Mulai <span class="text-red-500">*</span></label>
                         <input type="date" name="start_date" value="{{ old('start_date') }}" required
@@ -102,6 +103,7 @@
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tanggal Selesai</label>
                         <input type="date" name="end_date" value="{{ old('end_date') }}"
                             class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
+                        <p class="text-xs text-gray-400 mt-1">Kosongkan jika 1 hari</p>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jam Mulai</label>
@@ -117,74 +119,106 @@
             </div>
         </div>
 
-        {{-- Pengaturan QR --}}
+        {{-- 3. Pengaturan QR --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
                 <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <span class="w-5 h-5 rounded-md bg-green-500 text-white flex items-center justify-center text-xs font-bold">3</span>
-                    Pengaturan QR & Peserta
+                    Pengaturan QR
                 </h2>
             </div>
             <div class="p-5 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Refresh QR (detik)</label>
-                        <input type="number" name="qr_refresh_seconds" value="{{ old('qr_refresh_seconds', 30) }}" min="10" max="300"
-                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                        <p class="text-xs text-gray-400 mt-1">Antara 10 – 300 detik</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Maks Peserta</label>
-                        <input type="number" name="max_participants" value="{{ old('max_participants') }}" min="1" placeholder="Tidak terbatas"
-                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Interval Refresh QR (detik)</label>
+                    <input type="number" name="qr_refresh_seconds" value="{{ old('qr_refresh_seconds', 30) }}" min="10" max="300"
+                        class="w-full sm:w-48 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
+                    <p class="text-xs text-gray-400 mt-1">Antara 10 – 300 detik</p>
                 </div>
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" name="allow_multi_scan" value="1" id="allow_multi_scan"
-                        {{ old('allow_multi_scan') ? 'checked' : '' }}
-                        class="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-300">
-                    <div>
-                        <div class="text-sm font-semibold text-gray-700">Izinkan scan berulang</div>
-                        <div class="text-xs text-gray-400">Satu karyawan bisa scan lebih dari satu kali</div>
-                    </div>
-                </label>
+
+                {{-- Info: Internal tidak bisa multi scan --}}
+                <div id="internalInfo" class="flex items-start gap-2.5 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+                    <svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-xs text-blue-700">Event <strong>Internal</strong> tidak mengizinkan scan berulang — setiap karyawan hanya bisa hadir 1x.</p>
+                </div>
+
+                {{-- Partnership: allow multi scan --}}
+                <div id="partnershipScanOpt" class="hidden">
+                    <label class="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input type="checkbox" name="allow_multi_scan" value="1" id="allowMultiScan"
+                            {{ old('allow_multi_scan') ? 'checked' : '' }}
+                            class="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-300">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-700">Boleh scan berkali-kali</div>
+                            <div class="text-xs text-gray-400">Setiap kunjungan pelanggan akan direkam terpisah</div>
+                        </div>
+                    </label>
+                </div>
             </div>
         </div>
 
-        {{-- GPS Validasi --}}
+        {{-- 4. Pengaturan Mitra (Partnership only) --}}
+        <div id="partnershipFields" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hidden">
+            <div class="px-5 py-3.5 border-b border-gray-100 bg-purple-50/50">
+                <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-md bg-purple-500 text-white flex items-center justify-center text-xs font-bold">4</span>
+                    Pengaturan Mitra
+                    <span class="text-xs font-normal text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Partnership only</span>
+                </h2>
+                <p class="text-xs text-gray-500 mt-0.5 ml-7">Validasi lokasi GPS saat karyawan scan</p>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Koordinat GPS</label>
+                        <input type="text" id="gpsInput"
+                            value="{{ old('latitude') && old('longitude') ? old('latitude') . ', ' . old('longitude') : '' }}"
+                            placeholder="Paste dari Google Maps: -7.707, 110.604"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition font-mono"
+                            onpaste="setTimeout(parseGps, 50)" oninput="parseGps()">
+                        <input type="hidden" name="latitude" id="latInput" value="{{ old('latitude') }}">
+                        <input type="hidden" name="longitude" id="lngInput" value="{{ old('longitude') }}">
+                        <div id="gpsPreview" class="hidden mt-1.5 text-xs font-mono px-2 py-1 rounded-lg bg-green-50 border border-green-100 text-green-700"></div>
+                        <div id="gpsError" class="hidden mt-1.5 text-xs text-red-600"></div>
+                        <p class="text-xs text-gray-400 mt-1">Copy koordinat dari Google Maps, paste di sini</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Radius (meter)</label>
+                        <input type="number" name="radius" value="{{ old('radius', 200) }}" min="50"
+                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition">
+                        <p class="text-xs text-gray-400 mt-1">Jarak maks dari lokasi (min 50m)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 5. Scope Peserta --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <span class="w-5 h-5 rounded-md bg-orange-500 text-white flex items-center justify-center text-xs font-bold">4</span>
-                        Validasi GPS
+                        <span class="w-5 h-5 rounded-md bg-orange-500 text-white flex items-center justify-center text-xs font-bold" id="scopeStep">5</span>
+                        Scope Peserta
                     </h2>
                     <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Opsional</span>
                 </div>
+                <p class="text-xs text-gray-400 mt-0.5 ml-7">Kosongkan untuk semua karyawan</p>
             </div>
-            <div class="p-5 space-y-4">
-                <p class="text-xs text-gray-500">Kosongkan jika tidak ingin membatasi lokasi saat scan.</p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Latitude</label>
-                        <input type="number" step="any" name="latitude" value="{{ old('latitude') }}" placeholder="-6.200000"
-                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Longitude</label>
-                        <input type="number" step="any" name="longitude" value="{{ old('longitude') }}" placeholder="106.816666"
-                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Radius (meter)</label>
-                        <input type="number" name="radius" value="{{ old('radius', 100) }}" min="10"
-                            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                    </div>
+            <div class="p-5">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Department</label>
+                    <select name="department_id" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white transition">
+                        <option value="">— Semua Department —</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->department_id }}" {{ old('department_id') == $dept->department_id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
         </div>
 
-        {{-- Action Buttons --}}
+        {{-- Submit --}}
         <div class="flex gap-3 justify-end pb-2">
             <a href="{{ route('admin.event.index') }}"
                 class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
@@ -192,9 +226,72 @@
             </a>
             <button type="submit"
                 class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:from-red-600 hover:to-rose-700 transition-all">
-                Buat Event
+                Simpan Event
             </button>
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+function togglePartnershipFields() {
+    const type     = document.getElementById('eventType').value;
+    const gpsBlock = document.getElementById('partnershipFields');
+    const scanOpt  = document.getElementById('partnershipScanOpt');
+    const infoBox  = document.getElementById('internalInfo');
+    const stepNum  = document.getElementById('scopeStep');
+
+    if (type === 'partnership') {
+        gpsBlock.classList.remove('hidden');
+        scanOpt.classList.remove('hidden');
+        infoBox.classList.add('hidden');
+        stepNum.textContent = '5';
+        stepNum.className   = stepNum.className.replace('bg-orange-500', 'bg-orange-500'); // keep orange
+    } else {
+        gpsBlock.classList.add('hidden');
+        scanOpt.classList.add('hidden');
+        infoBox.classList.remove('hidden');
+        // Uncheck multi scan when switching to internal
+        document.getElementById('allowMultiScan').checked = false;
+        stepNum.textContent = '4';
+    }
+}
+
+function parseGps() {
+    const raw     = document.getElementById('gpsInput').value.trim();
+    const preview = document.getElementById('gpsPreview');
+    const errEl   = document.getElementById('gpsError');
+    const latIn   = document.getElementById('latInput');
+    const lngIn   = document.getElementById('lngInput');
+
+    latIn.value = '';
+    lngIn.value = '';
+    preview.classList.add('hidden');
+    errEl.classList.add('hidden');
+
+    if (!raw) return;
+
+    const parts = raw.replace(/[()]/g, '').split(/[,\s]+/).filter(p => p !== '');
+    if (parts.length >= 2) {
+        const lat = parseFloat(parts[0]);
+        const lng = parseFloat(parts[1]);
+
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            latIn.value = lat;
+            lngIn.value = lng;
+            preview.textContent = '✓ Lat: ' + lat + ' | Long: ' + lng;
+            preview.classList.remove('hidden');
+            errEl.classList.add('hidden');
+        } else {
+            errEl.textContent = 'Format koordinat tidak valid';
+            errEl.classList.remove('hidden');
+        }
+    }
+}
+
+// Init on page load
+togglePartnershipFields();
+if (document.getElementById('gpsInput').value) parseGps();
+</script>
+@endpush
 @endsection
