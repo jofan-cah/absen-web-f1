@@ -16,7 +16,7 @@ class EventController extends Controller
 
     public function index(Request $request)
     {
-        $query = Event::with(['department', 'divisi', 'creator'])
+        $query = Event::with(['department', 'creator'])
             ->withCount('attendances');
 
         if ($request->filled('status')) {
