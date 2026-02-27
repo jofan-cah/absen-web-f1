@@ -99,17 +99,15 @@ class AuthController extends BaseApiController
         $user     = $request->user();
         $karyawan = $user->karyawan;
 
-        // ── Nonaktifkan device token FCM jika dikirim ───────────────────────
-        // Mobile app wajib kirim device_token saat logout agar HP tidak
-        // menerima notifikasi akun lain setelah ganti login.
-        if ($request->filled('device_token') && $karyawan) {
-            DeviceToken::where('device_token', $request->device_token)
-                ->where('karyawan_id', $karyawan->karyawan_id)
-                ->update(['is_active' => false]);
+        // ── Hapus SEMUA device token milik karyawan ini saat logout ──────────
+        // Dilakukan tanpa syarat agar auto-logout / session expire pun aman.
+        // Saat login ulang, mobile app wajib register ulang device token.
+        if ($karyawan) {
+            $deleted = DeviceToken::where('karyawan_id', $karyawan->karyawan_id)->delete();
 
-            Log::info('DeviceToken deactivated on logout', [
-                'karyawan_id'  => $karyawan->karyawan_id,
-                'token_prefix' => substr($request->device_token, 0, 20) . '...',
+            Log::info('DeviceTokens deleted on logout', [
+                'karyawan_id' => $karyawan->karyawan_id,
+                'deleted'     => $deleted,
             ]);
         }
 

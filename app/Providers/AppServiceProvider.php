@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Observers\PersonalAccessTokenObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        PersonalAccessToken::observe(PersonalAccessTokenObserver::class);
+
         $this->configureRateLimiting();
     }
 
