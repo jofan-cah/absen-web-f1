@@ -72,7 +72,7 @@
                     @endif
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $tunjanganDetail->tunjanganType->name }}</h1>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ $tunjanganDetail->tunjanganType->display_name }}</h1>
                     <div class="flex items-center space-x-4 mt-2">
                         <div class="flex items-center text-sm text-gray-600">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@
                             <dt class="text-sm font-medium text-gray-500">Jenis Tunjangan</dt>
                             <dd class="mt-1 text-sm text-gray-900">
                                 <div class="flex items-center space-x-2">
-                                    <span class="font-medium">{{ $tunjanganDetail->tunjanganType->name }}</span>
+                                    <span class="font-medium">{{ $tunjanganDetail->tunjanganType->display_name }}</span>
                                     <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
                                         {{ $tunjanganDetail->tunjanganType->code }}
                                     </span>
@@ -223,7 +223,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900">Perbandingan dengan Status Lain</h3>
-                <p class="text-sm text-gray-600 mt-1">Nominal untuk jenis tunjangan {{ $tunjanganDetail->tunjanganType->name }} berdasarkan status karyawan</p>
+                <p class="text-sm text-gray-600 mt-1">Nominal untuk jenis tunjangan {{ $tunjanganDetail->tunjanganType->display_name }} berdasarkan status karyawan</p>
             </div>
             <div class="p-6">
                 @php

@@ -55,7 +55,7 @@
                                         data-category="{{ $type->category }}"
                                         data-base-amount="{{ $type->base_amount }}"
                                         {{ old('tunjangan_type_id', request('tunjangan_type_id')) == $type->tunjangan_type_id ? 'selected' : '' }}>
-                                    {{ $type->name }} ({{ $type->code }}) - {{ ucfirst($type->category) }}
+                                    {{ $type->display_name }} ({{ $type->code }}) - {{ ucfirst($type->category) }}
                                 </option>
                             @endforeach
                         </select>

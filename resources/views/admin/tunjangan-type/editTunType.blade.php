@@ -30,7 +30,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-lg font-semibold text-gray-900">Edit Jenis Tunjangan</h3>
-                <p class="text-sm text-gray-600 mt-1">Ubah informasi jenis tunjangan: {{ $tunjanganType->name }}</p>
+                <p class="text-sm text-gray-600 mt-1">Ubah informasi jenis tunjangan: {{ $tunjanganType->display_name }}</p>
             </div>
             <div class="flex items-center space-x-3">
                 <div class="h-12 w-12 rounded-xl bg-gradient-to-br
@@ -79,7 +79,7 @@
                                name="name"
                                value="{{ old('name', $tunjanganType->name) }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @error('name') border-red-500 @enderror"
-                               placeholder="Contoh: Uang Makan"
+                               placeholder="Contoh: Insentif Kehadiran"
                                required>
                         @error('name')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -97,7 +97,7 @@
                                name="code"
                                value="{{ old('code', $tunjanganType->code) }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @error('code') border-red-500 @enderror"
-                               placeholder="Contoh: UANG_MAKAN"
+                               placeholder="Contoh: INSENTIF_KEHADIRAN"
                                maxlength="50"
                                required>
                         @error('code')
@@ -120,7 +120,7 @@
                                 Harian - Tunjangan per hari (misal: lembur)
                             </option>
                             <option value="mingguan" {{ old('category', $tunjanganType->category) == 'mingguan' ? 'selected' : '' }}>
-                                Mingguan - Tunjangan per minggu (misal: uang makan)
+                                Mingguan - Tunjangan per minggu (misal: insentif kehadiran)
                             </option>
                             <option value="bulanan" {{ old('category', $tunjanganType->category) == 'bulanan' ? 'selected' : '' }}>
                                 Bulanan - Tunjangan per bulan (misal: kuota internet)

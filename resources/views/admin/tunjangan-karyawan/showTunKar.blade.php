@@ -119,7 +119,7 @@
                         </div>
                         <div>
                             <h1 class="text-2xl font-bold">{{ $tunjanganKaryawan->tunjangan_karyawan_id }}</h1>
-                            <p class="text-white text-opacity-90">{{ $tunjanganKaryawan->tunjanganType->name }}</p>
+                            <p class="text-white text-opacity-90">{{ $tunjanganKaryawan->tunjanganType->display_name }}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -238,7 +238,7 @@
                                         </div>
                                         <div>
                                             <div class="font-medium text-gray-900">
-                                                {{ $tunjanganKaryawan->tunjanganType->name }}</div>
+                                                {{ $tunjanganKaryawan->tunjanganType->display_name }}</div>
                                             <div class="text-sm text-gray-500">
                                                 {{ $tunjanganKaryawan->tunjanganType->code }} •
                                                 {{ ucfirst($tunjanganKaryawan->tunjanganType->category) }}</div>
@@ -406,7 +406,7 @@
                                                 class="text-red-900">{{ ucfirst(str_replace('_', ' ', $tunjanganKaryawan->penalti->jenis_penalti)) }}</span>
                                         </div>
                                         <div class="flex justify-between">
-                                            <span class="text-red-600 font-medium">Hari Potong:</span>
+                                            <span class="text-red-600 font-medium">Hari Potong Insentif Kehadiran:</span>
                                             <span
                                                 class="text-red-900 font-bold">{{ $tunjanganKaryawan->penalti->hari_potong_uang_makan }}
                                                 hari</span>

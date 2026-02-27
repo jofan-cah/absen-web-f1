@@ -258,7 +258,7 @@
                             @endphp
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p>{{ $quantity }}x Uang Makan</p>
+                                    <p>{{ $quantity }}x Insentif Kehadiran</p>
                                     <p>Rp {{ number_format($amountPerUnit, 0, ',', '.') }} × {{ $quantity }}</p>
                                     <p class="font-bold">Rp {{ number_format($totalAmount, 0, ',', '.') }}</p>
                                 </div>
@@ -271,7 +271,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    {{ $lembur->total_jam >= 4 ? 'Lembur ≥ 4 jam mendapat 2x uang makan' : 'Lembur < 4 jam mendapat 1x uang makan' }}
+                                    {{ $lembur->total_jam >= 4 ? 'Lembur ≥ 4 jam mendapat 2x insentif kehadiran' : 'Lembur < 4 jam mendapat 1x insentif kehadiran' }}
                                 </p>
                                 @if (!$lembur->tunjanganKaryawan)
                                     <p class="text-xs text-blue-500 mt-1">
@@ -307,7 +307,7 @@
 
             <div>
                 <p>Staff Status: {{ $breakdown['staff_status'] }}</p>
-                <p>{{ $breakdown['quantity'] }}x Uang Makan</p>
+                <p>{{ $breakdown['quantity'] }}x Insentif Kehadiran</p>
                 <p>Rp {{ number_format($breakdown['amount_per_unit'], 0, ',', '.') }}</p>
                 <p class="font-bold">Total: Rp {{ number_format($breakdown['total_amount'], 0, ',', '.') }}</p>
 

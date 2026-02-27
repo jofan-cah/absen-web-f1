@@ -299,7 +299,7 @@
         <table>
             <tr>
                 <td>Jenis Tunjangan</td>
-                <td>{{ $tunjanganType->name ?? 'Tidak Diketahui' }}</td>
+                <td>{{ $tunjanganType->display_name ?? 'Tidak Diketahui' }}</td>
                 <td>Total Karyawan</td>
                 <td>{{ count($employees ?? []) }} orang</td>
                 <td>Periode</td>

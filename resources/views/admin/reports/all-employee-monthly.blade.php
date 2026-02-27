@@ -149,7 +149,7 @@
 
     <!-- Report Info -->
     <div class="report-info">
-        <div class="info-item"><strong>Jenis Tunjangan:</strong> {{ $tunjanganType->name }}</div>
+        <div class="info-item"><strong>Jenis Tunjangan:</strong> {{ $tunjanganType->display_name }}</div>
         <div class="info-item"><strong>Kategori:</strong> {{ ucfirst($tunjanganType->category) }}</div>
         <div class="info-item"><strong>Total Karyawan:</strong> {{ $summary['total_employees'] }}</div>
         <div class="info-item"><strong>Total Hari:</strong> {{ $summary['total_days'] }}</div>

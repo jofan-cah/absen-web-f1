@@ -144,7 +144,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm font-medium text-gray-600">Total Hari Potong</p>
+                <p class="text-sm font-medium text-gray-600">Total Hari Potong Insentif Kehadiran</p>
                 <p class="text-3xl font-bold text-gray-900 mt-2">{{ $penaltis->sum('hari_potong_uang_makan') ?? 0 }}</p>
                 <p class="text-sm text-orange-600 mt-1">
                     <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

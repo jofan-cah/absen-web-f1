@@ -274,7 +274,7 @@
                             @endif
                         </div>
                         <div>
-                            <h4 class="font-medium text-gray-900">{{ $type->tunjanganType->name }}</h4>
+                            <h4 class="font-medium text-gray-900">{{ $type->tunjanganType->display_name }}</h4>
                             <p class="text-sm text-gray-500">{{ $type->count }} tunjangan</p>
                         </div>
                     </div>

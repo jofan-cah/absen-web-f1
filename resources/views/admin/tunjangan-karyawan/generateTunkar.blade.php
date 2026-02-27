@@ -39,7 +39,7 @@
             @elseif($type->category == 'bulanan') from-blue-400 to-cyan-500
             @else from-purple-400 to-pink-500 @endif
             rounded-xl p-4 text-white">
-                <h3 class="text-lg font-semibold">{{ $type->name }}</h3>
+                <h3 class="text-lg font-semibold">{{ $type->display_name }}</h3>
                 <p class="text-sm opacity-90">{{ ucfirst($type->category) }}</p>
                 <p class="text-xs opacity-75 mt-2">{{ $type->description }}</p>
 
@@ -117,7 +117,7 @@
                                             </svg>
                                         </div>
                                     </div>
-                                    <h3 class="font-medium text-gray-900">{{ $type->name }}</h3>
+                                    <h3 class="font-medium text-gray-900">{{ $type->display_name }}</h3>
                                     <p class="text-sm text-gray-600">{{ ucfirst($type->category) }}</p>
                                 </div>
                             </label>

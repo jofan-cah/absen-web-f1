@@ -32,7 +32,7 @@
             <option value="">Semua Jenis</option>
             @foreach($tunjanganTypes as $type)
                 <option value="{{ $type->tunjangan_type_id }}" {{ request('tunjangan_type_id') == $type->tunjangan_type_id ? 'selected' : '' }}>
-                    {{ $type->name }}
+                    {{ $type->display_name }}
                 </option>
             @endforeach
         </select>
@@ -300,7 +300,7 @@
                                 </div>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <div class="text-sm font-medium text-gray-900">{{ $tunjangan->tunjanganType->name }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $tunjangan->tunjanganType->display_name }}</div>
                                 <div class="text-xs text-gray-500">{{ $tunjangan->tunjanganType->code }} • {{ ucfirst($tunjangan->tunjanganType->category) }}</div>
                             </div>
                         </div>

@@ -269,7 +269,7 @@
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
-                            Hari Potong Uang Makan
+                            Hari Potong Insentif Kehadiran
                             <span class="text-red-500 ml-1">*</span>
                         </span>
                     </label>
@@ -284,7 +284,7 @@
                     @error('hari_potong_uang_makan')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
-                    <p class="text-xs text-gray-500 mt-1">Jumlah hari uang makan yang akan dipotong (0-31 hari)</p>
+                    <p class="text-xs text-gray-500 mt-1">Jumlah hari insentif kehadiran yang akan dipotong (0-31 hari)</p>
                     @if($penalti->hari_potong_uang_makan != old('hari_potong_uang_makan', $penalti->hari_potong_uang_makan))
                         <p class="text-xs text-blue-600 mt-1">Nilai lama: {{ $penalti->hari_potong_uang_makan }} hari</p>
                     @endif
@@ -360,7 +360,7 @@
                         <div class="text-sm text-blue-800">
                             <p class="font-medium">Informasi Periode:</p>
                             <p id="period-duration">-</p>
-                            <p class="text-xs text-blue-600 mt-1">Potongan uang makan akan berlaku selama periode ini</p>
+                            <p class="text-xs text-blue-600 mt-1">Potongan insentif kehadiran akan berlaku selama periode ini</p>
                         </div>
                     </div>
                 </div>

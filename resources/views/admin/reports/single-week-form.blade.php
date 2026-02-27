@@ -24,7 +24,7 @@
                     <select name="tunjangan_type_id" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
                         <option value="">Pilih Tunjangan</option>
                         @foreach($tunjanganTypes as $type)
-                            <option value="{{ $type->tunjangan_type_id }}">{{ $type->name }}</option>
+                            <option value="{{ $type->tunjangan_type_id }}">{{ $type->display_name }}</option>
                         @endforeach
                     </select>
                 </div>

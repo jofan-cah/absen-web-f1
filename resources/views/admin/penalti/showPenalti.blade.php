@@ -420,7 +420,7 @@
                 @foreach($penalti->tunjanganKaryawan as $tunjangan)
                 <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
                     <div class="flex items-center justify-between mb-3">
-                        <h4 class="font-medium text-gray-900">{{ $tunjangan->tunjanganType->name }}</h4>
+                        <h4 class="font-medium text-gray-900">{{ $tunjangan->tunjanganType->display_name }}</h4>
                         <span class="px-2 py-1 text-xs font-medium rounded-full
                             @if($tunjangan->status == 'pending') bg-yellow-100 text-yellow-800
                             @elseif($tunjangan->status == 'approved') bg-green-100 text-green-800

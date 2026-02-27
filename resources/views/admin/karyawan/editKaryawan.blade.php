@@ -326,18 +326,18 @@
                             @enderror
                         </div>
 
-                        <!-- Uang Kuota -->
+                        <!-- Insentif Komunikasi -->
                         <div class="mb-4">
                             <div class="flex items-center">
                                 <input type="checkbox" id="uang_kuota" name="uang_kuota" value="1"
                                     {{ old('uang_kuota', $karyawan->uang_kuota) ? 'checked' : '' }}
                                     class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500">
                                 <label for="uang_kuota" class="ml-2 text-sm font-medium text-gray-700">
-                                    Dapat Uang Kuota
+                                    Dapat Insentif Komunikasi
                                 </label>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">
-                                Centang jika karyawan ini berhak mendapat uang kuota
+                                Centang jika karyawan ini berhak mendapat insentif komunikasi
                             </p>
                         </div>
 

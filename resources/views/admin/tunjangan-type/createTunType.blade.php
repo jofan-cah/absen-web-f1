@@ -40,7 +40,7 @@
                                name="name"
                                value="{{ old('name') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @error('name') border-red-500 @enderror"
-                               placeholder="Contoh: Uang Makan"
+                               placeholder="Contoh: Insentif Kehadiran"
                                required>
                         @error('name')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -58,7 +58,7 @@
                                name="code"
                                value="{{ old('code') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @error('code') border-red-500 @enderror"
-                               placeholder="Contoh: UANG_MAKAN"
+                               placeholder="Contoh: INSENTIF_KEHADIRAN"
                                maxlength="50"
                                required>
                         @error('code')
@@ -81,7 +81,7 @@
                                 Harian - Tunjangan per hari (misal: lembur)
                             </option>
                             <option value="mingguan" {{ old('category') == 'mingguan' ? 'selected' : '' }}>
-                                Mingguan - Tunjangan per minggu (misal: uang makan)
+                                Mingguan - Tunjangan per minggu (misal: insentif kehadiran)
                             </option>
                             <option value="bulanan" {{ old('category') == 'bulanan' ? 'selected' : '' }}>
                                 Bulanan - Tunjangan per bulan (misal: kuota internet)

@@ -238,7 +238,7 @@
 
     <!-- Report Info -->
     <div class="report-info">
-        <div class="info-item"><strong>Jenis Tunjangan:</strong> {{ $tunjanganType->name ?? 'Tidak Diketahui' }}</div>
+        <div class="info-item"><strong>Jenis Tunjangan:</strong> {{ $tunjanganType->display_name ?? 'Tidak Diketahui' }}</div>
         <div class="info-item"><strong>Kategori:</strong> {{ ucfirst($tunjanganType->category ?? 'tidak diketahui') }}
         </div>
         <div class="info-item"><strong>Total Karyawan:</strong> {{ count($employees ?? []) }}</div>

@@ -37,7 +37,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-lg font-semibold text-gray-900">Edit Detail Nominal</h3>
-                <p class="text-sm text-gray-600 mt-1">Edit detail nominal untuk {{ $tunjanganDetail->tunjanganType->name }} - {{ ucfirst(str_replace('_', ' ', $tunjanganDetail->staff_status)) }}</p>
+                <p class="text-sm text-gray-600 mt-1">Edit detail nominal untuk {{ $tunjanganDetail->tunjanganType->display_name }} - {{ ucfirst(str_replace('_', ' ', $tunjanganDetail->staff_status)) }}</p>
             </div>
             <div class="flex items-center space-x-3">
                 <div class="h-12 w-12 rounded-xl bg-gradient-to-br
@@ -91,7 +91,7 @@
                                         data-category="{{ $type->category }}"
                                         data-base-amount="{{ $type->base_amount }}"
                                         {{ old('tunjangan_type_id', $tunjanganDetail->tunjangan_type_id) == $type->tunjangan_type_id ? 'selected' : '' }}>
-                                    {{ $type->name }} ({{ $type->code }}) - {{ ucfirst($type->category) }}
+                                    {{ $type->display_name }} ({{ $type->code }}) - {{ ucfirst($type->category) }}
                                 </option>
                             @endforeach
                         </select>

@@ -43,6 +43,16 @@ class TunjanganType extends Model
         return $this->hasMany(TunjanganKaryawan::class, 'tunjangan_type_id', 'tunjangan_type_id');
     }
 
+    // Accessor: nama tampilan yang sudah disesuaikan (tidak mengubah DB)
+    public function getDisplayNameAttribute(): string
+    {
+        return match ($this->code) {
+            'UANG_MAKAN' => 'Insentif Kehadiran',
+            'UANG_KUOTA' => 'Insentif Komunikasi',
+            default      => $this->name,
+        };
+    }
+
     // Helper method
     public static function generateTunjanganTypeId()
     {

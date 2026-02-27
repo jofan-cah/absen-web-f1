@@ -123,7 +123,7 @@
                         <option value="">Pilih Jenis Tunjangan</option>
                         @foreach($tunjanganTypes as $type)
                             <option value="{{ $type->tunjangan_type_id }}" data-category="{{ $type->category }}">
-                                {{ $type->name }} ({{ ucfirst($type->category) }})
+                                {{ $type->display_name }} ({{ ucfirst($type->category) }})
                             </option>
                         @endforeach
                     </select>
