@@ -112,7 +112,7 @@ class TestNotification extends Command
         if ($successCount > 0) {
             Notification::create([
                 'karyawan_id' => $karyawan->karyawan_id,
-                'type'        => 'test',
+                'type'        => 'general',
                 'title'       => $title,
                 'message'     => $message,
                 'data'        => ['source' => 'artisan notif:test'],
