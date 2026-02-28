@@ -11,11 +11,12 @@ use Illuminate\Console\Command;
 class TestNotification extends Command
 {
     protected $signature = 'notif:test
-                            {nip : NIP karyawan yang akan ditest}
+                            {nip? : NIP karyawan (kosongkan untuk broadcast ke semua)}
                             {--title=Test Notifikasi : Judul notifikasi}
-                            {--message= : Isi pesan (default: "Ini test notifikasi dari server untuk <nama>")}';
+                            {--message= : Isi pesan}
+                            {--all : Kirim ke semua karyawan aktif yang punya device token}';
 
-    protected $description = 'Test kirim FCM notification ke karyawan berdasarkan NIP';
+    protected $description = 'Test kirim FCM notification ke karyawan berdasarkan NIP, atau broadcast ke semua';
 
     public function __construct(protected FCMService $fcmService)
     {
@@ -24,8 +25,69 @@ class TestNotification extends Command
 
     public function handle(): int
     {
-        $nip = $this->argument('nip');
+        if ($this->option('all') || !$this->argument('nip')) {
+            return $this->handleBroadcast();
+        }
 
+        return $this->handleSingle($this->argument('nip'));
+    }
+
+    protected function handleBroadcast(): int
+    {
+        $title   = $this->option('title');
+        $message = $this->option('message') ?: 'Halo! Ini broadcast test notifikasi dari server. ✅';
+
+        $this->info("══════════════════════════════════════════");
+        $this->info("  NOTIF BROADCAST - SEMUA KARYAWAN");
+        $this->info("══════════════════════════════════════════");
+        $this->line("  Judul : {$title}");
+        $this->line("  Pesan : {$message}");
+        $this->newLine();
+
+        $tokens = DeviceToken::with('karyawan')
+            ->where('is_active', true)
+            ->get();
+
+        if ($tokens->isEmpty()) {
+            $this->warn("⚠️  Tidak ada device token aktif sama sekali.");
+            return Command::FAILURE;
+        }
+
+        $this->line("📱 Total device aktif: <info>{$tokens->count()}</info>");
+        $this->newLine();
+
+        $success = 0;
+        $fail    = 0;
+
+        foreach ($tokens as $t) {
+            $nama   = $t->karyawan?->full_name ?? 'Unknown';
+            $result = $this->fcmService->sendToDevice(
+                $t->device_token,
+                $title,
+                $message,
+                ['type' => 'general']
+            );
+
+            if ($result) {
+                $success++;
+                $this->line("  ✅ {$nama}");
+            } else {
+                $fail++;
+                $this->error("  ❌ {$nama} - FCM gagal");
+            }
+        }
+
+        $this->newLine();
+        $this->info("── Summary ────────────────────────────────────");
+        $this->line("  ✅ Berhasil : {$success}");
+        $this->line("  ❌ Gagal    : {$fail}");
+        $this->line("  📊 Total    : " . ($success + $fail));
+
+        return $success > 0 ? Command::SUCCESS : Command::FAILURE;
+    }
+
+    protected function handleSingle(string $nip): int
+    {
         $this->info("══════════════════════════════════════════");
         $this->info("  NOTIF TEST - NIP: {$nip}");
         $this->info("══════════════════════════════════════════");
