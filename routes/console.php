@@ -97,14 +97,9 @@ Schedule::command('tunjangan:generate-makan')
 // ================================
 
 // Generate jadwal otomatis setiap tanggal 1 jam 00:05
-Schedule::job(new \App\Jobs\GenerateMonthlyJadwal())
-    ->monthlyOn(1, '00:05')
-    ->onSuccess(function () {
-        Log::info('✅ Generate jadwal bulanan berhasil dijalankan');
-    })
-    ->onFailure(function () {
-        Log::error('❌ Generate jadwal bulanan gagal');
-    });
+Schedule::call(function () {
+    (new \App\Jobs\GenerateMonthlyJadwal())->handle();
+})->monthlyOn(1, '00:05');
 
 // ================================
 // ARTISAN COMMANDS
