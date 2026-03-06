@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kebijakan Privasi - Hadirku</title>
+    <title>Kebijakan Privasi - F1 Absensi</title>
     <style>
         * {
             margin: 0;
@@ -131,12 +131,12 @@
     </style>
 </head>
 <body>
-    <h1>KEBIJAKAN PRIVASI APLIKASI HADIRKU</h1>
-    <p class="update-date">Terakhir diperbarui: 29 Januari 2026</p>
+    <h1>KEBIJAKAN PRIVASI APLIKASI F1 ABSENSI</h1>
+    <p class="update-date">Terakhir diperbarui: 06 Maret 2026</p>
 
     <div class="section">
         <h2>1. PENDAHULUAN</h2>
-        <p>Aplikasi Hadirku ("Aplikasi") dikembangkan oleh PT. Rasi Bintang Perkasa ("Kami") untuk keperluan sistem absensi karyawan. Kebijakan privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadi Anda.</p>
+        <p>Aplikasi F1 Absensi ("Aplikasi") dikembangkan oleh PT. Rasi Bintang Perkasa ("Kami") untuk keperluan sistem absensi karyawan. Kebijakan privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadi Anda.</p>
     </div>
 
     <div class="section">
@@ -283,7 +283,7 @@
 
     <div class="footer">
         <p>&copy; {{ date('Y') }} PT. Rasi Bintang Perkasa. All rights reserved.</p>
-        <p>Aplikasi Hadirku - Sistem Absensi Karyawan</p>
+        <p>Aplikasi F1 Absensi - Sistem Absensi Karyawan</p>
     </div>
 </body>
 </html>
