@@ -47,9 +47,10 @@ class TunjanganType extends Model
     public function getDisplayNameAttribute(): string
     {
         return match ($this->code) {
-            'UANG_MAKAN' => 'Insentif Kehadiran',
-            'UANG_KUOTA' => 'Insentif Komunikasi',
-            default      => $this->name,
+            'UANG_MAKAN'       => 'Insentif Kehadiran',
+            'UANG_KUOTA'       => 'Insentif Komunikasi',
+            'INSENTIF_LEBARAN' => 'Insentif Lebaran',
+            default            => $this->name,
         };
     }
 

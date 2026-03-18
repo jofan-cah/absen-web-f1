@@ -446,6 +446,11 @@ class Lembur extends Model
             'total_amount' => $totalAmount,
         ]);
 
+        $isLebaran = $this->isLebaranDay() && $tunjanganType->code === 'INSENTIF_LEBARAN';
+        $notesLabel = $isLebaran
+            ? "Insentif Lebaran (lembur) {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam ({$quantity}x)"
+            : "Tunjangan lembur {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam ({$quantity}x uang makan)";
+
         // Create tunjangan karyawan
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
@@ -459,7 +464,7 @@ class Lembur extends Model
             'quantity' => $quantity,
             'total_amount' => $totalAmount,
             'status' => 'pending',
-            'notes' => "Tunjangan lembur {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam ({$quantity}x uang makan)",
+            'notes' => $notesLabel,
             'hari_kerja_final' => 1, // Sesuaikan dengan logic
         ]);
 
@@ -484,10 +489,36 @@ class Lembur extends Model
     // ============================================
 
     /**
+     * Cek apakah tanggal lembur jatuh di hari libur Lebaran
+     */
+    public function isLebaranDay(): bool
+    {
+        if (!$this->tanggal_lembur) {
+            return false;
+        }
+
+        return \App\Models\Libur::whereRaw('UPPER(name) LIKE ?', ['%LEBARAN%'])
+            ->where('is_active', true)
+            ->whereDate('date', $this->tanggal_lembur->format('Y-m-d'))
+            ->exists();
+    }
+
+    /**
      * Get tunjangan type untuk UANG_LEMBUR
+     * Jika tanggal lembur adalah hari lebaran, return INSENTIF_LEBARAN (jika aktif)
      */
     public function getLemburTunjanganType()
     {
+        if ($this->isLebaranDay()) {
+            $lebaranType = TunjanganType::where('code', 'INSENTIF_LEBARAN')
+                ->where('is_active', true)
+                ->first();
+
+            if ($lebaranType) {
+                return $lebaranType;
+            }
+        }
+
         return TunjanganType::where('code', 'UANG_LEMBUR')
             ->where('is_active', true)
             ->first();
@@ -537,9 +568,21 @@ class Lembur extends Model
 
     /**
      * Calculate amount per unit dari database tunjangan_detail
+     * Jika hari lebaran, pakai base_amount dari INSENTIF_LEBARAN
      */
     public function calculateAmountPerUnit()
     {
+        // Jika hari lebaran, ambil dari INSENTIF_LEBARAN base_amount
+        if ($this->isLebaranDay()) {
+            $lebaranType = TunjanganType::where('code', 'INSENTIF_LEBARAN')
+                ->where('is_active', true)
+                ->first();
+
+            if ($lebaranType && $lebaranType->base_amount > 0) {
+                return (int) $lebaranType->base_amount;
+            }
+        }
+
         $tunjanganDetail = $this->getLemburTunjanganDetail();
 
         if ($tunjanganDetail && $tunjanganDetail->amount) {
@@ -723,6 +766,11 @@ class Lembur extends Model
         $amountPerUnit = $this->calculateAmountPerUnit();
         $totalAmount = $quantity * $amountPerUnit;
 
+        $isLebaran = $this->isLebaranDay() && $tunjanganType->code === 'INSENTIF_LEBARAN';
+        $notesLabel = $isLebaran
+            ? "Insentif Lebaran (OnCall) {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam"
+            : "Tunjangan lembur OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam";
+
         $tunjangan = TunjanganKaryawan::create([
             'tunjangan_karyawan_id' => TunjanganKaryawan::generateTunjanganKaryawanId(),
             'karyawan_id' => $this->karyawan_id,
@@ -735,7 +783,7 @@ class Lembur extends Model
             'amount' => $amountPerUnit,
             'total_amount' => $totalAmount,
             'status' => 'pending', // ✅ Jangan langsung approved!
-            'notes' => "Tunjangan lembur OnCall {$this->tanggal_lembur->format('d/m/Y')} - {$this->total_jam} jam",
+            'notes' => $notesLabel,
             'hari_kerja_final' => 1, // ✅ TAMBAH INI!
         ]);
 
