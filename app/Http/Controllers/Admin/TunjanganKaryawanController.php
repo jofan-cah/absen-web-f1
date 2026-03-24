@@ -1290,6 +1290,17 @@ class TunjanganKaryawanController extends Controller
 
         $isLembur = $tunjanganType->code === 'UANG_LEMBUR';
 
+        // Cari tanggal Libur Lebaran dalam minggu ini
+        $tanggalLebaranArr = \App\Models\Libur::whereRaw('UPPER(name) LIKE ?', ['%LEBARAN%'])
+            ->where('is_active', true)
+            ->whereBetween('date', [$weekStart->format('Y-m-d'), $weekEnd->format('Y-m-d')])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        $adaLebaran = !empty($tanggalLebaranArr);
+        $insentifLebaranType = TunjanganType::where('code', 'INSENTIF_LEBARAN')->first();
+
         $weekInfo = [
             'start' => $weekStart,
             'end' => $weekEnd,
@@ -1417,21 +1428,45 @@ class TunjanganKaryawanController extends Controller
                         'is_present' => $absen && $absen->clock_in ? true : false,
                         'clock_in' => $absen && $absen->clock_in ? $absen->clock_in : null,
                         'clock_out' => $absen && $absen->clock_out ? $absen->clock_out : null,
+                        'is_lebaran' => in_array($currentDate->format('Y-m-d'), $tanggalLebaranArr),
                     ];
 
                     $currentDate->addDay();
                 }
 
-                $workDays = collect($dailyAttendance)->where('is_present', true)->count();
+                $workDays = collect($dailyAttendance)->where('is_present', true)->where('is_lebaran', false)->count();
+                $lebaranDays = collect($dailyAttendance)->where('is_present', true)->where('is_lebaran', true)->count();
+
+                // Cari tunjangan INSENTIF_LEBARAN untuk minggu ini
+                $insentifLebaran = null;
+                if ($adaLebaran && $insentifLebaranType) {
+                    $insentifLebaran = TunjanganKaryawan::where('karyawan_id', $karyawan->karyawan_id)
+                        ->where('tunjangan_type_id', $insentifLebaranType->tunjangan_type_id)
+                        ->where(function ($q) use ($weekStart, $weekEnd) {
+                            $q->whereBetween('period_start', [$weekStart, $weekEnd])
+                                ->orWhereBetween('period_end', [$weekStart, $weekEnd])
+                                ->orWhere(function ($q2) use ($weekStart, $weekEnd) {
+                                    $q2->where('period_start', '<=', $weekStart)
+                                        ->where('period_end', '>=', $weekEnd);
+                                });
+                        })
+                        ->first();
+                }
+
+                $insentifLebaranAmount = $insentifLebaran ? $insentifLebaran->total_amount : 0;
+                $uangMakanAmount = $tunjangan ? $tunjangan->total_amount : 0;
 
                 $employeeData[] = [
                     'karyawan' => $karyawan,
                     'tunjangan' => $tunjangan,
                     'daily_attendance' => $dailyAttendance,
                     'work_days' => $workDays,
+                    'lebaran_days' => $lebaranDays,
+                    'insentif_lebaran' => $insentifLebaran,
+                    'insentif_lebaran_amount' => $insentifLebaranAmount,
                     'is_taken' => $tunjangan ? in_array($tunjangan->status, ['approved', 'received']) : false,
                     'status' => $tunjangan ? $tunjangan->status : 'no_data',
-                    'amount' => $tunjangan ? $tunjangan->total_amount : 0,
+                    'amount' => $uangMakanAmount + $insentifLebaranAmount,
                     'approved_date' => $tunjangan && $tunjangan->approved_at ? $tunjangan->approved_at->format('d/m/Y') : null,
                     'received_date' => $tunjangan && $tunjangan->received_at ? $tunjangan->received_at->format('d/m/Y') : null,
                     'source' => 'absen',
@@ -1447,7 +1482,9 @@ class TunjanganKaryawanController extends Controller
             'total_work_days' => $isLembur ?
                 collect($employeeData)->sum('total_lembur') :
                 collect($employeeData)->sum('work_days'),
+            'total_lebaran_days' => $isLembur ? 0 : collect($employeeData)->sum('lebaran_days'),
             'total_amount' => collect($employeeData)->sum('amount'),
+            'total_insentif_lebaran' => $isLembur ? 0 : collect($employeeData)->sum('insentif_lebaran_amount'),
             'total_jam_lembur' => $isLembur ? collect($employeeData)->sum('total_jam') : 0,
         ];
 
@@ -1459,6 +1496,8 @@ class TunjanganKaryawanController extends Controller
             'report_type' => 'single_week',
             'generated_at' => now()->format('d/m/Y H:i:s'),
             'is_lembur' => $isLembur,
+            'ada_lebaran' => $adaLebaran,
+            'tanggal_lebaran' => $tanggalLebaranArr,
         ];
 
         $pdf = Pdf::loadView('admin.reports.single-week-report', $data);

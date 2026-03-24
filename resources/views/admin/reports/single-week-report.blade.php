@@ -309,6 +309,16 @@
         </table>
     </div>
 
+    @if(isset($ada_lebaran) && $ada_lebaran && (!isset($is_lembur) || !$is_lembur))
+    <div style="background:#fef3c7; border:1px solid #b45309; padding:5px 8px; margin-bottom:8px; font-size:7px;">
+        <strong style="color:#b45309;">Libur Lebaran dalam minggu ini:</strong>
+        @foreach($tanggal_lebaran ?? [] as $tgl)
+            <span style="color:#b45309; margin-left:8px;">{{ \Carbon\Carbon::parse($tgl)->format('d/m/Y') }}</span>
+        @endforeach
+        &nbsp;|&nbsp; <strong>IL</strong> = Masuk di Hari Lebaran (Insentif Lebaran) &nbsp;|&nbsp; <strong>LB</strong> = Libur Lebaran (Tidak Masuk)
+    </div>
+    @endif
+
     <!-- Main Table -->
     <table class="main-table">
         <thead>
@@ -331,6 +341,12 @@
                 </th>
                 @if(isset($is_lembur) && $is_lembur)
                     <th class="col-jam">Total<br>Jam</th>
+                @endif
+                @if(!isset($is_lembur) || !$is_lembur)
+                    @if(isset($ada_lebaran) && $ada_lebaran)
+                        <th class="col-work" style="background:#b45309 !important;">Hari<br>Lebaran</th>
+                        <th class="col-amount" style="background:#b45309 !important;">Insentif<br>Lebaran</th>
+                    @endif
                 @endif
                 <th class="col-status">Status</th>
                 <th class="col-amount">Total<br>Nominal</th>
@@ -361,8 +377,17 @@
                     @endforeach
                 @elseif(isset($employee['daily_attendance']))
                     @foreach($employee['daily_attendance'] as $daily)
-                        <td class="col-day">
-                            @if($daily['is_present'] ?? false)
+                        <td class="col-day" @if($daily['is_lebaran'] ?? false) style="background:#fef3c7;" @endif>
+                            @if($daily['is_lebaran'] ?? false)
+                                @if($daily['is_present'] ?? false)
+                                    <strong style="color:#b45309;">IL</strong>
+                                    @if($daily['clock_in'] ?? false)
+                                        <span class="time-text" style="color:#b45309;">{{ date('H:i', strtotime($daily['clock_in'])) }}</span>
+                                    @endif
+                                @else
+                                    <span style="color:#999;">LB</span>
+                                @endif
+                            @elseif($daily['is_present'] ?? false)
                                 <strong>V</strong>
                                 @if($daily['clock_in'] ?? false)
                                     <span class="time-text">{{ date('H:i', strtotime($daily['clock_in'])) }}</span>
@@ -390,6 +415,17 @@
                     <td class="col-jam" style="font-weight: bold;">
                         {{ number_format($employee['total_jam'] ?? 0, 1) }}
                     </td>
+                @endif
+
+                @if(!isset($is_lembur) || !$is_lembur)
+                    @if(isset($ada_lebaran) && $ada_lebaran)
+                        <td class="col-work" style="font-weight: bold; background:#fef3c7; color:#b45309;">
+                            {{ $employee['lebaran_days'] ?? 0 }}
+                        </td>
+                        <td class="col-amount" style="font-weight: bold; background:#fef3c7; color:#b45309;">
+                            {{ number_format($employee['insentif_lebaran_amount'] ?? 0, 0, ',', '.') }}
+                        </td>
+                    @endif
                 @endif
 
                 <td class="col-status">
@@ -431,6 +467,12 @@
                 <td>{{ $summary['taken_count'] ?? 0 }}</td>
                 <td>Belum Diambil</td>
                 <td>{{ $summary['not_taken_count'] ?? 0 }}</td>
+                @if((!isset($is_lembur) || !$is_lembur) && isset($ada_lebaran) && $ada_lebaran)
+                    <td style="background:#fef3c7; color:#b45309; font-weight:bold;">Hari Lebaran</td>
+                    <td style="background:#fef3c7; color:#b45309; font-weight:bold;">{{ $summary['total_lebaran_days'] ?? 0 }}</td>
+                    <td style="background:#fef3c7; color:#b45309; font-weight:bold;">Insentif Lebaran</td>
+                    <td style="background:#fef3c7; color:#b45309; font-weight:bold;">Rp {{ number_format($summary['total_insentif_lebaran'] ?? 0) }}</td>
+                @endif
                 <td>Total Nominal</td>
                 <td>Rp {{ number_format(($summary['total_amount'] ?? 0)) }}</td>
             </tr>
