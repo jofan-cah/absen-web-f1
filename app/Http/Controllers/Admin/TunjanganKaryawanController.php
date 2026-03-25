@@ -448,6 +448,58 @@ class TunjanganKaryawanController extends Controller
         }
     }
 
+    public function resetToX1(TunjanganKaryawan $tunjanganKaryawan)
+    {
+        try {
+            if (!$tunjanganKaryawan->lembur_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya tunjangan dari lembur yang bisa di-reset ke x1!'
+                ], 422);
+            }
+
+            if ($tunjanganKaryawan->quantity != 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tunjangan ini sudah x1!'
+                ], 422);
+            }
+
+            if (in_array($tunjanganKaryawan->status, ['approved', 'received'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tunjangan yang sudah approved/received tidak bisa di-reset!'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            $tunjanganKaryawan->quantity = 1;
+            $tunjanganKaryawan->total_amount = $tunjanganKaryawan->amount * 1;
+
+            // Update notes
+            $oldNotes = $tunjanganKaryawan->notes;
+            $tunjanganKaryawan->notes = $oldNotes . ' [Reset ke x1 oleh admin]';
+
+            $tunjanganKaryawan->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tunjangan berhasil di-reset ke x1!',
+                'new_total' => $tunjanganKaryawan->total_amount
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal reset: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function destroy(TunjanganKaryawan $tunjanganKaryawan)
     {
         try {

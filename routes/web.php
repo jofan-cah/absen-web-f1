@@ -194,6 +194,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::post('/{tunjanganKaryawan}/approve', [TunjanganKaryawanController::class, 'approveTunjangan'])->name('approve');
                 Route::post('/{tunjanganKaryawan}/confirm', [TunjanganKaryawanController::class, 'confirmReceived'])->name('confirm');
                 Route::post('/{tunjanganKaryawan}/apply-penalti', [TunjanganKaryawanController::class, 'applyPenalti'])->name('apply-penalti');
+                Route::post('/{tunjanganKaryawan}/reset-to-x1', [TunjanganKaryawanController::class, 'resetToX1'])->name('reset-to-x1');
                 Route::delete('/{tunjanganKaryawan}', [TunjanganKaryawanController::class, 'destroy'])->name('destroy');
             });
 

@@ -39,6 +39,16 @@
             </button>
         @endif
 
+        @if($tunjanganKaryawan->lembur_id && $tunjanganKaryawan->quantity == 2 && !in_array($tunjanganKaryawan->status, ['approved', 'received']))
+            <button onclick="resetToX1()"
+                class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset ke x1
+            </button>
+        @endif
+
         <!-- Other Actions -->
         <button onclick="printDetail()"
             class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
@@ -941,6 +951,36 @@
                             setTimeout(() => {
                                 window.location.href = '{{ route('admin.tunjangan-karyawan.index') }}';
                             }, 1500);
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error:', error);
+                        showToast('Terjadi kesalahan sistem', 'error');
+                    });
+            }
+        }
+
+        // Reset ke x1
+        function resetToX1() {
+            if (confirm('Reset tunjangan dari x2 ke x1?\n\nTotal nominal akan dikurangi setengahnya. Tindakan ini tidak dapat dibatalkan!')) {
+                showLoading();
+
+                fetch('{{ route('admin.tunjangan-karyawan.reset-to-x1', $tunjanganKaryawan->tunjangan_karyawan_id) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1500);
                         } else {
                             showToast(data.message, 'error');
                         }
