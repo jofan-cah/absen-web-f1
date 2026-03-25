@@ -14,6 +14,16 @@
             Kembali
         </a>
 
+        @if($lembur->tunjanganKaryawan && $lembur->total_jam >= 4 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
+            <button onclick="resetToX1()"
+                class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset ke x1
+            </button>
+        @endif
+
         {{-- ✅ Button HANYA muncul jika koordinator_status = pending --}}
         @if ($lembur->status == 'submitted' && $lembur->koordinator_status == 'pending')
             <button onclick="approveLembur()"
@@ -952,6 +962,35 @@
         function hideLoading() {
             const loading = document.getElementById('loadingOverlay');
             if (loading) loading.remove();
+        }
+
+        function resetToX1() {
+            if (!confirm('Reset tunjangan ke x1 (1x uang makan)?\n\nJumlah akan dikurangi dari 2x ke 1x.\n\nLanjutkan?')) return;
+
+            showLoading();
+
+            fetch('{{ route('admin.tunjangan-karyawan.reset-to-x1', $lembur->tunjanganKaryawan->tunjangan_karyawan_id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('❌ Terjadi kesalahan');
+                    console.error('Error:', error);
+                });
         }
     </script>
 @endpush

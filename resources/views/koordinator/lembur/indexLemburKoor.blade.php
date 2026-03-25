@@ -230,6 +230,16 @@
                                                     d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                         </button>
+                                    @if($lembur->tunjanganKaryawan && $lembur->total_jam >= 4 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
+                                        <button onclick="resetToX1('{{ $lembur->tunjanganKaryawan->tunjangan_karyawan_id }}')"
+                                                class="text-orange-500 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors"
+                                                title="Reset ke x1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                        </button>
+                                    @endif
+
                                     @elseif($lembur->koordinator_status == 'approved')
                                         {{-- ✅ Info: Sudah di-approve, menunggu admin --}}
                                         <span class="text-xs text-gray-500 italic flex items-center gap-1">
@@ -395,6 +405,30 @@
 
         function showToast(message, type) {
             alert(message); // Simple alert, bisa diganti dengan toast library
+        }
+
+        function resetToX1(tunjanganId) {
+            if (!confirm('Reset tunjangan ke x1 (1x uang makan)?\n\nJumlah akan dikurangi dari 2x ke 1x.\n\nLanjutkan?')) return;
+
+            showLoading();
+
+            fetch(`/admin/tunjangan-karyawan/${tunjanganId}/reset-to-x1`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    showToast(data.message, data.success ? 'success' : 'error');
+                    if (data.success) setTimeout(() => window.location.reload(), 1000);
+                })
+                .catch(error => {
+                    hideLoading();
+                    showToast('Terjadi kesalahan', 'error');
+                });
         }
     </script>
 @endpush
