@@ -307,7 +307,7 @@
                                 </button>
                             @endif
 
-                            @if($lembur->tunjanganKaryawan && $lembur->tunjanganKaryawan->quantity == 2 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
+                            @if($lembur->tunjanganKaryawan && $lembur->total_jam >= 4 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
                                 <button onclick="resetToX1('{{ $lembur->tunjanganKaryawan->tunjangan_karyawan_id }}')"
                                         class="text-orange-500 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors"
                                         title="Reset ke x1">

@@ -458,13 +458,6 @@ class TunjanganKaryawanController extends Controller
                 ], 422);
             }
 
-            if ($tunjanganKaryawan->quantity != 2) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tunjangan ini sudah x1!'
-                ], 422);
-            }
-
             if (in_array($tunjanganKaryawan->status, ['approved', 'received'])) {
                 return response()->json([
                     'success' => false,
@@ -474,12 +467,14 @@ class TunjanganKaryawanController extends Controller
 
             DB::beginTransaction();
 
-            $tunjanganKaryawan->quantity = 1;
-            $tunjanganKaryawan->total_amount = $tunjanganKaryawan->amount * 1;
+            // Ambil amount per unit dari lembur langsung (sumber kebenaran)
+            $lembur = $tunjanganKaryawan->lembur;
+            $amountPerUnit = $lembur ? $lembur->calculateAmountPerUnit() : $tunjanganKaryawan->amount;
 
-            // Update notes
-            $oldNotes = $tunjanganKaryawan->notes;
-            $tunjanganKaryawan->notes = $oldNotes . ' [Reset ke x1 oleh admin]';
+            $tunjanganKaryawan->quantity = 1;
+            $tunjanganKaryawan->amount = $amountPerUnit;
+            $tunjanganKaryawan->total_amount = $amountPerUnit;
+            $tunjanganKaryawan->notes = $tunjanganKaryawan->notes . ' [Reset ke x1 oleh admin]';
 
             $tunjanganKaryawan->save();
 
@@ -487,8 +482,8 @@ class TunjanganKaryawanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Tunjangan berhasil di-reset ke x1!',
-                'new_total' => $tunjanganKaryawan->total_amount
+                'message' => 'Tunjangan berhasil di-reset ke x1! Total: Rp ' . number_format($amountPerUnit, 0, ',', '.'),
+                'new_total' => $amountPerUnit
             ]);
         } catch (\Exception $e) {
             DB::rollback();

@@ -14,7 +14,7 @@
             Kembali
         </a>
 
-        @if($lembur->tunjanganKaryawan && $lembur->tunjanganKaryawan->quantity == 2 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
+        @if($lembur->tunjanganKaryawan && $lembur->total_jam >= 4 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
             <button onclick="resetToX1()"
                 class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
