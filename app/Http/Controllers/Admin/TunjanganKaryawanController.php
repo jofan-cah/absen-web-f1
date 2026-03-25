@@ -465,25 +465,34 @@ class TunjanganKaryawanController extends Controller
                 ], 422);
             }
 
+            // Hitung amount x1 dari data tunjangan itu sendiri (total / 2)
+            $amountX1 = $tunjanganKaryawan->total_amount / 2;
+
             DB::beginTransaction();
 
-            // Ambil amount per unit dari lembur langsung (sumber kebenaran)
-            $lembur = $tunjanganKaryawan->lembur;
-            $amountPerUnit = $lembur ? $lembur->calculateAmountPerUnit() : $tunjanganKaryawan->amount;
+            // Update notes: ganti "2x" → "1x" dan tambah keterangan reset
+            $newNotes = str_replace('(2x', '(1x', $tunjanganKaryawan->notes ?? '');
+            $newNotes = str_replace('2x uang makan', '1x uang makan', $newNotes);
+            $newNotes .= ' [Reset ke x1 oleh admin]';
 
-            $tunjanganKaryawan->quantity = 1;
-            $tunjanganKaryawan->amount = $amountPerUnit;
-            $tunjanganKaryawan->total_amount = $amountPerUnit;
-            $tunjanganKaryawan->notes = $tunjanganKaryawan->notes . ' [Reset ke x1 oleh admin]';
-
-            $tunjanganKaryawan->save();
+            // Pakai DB::update langsung untuk bypass saving hook yang otomatis recalculate
+            DB::table('tunjangan_karyawan')
+                ->where('tunjangan_karyawan_id', $tunjanganKaryawan->tunjangan_karyawan_id)
+                ->update([
+                    'quantity'        => 1,
+                    'amount'          => $amountX1,
+                    'total_amount'    => $amountX1,
+                    'hari_kerja_final' => 1,
+                    'notes'           => $newNotes,
+                    'updated_at'      => now(),
+                ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Tunjangan berhasil di-reset ke x1! Total: Rp ' . number_format($amountPerUnit, 0, ',', '.'),
-                'new_total' => $amountPerUnit
+                'message' => 'Tunjangan berhasil di-reset ke x1! Total: Rp ' . number_format($amountX1, 0, ',', '.'),
+                'new_total' => $amountX1
             ]);
         } catch (\Exception $e) {
             DB::rollback();
