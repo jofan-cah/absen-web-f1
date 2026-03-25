@@ -259,21 +259,29 @@
                     @endif
 
                     <div class="col-span-2">
-                        <p class="text-sm text-gray-500 mb-2">Estimasi Tunjangan</p>
+                        @php
+                            // Kalau tunjangan sudah ada, pakai data tersimpan. Kalau belum, estimasi dari lembur.
+                            $tj = $lembur->tunjanganKaryawan;
+                            $displayQty    = $tj ? $tj->quantity                : $lembur->calculateQuantity();
+                            $displayAmount = $tj ? $tj->amount                  : $lembur->calculateAmountPerUnit();
+                            $displayTotal  = $tj ? $tj->total_amount            : $lembur->calculateTunjanganAmount();
+                            $isReset       = $tj && $tj->quantity == 1 && $lembur->total_jam >= 4;
+                        @endphp
+                        <p class="text-sm text-gray-500 mb-2">
+                            {{ $tj ? 'Tunjangan' : 'Estimasi Tunjangan' }}
+                            @if($isReset)
+                                <span class="ml-1 text-xs text-orange-500 font-medium">(di-reset ke x1)</span>
+                            @endif
+                        </p>
                         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                            @php
-                                $quantity = $lembur->calculateQuantity();
-                                $amountPerUnit = $lembur->calculateAmountPerUnit();
-                                $totalAmount = $lembur->calculateTunjanganAmount();
-                            @endphp
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p>{{ $quantity }}x Insentif Kehadiran</p>
-                                    <p>Rp {{ number_format($amountPerUnit, 0, ',', '.') }} × {{ $quantity }}</p>
-                                    <p class="font-bold">Rp {{ number_format($totalAmount, 0, ',', '.') }}</p>
+                                    <p>{{ $displayQty }}x Insentif Kehadiran</p>
+                                    <p>Rp {{ number_format($displayAmount, 0, ',', '.') }} × {{ $displayQty }}</p>
+                                    <p class="font-bold">Rp {{ number_format($displayTotal, 0, ',', '.') }}</p>
                                 </div>
                                 <p class="text-xl font-bold text-blue-700">Rp
-                                    {{ number_format($totalAmount, 0, ',', '.') }}</p>
+                                    {{ number_format($displayTotal, 0, ',', '.') }}</p>
                             </div>
                             <div class="mt-3 pt-3 border-t border-blue-200">
                                 <p class="text-xs text-blue-600 flex items-center gap-1">
@@ -281,9 +289,15 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    {{ $lembur->total_jam >= 4 ? 'Lembur ≥ 4 jam mendapat 2x insentif kehadiran' : 'Lembur < 4 jam mendapat 1x insentif kehadiran' }}
+                                    @if($isReset)
+                                        Lembur ≥ 4 jam — tunjangan disesuaikan menjadi 1x oleh admin
+                                    @elseif($lembur->total_jam >= 4)
+                                        Lembur ≥ 4 jam mendapat 2x insentif kehadiran
+                                    @else
+                                        Lembur &lt; 4 jam mendapat 1x insentif kehadiran
+                                    @endif
                                 </p>
-                                @if (!$lembur->tunjanganKaryawan)
+                                @if (!$tj)
                                     <p class="text-xs text-blue-500 mt-1">
                                         💰 Tunjangan akan dibuat setelah Admin approve
                                     </p>
@@ -311,27 +325,25 @@
                 @endif
             </div>
 
+            @if(!$lembur->tunjanganKaryawan)
             @php
                 $breakdown = $lembur->getTunjanganBreakdown();
             @endphp
-
             <div>
                 <p>Staff Status: {{ $breakdown['staff_status'] }}</p>
                 <p>{{ $breakdown['quantity'] }}x Insentif Kehadiran</p>
                 <p>Rp {{ number_format($breakdown['amount_per_unit'], 0, ',', '.') }}</p>
                 <p class="font-bold">Total: Rp {{ number_format($breakdown['total_amount'], 0, ',', '.') }}</p>
-
                 @if ($breakdown['source'] === 'database')
                     <p class="text-xs text-green-600">
                         ✅ Dari database: {{ $breakdown['tunjangan_detail']['staff_status'] }}
                         (Rp {{ number_format($breakdown['tunjangan_detail']['amount'], 0, ',', '.') }})
                     </p>
                 @else
-                    <p class="text-xs text-orange-500">
-                        ⚠️ Menggunakan nilai default
-                    </p>
+                    <p class="text-xs text-orange-500">⚠️ Menggunakan nilai default</p>
                 @endif
             </div>
+            @endif
 
             <!-- Approval History -->
             @if (

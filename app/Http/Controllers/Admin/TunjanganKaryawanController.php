@@ -465,8 +465,15 @@ class TunjanganKaryawanController extends Controller
                 ], 422);
             }
 
-            // Hitung amount x1 dari data tunjangan itu sendiri (total / 2)
-            $amountX1 = $tunjanganKaryawan->total_amount / 2;
+            // Ambil amount per unit dari lembur (sumber kebenaran = calculateAmountPerUnit)
+            $lembur = $tunjanganKaryawan->lembur;
+            if (!$lembur) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data lembur tidak ditemukan!'
+                ], 422);
+            }
+            $amountX1 = $lembur->calculateAmountPerUnit();
 
             DB::beginTransaction();
 
