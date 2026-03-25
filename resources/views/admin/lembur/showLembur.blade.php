@@ -14,6 +14,16 @@
             Kembali
         </a>
 
+        @if($lembur->tunjanganKaryawan && $lembur->tunjanganKaryawan->quantity == 2 && !in_array($lembur->tunjanganKaryawan->status, ['approved', 'received']))
+            <button onclick="resetToX1()"
+                class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset ke x1
+            </button>
+        @endif
+
         @if ($lembur->status == 'submitted')
             <button onclick="approveLembur()"
                 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
@@ -867,6 +877,33 @@
                     alert('❌ Terjadi kesalahan');
                     console.error('Error:', error);
                 });
+        }
+
+        function resetToX1() {
+            if (!confirm('Reset tunjangan dari x2 ke x1?\n\nTotal nominal akan dikurangi setengahnya. Tindakan ini tidak dapat dibatalkan!')) return;
+
+            showLoading();
+
+            @if($lembur->tunjanganKaryawan)
+            fetch('{{ route('admin.tunjangan-karyawan.reset-to-x1', $lembur->tunjanganKaryawan->tunjangan_karyawan_id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(() => { hideLoading(); alert('Terjadi kesalahan sistem'); });
+            @endif
         }
 
         function openImageModal(src) {
