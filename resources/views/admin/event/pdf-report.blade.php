@@ -300,7 +300,7 @@
 
     {{-- Daftar Tidak Hadir --}}
     @if($absentKaryawans->count() > 0)
-    <div class="section-title absent">Daftar Tidak Hadir ({{ $totalAbsen }} karyawan)</div>
+    <div class="section-title absent">Daftar Tidak Hadir </div>
     <table class="data-table">
         <thead>
             <tr>
