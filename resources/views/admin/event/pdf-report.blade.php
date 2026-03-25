@@ -311,13 +311,15 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($absentKaryawans as $i => $k)
-            <tr>
-                <td>{{ $i + 1 }}</td>
-                <td><strong>{{ $k->full_name }}</strong></td>
-                <td>{{ $k->nip }}</td>
-                <td>{{ $k->department?->name ?? '-' }}</td>
-            </tr>
+            @php $no = 1; @endphp
+            @foreach($absentKaryawans as $k)
+                @if($k->nip === '171717171') @continue @endif
+                <tr>
+                    <td>{{ $no++ }}</td>
+                    <td><strong>{{ $k->full_name }}</strong></td>
+                    <td>{{ $k->nip }}</td>
+                    <td>{{ $k->department?->name ?? '-' }}</td>
+                </tr>
             @endforeach
         </tbody>
     </table>
