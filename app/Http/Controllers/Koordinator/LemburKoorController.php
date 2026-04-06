@@ -93,20 +93,13 @@ class LemburKoorController extends Controller
         $user = Auth::user();
         $koordinator = $user->karyawan;
 
+        if (!$koordinator) {
+            abort(403, 'Data karyawan tidak ditemukan');
+        }
+
         // Validasi: Lembur harus dari department koordinator
         if ($lembur->karyawan->department_id !== $koordinator->department_id) {
             abort(403, 'Anda tidak memiliki akses ke lembur ini');
-        }
-
-        // Validasi: Harus Tim Teknis (update pattern matching)
-        $isTimTeknis = $lembur->karyawan->department &&
-            (stripos($lembur->karyawan->department->name, 'teknis') !== false ||
-                stripos($lembur->karyawan->department->code, 'teknis') !== false ||
-                stripos($lembur->karyawan->department->name, 'Technical Support') !== false ||
-                stripos($lembur->karyawan->department->code, 'TECH') !== false);
-
-        if (!$isTimTeknis) {
-            abort(403, 'Lembur ini bukan dari Tim Teknis');
         }
 
         $lembur->load([
@@ -172,20 +165,6 @@ class LemburKoorController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Anda hanya dapat approve lembur di department Anda'
-            ], 403);
-        }
-
-        // VALIDASI 4: Harus Tim Teknis
-        $isTimTeknis = $karyawan->department &&
-            (stripos($karyawan->department->name, 'teknis') !== false ||
-                stripos($karyawan->department->code, 'teknis') !== false ||
-                stripos($karyawan->department->name, 'Technical Support') !== false ||
-                stripos($karyawan->department->code, 'TECH') !== false);
-
-        if (!$isTimTeknis) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda hanya dapat approve lembur Tim Teknis'
             ], 403);
         }
 
