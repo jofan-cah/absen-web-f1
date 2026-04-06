@@ -969,7 +969,11 @@
 
             showLoading();
 
+            @if($lembur->tunjanganKaryawan)
             fetch('{{ route('admin.tunjangan-karyawan.reset-to-x1', $lembur->tunjanganKaryawan->tunjangan_karyawan_id) }}', {
+            @else
+            fetch(null, {
+            @endif
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
