@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Absen;
+use App\Models\Jadwal;
 use App\Models\Karyawan;
 use App\Models\Lembur;
 use App\Models\TunjanganKaryawan;
@@ -232,6 +234,181 @@ class LemburController extends Controller
             'koordinatorStatusOptions',
             'summary'
         ));
+    }
+
+    /**
+     * Form input lembur manual (admin only)
+     */
+    public function create()
+    {
+        $karyawans = Karyawan::with(['user', 'department'])
+            ->where('employment_status', 'active')
+            ->orderBy('full_name')
+            ->get();
+
+        return view('admin.lembur.createLembur', compact('karyawans'));
+    }
+
+    /**
+     * AJAX: Ambil info jadwal + absen karyawan pada tanggal tertentu
+     */
+    public function getJadwalInfo(Request $request)
+    {
+        $request->validate([
+            'karyawan_id' => 'required|exists:karyawans,karyawan_id',
+            'tanggal'     => 'required|date',
+        ]);
+
+        $jadwal = Jadwal::with(['shift', 'absen'])
+            ->where('karyawan_id', $request->karyawan_id)
+            ->whereDate('date', $request->tanggal)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $jadwal) {
+            return response()->json([
+                'found'   => false,
+                'message' => 'Tidak ada jadwal kerja pada tanggal tersebut.',
+            ]);
+        }
+
+        $absen = $jadwal->absen;
+
+        // Cek apakah sudah ada lembur untuk absen ini
+        $lemburExisting = null;
+        if ($absen) {
+            $lemburExisting = Lembur::where('absen_id', $absen->absen_id)
+                ->whereIn('status', ['draft', 'submitted', 'approved', 'processed'])
+                ->first();
+        }
+
+        return response()->json([
+            'found'   => true,
+            'jadwal'  => [
+                'jadwal_id' => $jadwal->jadwal_id,
+                'type'      => $jadwal->type,
+                'status'    => $jadwal->status,
+                'shift'     => $jadwal->shift ? [
+                    'name'     => $jadwal->shift->name,
+                    'end_time' => substr($jadwal->shift->end_time, 0, 5), // H:i
+                ] : null,
+            ],
+            'absen' => $absen ? [
+                'absen_id'  => $absen->absen_id,
+                'status'    => $absen->status,
+                'type'      => $absen->type,
+                'clock_in'  => $absen->clock_in  ? substr($absen->clock_in, 0, 5) : null,
+                'clock_out' => $absen->clock_out ? substr($absen->clock_out, 0, 5) : null,
+            ] : null,
+            'lembur_existing' => $lemburExisting ? [
+                'lembur_id' => $lemburExisting->lembur_id,
+                'status'    => $lemburExisting->status,
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Simpan lembur manual yang diinput admin
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'karyawan_id'          => 'required|exists:karyawans,karyawan_id',
+            'tanggal_lembur'       => 'required|date|before_or_equal:today',
+            'absen_id'             => 'required|exists:absens,absen_id',
+            'jam_mulai'            => 'required|date_format:H:i',
+            'jam_selesai'          => 'required|date_format:H:i',
+            'jenis_lembur'         => 'required|in:regular,oncall',
+            'deskripsi_pekerjaan'  => 'required|string|max:1000',
+            'bukti_foto'           => 'nullable|file|image|max:5120',
+            'bypass_koordinator'   => 'nullable|boolean',
+            'catatan_admin'        => 'nullable|string|max:500',
+        ]);
+
+        // Ambil dan validasi absen
+        $absen = Absen::with('jadwal.shift')->find($request->absen_id);
+
+        if (! $absen || $absen->karyawan_id !== $request->karyawan_id) {
+            return back()
+                ->withErrors(['absen_id' => 'Data absen tidak valid untuk karyawan ini.'])
+                ->withInput();
+        }
+
+        if (! $absen->clock_out) {
+            return back()
+                ->withErrors(['absen_id' => 'Karyawan belum clock out pada hari tersebut.'])
+                ->withInput();
+        }
+
+        // Cegah duplikat lembur untuk absen yang sama
+        $duplikat = Lembur::where('absen_id', $absen->absen_id)
+            ->whereIn('status', ['draft', 'submitted', 'approved', 'processed'])
+            ->first();
+
+        if ($duplikat) {
+            return back()
+                ->withErrors(['absen_id' => 'Sudah ada pengajuan lembur untuk absen ini (ID: ' . $duplikat->lembur_id . ', status: ' . $duplikat->status . ').'])
+                ->withInput();
+        }
+
+        // Hitung total jam (handle lintas tengah malam)
+        $mulai   = Carbon::createFromFormat('H:i', $request->jam_mulai);
+        $selesai = Carbon::createFromFormat('H:i', $request->jam_selesai);
+        if ($selesai->lessThanOrEqualTo($mulai)) {
+            $selesai->addDay();
+        }
+        $totalJam = $mulai->diffInMinutes($selesai) / 60;
+
+        if ($totalJam <= 0) {
+            return back()
+                ->withErrors(['jam_selesai' => 'Jam selesai harus lebih besar dari jam mulai.'])
+                ->withInput();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Upload bukti foto ke S3 (opsional)
+            $buktiFotoPath = null;
+            if ($request->hasFile('bukti_foto')) {
+                $buktiFotoPath = Storage::disk('s3')->putFile('lembur', $request->file('bukti_foto'));
+            }
+
+            $bypassKoordinator = $request->boolean('bypass_koordinator');
+
+            $lembur = Lembur::create([
+                'lembur_id'               => Lembur::generateLemburId(),
+                'karyawan_id'             => $request->karyawan_id,
+                'absen_id'                => $absen->absen_id,
+                'tanggal_lembur'          => $request->tanggal_lembur,
+                'jenis_lembur'            => $request->jenis_lembur,
+                'jam_mulai'               => $request->jam_mulai . ':00',
+                'jam_selesai'             => $request->jam_selesai . ':00',
+                'deskripsi_pekerjaan'     => $request->deskripsi_pekerjaan,
+                'bukti_foto'              => $buktiFotoPath,
+                'status'                  => 'submitted',
+                'koordinator_status'      => $bypassKoordinator ? 'approved' : 'pending',
+                'koordinator_approved_at' => $bypassKoordinator ? now() : null,
+                'koordinator_notes'       => $bypassKoordinator
+                    ? 'Bypass oleh Admin: ' . ($request->catatan_admin ?? '-')
+                    : null,
+                'submitted_at'            => now(),
+                'submitted_via'           => 'web_admin',
+                'created_by_user_id'      => Auth::id(),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('admin.lembur.show', $lembur->lembur_id)
+                ->with('success', 'Lembur manual berhasil dibuat! Total: ' . number_format($totalJam, 1) . ' jam.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Gagal buat lembur manual: ' . $e->getMessage());
+
+            return back()
+                ->withErrors(['error' => 'Gagal membuat lembur: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
     /**

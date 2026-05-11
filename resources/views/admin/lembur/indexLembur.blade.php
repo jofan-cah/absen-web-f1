@@ -47,9 +47,18 @@
                placeholder="Sampai Tanggal">
     </div>
 
-    <button onclick="resetFilter()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm">
-        Reset Filter
-    </button>
+    <div class="flex gap-2 flex-shrink-0">
+        <button onclick="resetFilter()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm">
+            Reset Filter
+        </button>
+        <a href="{{ route('admin.lembur.create') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Input Manual
+        </a>
+    </div>
 </div>
 @endsection
 

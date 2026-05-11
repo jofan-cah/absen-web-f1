@@ -201,6 +201,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Lembur
             Route::prefix('lembur')->name('lembur.')->group(function () {
                 Route::get('/', [LemburController::class, 'index'])->name('index');
+                Route::get('/create', [LemburController::class, 'create'])->name('create');
+                Route::get('/jadwal-info', [LemburController::class, 'getJadwalInfo'])->name('jadwal-info');
+                Route::post('/', [LemburController::class, 'store'])->name('store');
                 Route::get('/{lembur}', [LemburController::class, 'show'])->name('show');
                 Route::post('/{lembur}/approve', [LemburController::class, 'approve'])->name('approve');
                 Route::post('/{lembur}/reject', [LemburController::class, 'reject'])->name('reject');
