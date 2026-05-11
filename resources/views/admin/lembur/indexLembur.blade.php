@@ -47,22 +47,27 @@
                placeholder="Sampai Tanggal">
     </div>
 
-    <div class="flex gap-2 flex-shrink-0">
-        <button onclick="resetFilter()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm">
-            Reset Filter
-        </button>
-        <a href="{{ route('admin.lembur.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Input Manual
-        </a>
-    </div>
+    <button onclick="resetFilter()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm flex-shrink-0">
+        Reset Filter
+    </button>
 </div>
 @endsection
 
 @section('content')
+
+<!-- Action Bar -->
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-gray-700">Daftar Pengajuan Lembur</h2>
+    @if(auth()->user()->role === 'admin')
+    <a href="{{ route('admin.lembur.create') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Input Lembur Manual
+    </a>
+    @endif
+</div>
 
 <!-- Info Banner -->
 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
