@@ -66,30 +66,10 @@
         </svg>
         Input Lembur Manual
     </a>
-    
+
 </div>
 
-<!-- Info Banner -->
-<div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
-    <div class="flex items-start gap-3">
-        <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-        </div>
-        <div class="flex-1">
-            <h3 class="text-sm font-semibold text-blue-900 mb-1">Informasi Admin - Final Approval</h3>
-            <p class="text-xs text-blue-700">
-                Sebagai <strong>Admin</strong>, Anda dapat:
-                <br>• <strong>Approve Langsung (Bypass Koordinator)</strong> - Untuk lembur yang belum di-review koordinator
-                <br>• <strong>Final Approval</strong> - Untuk lembur yang sudah di-approve koordinator
-                <br>• Setelah approve, sistem otomatis generate tunjangan
-            </p>
-        </div>
-    </div>
-</div>
+
 
 <!-- Summary Cards -->
 <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
