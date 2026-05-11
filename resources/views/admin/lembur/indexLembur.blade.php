@@ -66,7 +66,6 @@
         </svg>
         Input Lembur Manual
     </a>
-
 </div>
 
 

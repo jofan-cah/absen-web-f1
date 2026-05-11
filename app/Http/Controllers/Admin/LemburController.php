@@ -393,7 +393,7 @@ class LemburController extends Controller
                     ? 'Bypass oleh Admin: ' . ($request->catatan_admin ?? '-')
                     : null,
                 'submitted_at'            => now(),
-                'submitted_via'           => 'web_admin',
+                'submitted_via'           => 'web',
                 'created_by_user_id'      => Auth::id(),
             ]);
 
