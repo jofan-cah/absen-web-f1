@@ -58,7 +58,7 @@
 <!-- Action Bar -->
 <div class="flex items-center justify-between mb-4">
     <h2 class="text-sm font-semibold text-gray-700">Daftar Pengajuan Lembur</h2>
-    @if(auth()->user()->role === 'admin')
+
     <a href="{{ route('admin.lembur.create') }}"
        class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@
         </svg>
         Input Lembur Manual
     </a>
-    @endif
+    
 </div>
 
 <!-- Info Banner -->
