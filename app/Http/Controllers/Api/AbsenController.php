@@ -19,6 +19,7 @@ class AbsenController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
         $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
 
         if (!$karyawan) {
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
@@ -29,6 +30,22 @@ class AbsenController extends BaseApiController
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereDate('date', $today)
             ->get();
+
+        // Cek overnight shift dari kemarin yang absennya belum selesai (clock_in ada, clock_out belum)
+        $overnightFromYesterday = Jadwal::with(['shift', 'absen'])
+            ->where('karyawan_id', $karyawan->karyawan_id)
+            ->whereDate('date', $yesterday)
+            ->whereHas('shift', fn($q) => $q->where('is_overnight', true))
+            ->whereHas('absen', fn($q) => $q->whereNotNull('clock_in')->whereNull('clock_out'))
+            ->where(function ($q) {
+                $q->whereNull('type')->orWhere('type', '!=', 'oncall');
+            })
+            ->first();
+
+        // Gabungkan: overnight kemarin masuk sebagai jadwal "hari ini"
+        if ($overnightFromYesterday) {
+            $jadwals = $jadwals->push($overnightFromYesterday);
+        }
 
         if ($jadwals->isEmpty()) {
             return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
@@ -97,6 +114,7 @@ class AbsenController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
         $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
         $now = Carbon::now();
 
         // Type yang diminta (default: regular, atau auto-detect jika tidak diisi)
@@ -144,6 +162,19 @@ class AbsenController extends BaseApiController
             $jadwal = $jadwalQuery->first();
         }
 
+        // Fallback: cek overnight shift dari kemarin yang belum clock in (jam dini hari)
+        if (!$jadwal && $requestedType !== 'oncall') {
+            $jadwal = Jadwal::with('shift')
+                ->where('karyawan_id', $karyawan->karyawan_id)
+                ->whereDate('date', $yesterday)
+                ->whereHas('shift', fn($q) => $q->where('is_overnight', true))
+                ->whereHas('absen', fn($q) => $q->whereNull('clock_in'))
+                ->where(function ($q) {
+                    $q->whereNull('type')->orWhere('type', '!=', 'oncall');
+                })
+                ->first();
+        }
+
         if (!$jadwal) {
             $typeLabel = $requestedType === 'oncall' ? 'OnCall' : 'regular';
             return $this->notFoundResponse("Tidak ada jadwal {$typeLabel} untuk hari ini");
@@ -175,9 +206,10 @@ class AbsenController extends BaseApiController
         $status = 'present';
 
         if ($jadwal->type !== 'oncall' && $jadwal->shift) {
-            $shiftStart = Carbon::parse($jadwal->shift->start_time);
-            if ($now->isAfter($shiftStart->copy()->addMinutes($jadwal->shift->late_tolerance ?? 15))) {
-                $lateMinutes = $shiftStart->diffInMinutes($now);
+            // Untuk overnight shift, start_time mengacu ke tanggal jadwal
+            $shiftStartDateTime = Carbon::parse($jadwal->date->format('Y-m-d') . ' ' . $jadwal->shift->start_time);
+            if ($now->isAfter($shiftStartDateTime->copy()->addMinutes($jadwal->shift->late_tolerance ?? 15))) {
+                $lateMinutes = $shiftStartDateTime->diffInMinutes($now);
                 $status = 'late';
             }
         }
@@ -237,6 +269,7 @@ class AbsenController extends BaseApiController
         $user = $request->user();
         $karyawan = $user->karyawan;
         $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
         $now = Carbon::now();
 
         // Type yang diminta
@@ -287,6 +320,20 @@ class AbsenController extends BaseApiController
             $absen = $absenQuery->whereNotNull('clock_in')->whereNull('clock_out')->first();
         }
 
+        // Fallback: overnight shift dari kemarin yang sudah clock in tapi belum clock out
+        if (!$absen && $requestedType !== 'oncall') {
+            $absen = Absen::with('jadwal.shift')
+                ->where('karyawan_id', $karyawan->karyawan_id)
+                ->whereDate('date', $yesterday)
+                ->whereNotNull('clock_in')
+                ->whereNull('clock_out')
+                ->whereHas('jadwal.shift', fn($q) => $q->where('is_overnight', true))
+                ->where(function ($q) {
+                    $q->whereNull('type')->orWhere('type', '!=', 'oncall');
+                })
+                ->first();
+        }
+
         if (!$absen) {
             $typeLabel = $requestedType === 'oncall' ? 'OnCall' : 'regular';
             return $this->notFoundResponse("Data absen {$typeLabel} tidak ditemukan atau belum clock in");
@@ -312,8 +359,9 @@ class AbsenController extends BaseApiController
         }
 
         // Calculate work hours
-        $clockIn = Carbon::parse($absen->clock_in);
-        $workMinutes = $now->diffInMinutes($clockIn);
+        // Untuk overnight shift, clock_in bisa dari hari kemarin - gunakan tanggal absen
+        $clockInDateTime = Carbon::parse($absen->date->format('Y-m-d') . ' ' . $absen->clock_in);
+        $workMinutes = $clockInDateTime->diffInMinutes($now);
 
         // Subtract break duration (skip untuk oncall)
         if ($absen->type !== 'oncall' && $absen->jadwal && $absen->jadwal->shift) {
@@ -323,12 +371,23 @@ class AbsenController extends BaseApiController
 
         $workHours = round($workMinutes / 60, 2);
 
-        // Check early checkout (skip untuk oncall - oncall tidak ada konsep pulang cepat)
+        // Check early checkout (skip untuk oncall dan overnight - overnight punya end_time hari berikutnya)
         $earlyCheckoutMinutes = 0;
         $currentStatus = $absen->status;
+        $isOvernight = $absen->jadwal && $absen->jadwal->shift && $absen->jadwal->shift->is_overnight;
 
-        if ($absen->type !== 'oncall' && $absen->jadwal && $absen->jadwal->shift) {
+        if ($absen->type !== 'oncall' && !$isOvernight && $absen->jadwal && $absen->jadwal->shift) {
             $shiftEnd = Carbon::parse($absen->jadwal->shift->end_time);
+            if ($now->isBefore($shiftEnd->copy()->subMinutes($absen->jadwal->shift->early_checkout_tolerance ?? 15))) {
+                $earlyCheckoutMinutes = $shiftEnd->diffInMinutes($now);
+                if ($currentStatus !== 'late') {
+                    $currentStatus = 'early_checkout';
+                }
+            }
+        } elseif (!$absen->type && $isOvernight && $absen->jadwal && $absen->jadwal->shift) {
+            // Untuk overnight: end_time adalah hari berikutnya
+            $shiftEnd = Carbon::parse($absen->date->format('Y-m-d') . ' ' . $absen->jadwal->shift->end_time)
+                ->addDay();
             if ($now->isBefore($shiftEnd->copy()->subMinutes($absen->jadwal->shift->early_checkout_tolerance ?? 15))) {
                 $earlyCheckoutMinutes = $shiftEnd->diffInMinutes($now);
                 if ($currentStatus !== 'late') {

@@ -68,7 +68,16 @@ class CompleteSeeder extends Seeder
             [
                 'name' => 'Shift Pagi',
                 'code' => 'PAGI',
-                'start_time' => '08:00:00',
+                'start_time' => '06:00:00',
+                'end_time' => '14:00:00',
+                'break_start' => '10:00:00',
+                'break_end' => '11:00:00',
+                'break_duration' => 60,
+            ],
+            [
+                'name' => 'Shift Normal',
+                'code' => 'NORMAL',
+                'start_time' => '09:00:00',
                 'end_time' => '17:00:00',
                 'break_start' => '12:00:00',
                 'break_end' => '13:00:00',
@@ -295,7 +304,7 @@ class CompleteSeeder extends Seeder
         $this->command->info('');
         $this->command->info('Created:');
         $this->command->info('  - ' . count($departments) . ' departments');
-        $this->command->info('  - ' . count($shifts) . ' shifts');
+        $this->command->info('  - ' . count($shifts) . ' shifts (Pagi 06-14, Normal 09-17, Siang 14-22, Malam 22-06, OnCall)');
         $this->command->info('  - ' . count($karyawanData) . ' users & karyawans');
         $this->command->info('');
         $this->command->info('Login credentials:');
