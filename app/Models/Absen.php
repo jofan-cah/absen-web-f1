@@ -21,7 +21,7 @@ class Absen extends Model
         'absen_id',
         'karyawan_id',
         'jadwal_id',
-        'ijin_id',      // ✅ Referensi ke ijin (sync dari jadwal)
+        'ijin_id',      // Referensi ke ijin (sync dari jadwal)
         'date',
         'clock_in',
         'clock_in_photo',
@@ -33,7 +33,7 @@ class Absen extends Model
         'clock_out_latitude',
         'clock_out_longitude',
         'clock_out_address',
-        'status',       // ✅ Follow dari ijin_type->code
+        'status',       // Follow dari ijin_type->code
         'late_minutes',
         'type',
         'early_checkout_minutes',

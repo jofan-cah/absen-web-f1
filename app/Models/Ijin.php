@@ -50,7 +50,7 @@ class Ijin extends Model
     ];
 
     // Tambah di $appends
-protected $appends = ['total_days', 'photo_url'];
+    protected $appends = ['total_days', 'photo_url'];
 
     public function getTotalDaysAttribute()
     {
