@@ -25,36 +25,29 @@ class AbsenController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        // PRIORITAS 1: Cek apakah ada sesi aktif (clock_in ada, clock_out belum) dari kemarin/hari ini
-        // Sesi aktif harus ditampilkan duluan - jadwal baru di-hold sampai clock out selesai
-        $jadwalOngoing = Jadwal::with(['shift', 'absen'])
-            ->where('karyawan_id', $karyawan->karyawan_id)
-            ->whereBetween('date', [$yesterday, $today])
-            ->whereHas('absen', fn($q) => $q->whereNotNull('clock_in')->whereNull('clock_out'))
-            ->where(function ($q) {
-                $q->whereNull('type')->orWhere('type', '!=', 'oncall');
-            })
-            ->orderByDesc('date')
-            ->first();
-
-        // PRIORITAS 2: Jadwal hari ini
+        // Jadwal hari ini (prioritas utama selalu hari ini)
         $jadwals = Jadwal::with(['shift', 'absen'])
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereDate('date', $today)
             ->get();
 
-        if ($jadwals->isEmpty() && !$jadwalOngoing) {
+        if ($jadwals->isEmpty()) {
             return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
         }
 
-        // Pisahkan jadwal regular dan oncall
-        // Jika ada sesi ongoing → pakai itu sebagai jadwal regular (hold jadwal baru)
-        $jadwalRegular = $jadwalOngoing ?? $jadwals->where('type', '!=', 'oncall')->first();
-        $jadwalOnCall = $jadwals->where('type', 'oncall')->first();
+        // Pisahkan jadwal regular dan oncall - selalu pakai jadwal HARI INI
+        $jadwalRegular = $jadwals->where('type', '!=', 'oncall')->first();
+        $jadwalOnCall  = $jadwals->where('type', 'oncall')->first();
 
-        // Flag apakah sedang hold (ada sesi aktif, jadwal baru ditunda)
-        $isOngoingSession = $jadwalOngoing && $jadwals->where('type', '!=', 'oncall')->isNotEmpty()
-            && $jadwalOngoing->jadwal_id !== $jadwals->where('type', '!=', 'oncall')->first()?->jadwal_id;
+        // Cek apakah ada absen KEMARIN yang belum clock out (warning only, tidak memblokir)
+        $absenKemarinBelumClockOut = Absen::where('karyawan_id', $karyawan->karyawan_id)
+            ->whereDate('date', $yesterday)
+            ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
+            ->where(function ($q) { $q->whereNull('type')->orWhere('type', '!=', 'oncall'); })
+            ->exists();
+
+        $isOngoingSession = $absenKemarinBelumClockOut;
 
         // Build response untuk jadwal regular
         $regularData = null;
@@ -321,7 +314,8 @@ class AbsenController extends BaseApiController
             $absen = $absenQuery->whereNotNull('clock_in')->whereNull('clock_out')->first();
         }
 
-        // Fallback: overnight shift dari kemarin yang sudah clock in tapi belum clock out
+        // Fallback: HANYA untuk shift malam overnight yang memang lintas hari
+        // Shift normal yang lupa clock out TIDAK di-fallback (biar tidak blocking absen hari ini)
         if (!$absen && $requestedType !== 'oncall') {
             $absen = Absen::with('jadwal.shift')
                 ->where('karyawan_id', $karyawan->karyawan_id)

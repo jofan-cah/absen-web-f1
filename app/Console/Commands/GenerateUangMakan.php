@@ -174,12 +174,15 @@ class GenerateUangMakan extends Command
                     $weekEnd->format('Y-m-d')
                 );
 
-                // Hitung delay (berdasarkan semua hari tidak logout)
+                // Hitung delay (hari tidak logout, kecuali shift malam yang sedang berjalan)
                 $hariTidakLogout = Absen::where('karyawan_id', $karyawan->karyawan_id)
                     ->whereBetween('date', [$weekStart, $weekEnd])
                     ->whereNotNull('clock_in')
                     ->whereNull('clock_out')
                     ->where('type', '!=', 'oncall')
+                    ->whereDoesntHave('jadwal.shift', fn($q) => $q->where('is_overnight', true)
+                        ->whereDate('date', Carbon::today()) // shift malam hari ini yang masih jalan
+                    )
                     ->count();
 
                 $delayDays = $hariTidakLogout;
