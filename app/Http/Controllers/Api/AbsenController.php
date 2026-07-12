@@ -25,22 +25,42 @@ class AbsenController extends BaseApiController
             return $this->notFoundResponse('Data karyawan tidak ditemukan');
         }
 
-        // Jadwal hari ini (prioritas utama selalu hari ini)
+        // Cek shift malam kemarin yang masih dalam grace period (max 2 jam setelah shift berakhir)
+        // Contoh: shift berakhir 06:00 → grace sampai 08:00, dalam window ini tampil jadwal kemarin dulu
+        $jadwalMalamKemarin = Jadwal::with(['shift', 'absen'])
+            ->where('karyawan_id', $karyawan->karyawan_id)
+            ->whereDate('date', $yesterday)
+            ->whereHas('shift', fn($q) => $q->where('is_overnight', true))
+            ->whereHas('absen', fn($q) => $q->whereNotNull('clock_in')->whereNull('clock_out'))
+            ->where(function ($q) { $q->whereNull('type')->orWhere('type', '!=', 'oncall'); })
+            ->first();
+
+        $isOvernightGracePeriod = false;
+        if ($jadwalMalamKemarin) {
+            $shiftEndTime = $jadwalMalamKemarin->shift->end_time; // e.g. "06:00:00"
+            $graceUntil = Carbon::today()->setTimeFromTimeString($shiftEndTime)->addHours(2);
+            $isOvernightGracePeriod = Carbon::now()->isBefore($graceUntil);
+        }
+
+        // Jadwal hari ini
         $jadwals = Jadwal::with(['shift', 'absen'])
             ->where('karyawan_id', $karyawan->karyawan_id)
             ->whereDate('date', $today)
             ->get();
 
-        if ($jadwals->isEmpty()) {
+        // Jika masih dalam grace period shift malam → tampilkan jadwal malam kemarin sebagai primary
+        if ($isOvernightGracePeriod && $jadwalMalamKemarin) {
+            $jadwalRegular = $jadwalMalamKemarin;
+        } elseif ($jadwals->isEmpty()) {
             return $this->notFoundResponse('Tidak ada jadwal untuk hari ini');
+        } else {
+            $jadwalRegular = $jadwals->where('type', '!=', 'oncall')->first();
         }
 
-        // Pisahkan jadwal regular dan oncall - selalu pakai jadwal HARI INI
-        $jadwalRegular = $jadwals->where('type', '!=', 'oncall')->first();
-        $jadwalOnCall  = $jadwals->where('type', 'oncall')->first();
+        $jadwalOnCall = $jadwals->where('type', 'oncall')->first();
 
-        // Cek apakah ada absen KEMARIN yang belum clock out (warning only, tidak memblokir)
-        $absenKemarinBelumClockOut = Absen::where('karyawan_id', $karyawan->karyawan_id)
+        // Cek absen kemarin non-overnight yang belum clock out (warning only, tidak memblokir)
+        $absenKemarinBelumClockOut = !$isOvernightGracePeriod && Absen::where('karyawan_id', $karyawan->karyawan_id)
             ->whereDate('date', $yesterday)
             ->whereNotNull('clock_in')
             ->whereNull('clock_out')
