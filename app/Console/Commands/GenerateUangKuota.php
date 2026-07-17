@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Log;
 class GenerateUangKuota extends Command
 {
     protected $signature = 'tunjangan:generate-kuota {--month=} {--year=}';
-    protected $description = 'Generate uang kuota untuk semua karyawan yang berhak + Slack notification';
+    protected $description = '[DISABLED] Generate uang kuota';
+    protected $hidden = true;
     protected $slackService;
 
     public function __construct(SlackNotificationService $slackService)
@@ -23,6 +24,9 @@ class GenerateUangKuota extends Command
 
     public function handle()
     {
+        $this->warn('⚠️  Command ini sedang dinonaktifkan.');
+        return Command::SUCCESS;
+
         $startTime = now();
         $this->info('🚀 Memulai generate uang kuota...');
 

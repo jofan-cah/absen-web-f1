@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
 class GenerateUangMakan extends Command
 {
     protected $signature = 'tunjangan:generate-makan {--week-start=}';
-    protected $description = 'Generate uang makan mingguan dengan delay system + Slack notification';
+    protected $description = '[DISABLED] Generate uang makan mingguan';
+    protected $hidden = true;
     protected $slackService;
 
     public function __construct(SlackNotificationService $slackService)
@@ -29,6 +30,9 @@ class GenerateUangMakan extends Command
 
     public function handle()
     {
+        $this->warn('⚠️  Command ini sedang dinonaktifkan.');
+        return Command::SUCCESS;
+
         $startTime = now();
         $this->info('🚀 Memulai generate uang makan mingguan...');
 
