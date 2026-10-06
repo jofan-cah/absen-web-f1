@@ -352,14 +352,11 @@ class IjinController extends BaseApiController
                 return $this->notFoundResponse('Data karyawan tidak ditemukan');
             }
 
-            // $originalDate = Carbon::parse($request->original_shift_date);
-            // if ($originalDate->dayOfWeek !== Carbon::SUNDAY) {
-            //     return $this->errorResponse('Tanggal piket harus hari Minggu', 400);
-            // }
+            $originalDate = Carbon::parse($request->original_shift_date);
 
             $attendance = Absen::where('karyawan_id', $karyawan->karyawan_id)
                 ->where('date', $request->original_shift_date)
-                ->where('status', 'present')
+                ->whereIn('status', ['present', 'late', 'early_checkout'])
                 ->first();
 
             if (!$attendance) {
@@ -501,7 +498,7 @@ class IjinController extends BaseApiController
                 });
 
             $piketDates = Absen::where('karyawan_id', $karyawan->karyawan_id)
-                ->where('status', 'present')
+                ->whereIn('status', ['present', 'late', 'early_checkout'])
                 ->where('date', '<', now())
                 ->where(function($query) use ($hariLibur) {
                     // Hari Minggu ATAU hari libur
