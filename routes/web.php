@@ -114,12 +114,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('department/export', [DepartmentController::class, 'export'])->name('department.export');
 
             // Karyawan Management
-            Route::resource('karyawan', KaryawanController::class);
-            Route::post('karyawan/bulk-delete', [KaryawanController::class, 'bulkDelete'])->name('karyawan.bulk-delete');
-            Route::post('karyawan/{id}/toggle-status', [KaryawanController::class, 'toggleStatus'])->name('karyawan.toggle-status');
-            Route::post('karyawan/{id}/reset-password', [KaryawanController::class, 'resetPassword'])->name('karyawan.reset-password');
             Route::match(['get', 'post'], 'karyawan/export', [KaryawanController::class, 'export'])->name('karyawan.export');
             Route::get('karyawan/export-migrasi', [KaryawanController::class, 'exportMigrasi'])->name('karyawan.export-migrasi');
+            Route::post('karyawan/bulk-delete', [KaryawanController::class, 'bulkDelete'])->name('karyawan.bulk-delete');
+            Route::resource('karyawan', KaryawanController::class);
+            Route::post('karyawan/{id}/toggle-status', [KaryawanController::class, 'toggleStatus'])->name('karyawan.toggle-status');
+            Route::post('karyawan/{id}/reset-password', [KaryawanController::class, 'resetPassword'])->name('karyawan.reset-password');
 
             // Shift Management
             Route::resource('shift', ShiftController::class);
