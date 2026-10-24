@@ -119,6 +119,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('karyawan/{id}/toggle-status', [KaryawanController::class, 'toggleStatus'])->name('karyawan.toggle-status');
             Route::post('karyawan/{id}/reset-password', [KaryawanController::class, 'resetPassword'])->name('karyawan.reset-password');
             Route::match(['get', 'post'], 'karyawan/export', [KaryawanController::class, 'export'])->name('karyawan.export');
+            Route::get('karyawan/export-migrasi', [KaryawanController::class, 'exportMigrasi'])->name('karyawan.export-migrasi');
 
             // Shift Management
             Route::resource('shift', ShiftController::class);
