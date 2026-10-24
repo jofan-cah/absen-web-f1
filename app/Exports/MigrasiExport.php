@@ -5,9 +5,10 @@ namespace App\Exports;
 use App\Models\Department;
 use App\Models\Karyawan;
 use App\Models\User;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class MigrasiExport implements WithMultipleSheets
+class MigrasiExport implements Export, WithMultipleSheets
 {
     public function sheets(): array
     {
